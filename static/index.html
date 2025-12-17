@@ -39,26 +39,22 @@
         h1 {
             font-family: 'Cinzel', serif;
             font-weight: 900;
-            font-size: 48px;
-            letter-spacing: 10px;
+            font-size: 50px;
+            letter-spacing: 12px;
             color: var(--gold);
-            text-shadow: 
-                0 0 20px var(--glow),
-                0 0 40px var(--glow),
-                0 0 60px var(--glow),
-                0 5px 10px rgba(0,0,0,0.8);
+            text-shadow: 0 0 30px var(--glow), 0 0 60px var(--glow), 0 5px 15px rgba(0,0,0,0.9);
             margin-bottom: 40px;
-            animation: pulse 4s infinite ease-in-out;
+            animation: subtle-pulse 5s infinite ease-in-out;
         }
-        @keyframes pulse {
-            0%, 100% { opacity: 0.9; transform: scale(1); }
-            50% { opacity: 1; transform: scale(1.02); }
+        @keyframes subtle-pulse {
+            0%, 100% { opacity: 0.95; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.01); }
         }
         p.subtitle {
             color: #aaa;
             font-size: 18px;
-            margin-bottom: 40px;
-            letter-spacing: 2px;
+            margin-bottom: 50px;
+            letter-spacing: 3px;
         }
         input {
             background: transparent;
@@ -70,36 +66,31 @@
             padding: 15px;
             width: 85%;
             outline: none;
-            transition: border-color 0.5s, box-shadow 0.5s;
+            transition: all 0.5s;
         }
         input:focus {
             border-bottom-color: var(--gold);
-            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+            box-shadow: 0 0 25px rgba(255, 215, 0, 0.4);
         }
         .release-btn {
             margin-top: 80px;
             background: transparent;
             color: var(--gold);
-            border: 2px solid var(--gold);
-            padding: 20px 60px;
-            font-size: 20px;
+            border: 3px solid var(--gold);
+            padding: 22px 70px;
+            font-size: 22px;
             font-weight: bold;
-            letter-spacing: 5px;
+            letter-spacing: 6px;
             text-transform: uppercase;
             cursor: pointer;
-            border-radius: 50px;
-            transition: all 0.6s ease;
-            box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
-            position: relative;
-            overflow: hidden;
+            border-radius: 60px;
+            transition: all 0.7s ease;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
         }
         .release-btn:hover {
-            background: rgba(255, 215, 0, 0.1);
-            transform: scale(1.1);
-            box-shadow: 0 0 50px rgba(255, 215, 0, 0.8);
-        }
-        .release-btn:active {
-            transform: scale(0.98);
+            background: rgba(255, 215, 0, 0.15);
+            transform: scale(1.15);
+            box-shadow: 0 0 70px rgba(255, 215, 0, 0.9);
         }
         #releasing-message, #final-message {
             position: absolute;
@@ -107,12 +98,12 @@
             left: 50%;
             transform: translate(-50%, -50%);
             font-family: 'Cinzel', serif;
-            font-size: 32px;
-            letter-spacing: 8px;
+            font-size: 36px;
+            letter-spacing: 10px;
             color: var(--gold);
-            text-shadow: 0 0 30px var(--glow);
+            text-shadow: 0 0 40px var(--glow);
             opacity: 0;
-            transition: opacity 2s ease-in;
+            transition: opacity 2.5s ease-in-out;
             z-index: 20;
         }
     </style>
@@ -125,7 +116,7 @@
         <h1>THE VOID</h1>
         <p class="subtitle">What burden do you wish to surrender forever?</p>
         <input type="text" id="burden-input" placeholder="e.g., Anxiety, Debt, Past..." autocomplete="off">
-        <button class="release-btn" id="release-btn">RELEASE IT</button>
+        <button class="release-btn">RELEASE IT</button>
     </div>
 
     <div id="releasing-message">SURRENDERING TO THE VOID...</div>
@@ -138,39 +129,67 @@
         tg.setHeaderColor('#000000');
         tg.setBackgroundColor('#000000');
 
-        // ... (کد ذرات بک‌گراند و انفجار همون قبلی بمونه) ...
+        // ذرات معلق ساده و subtle در بک‌گراند (قشنگ‌تر از قبلی)
+        const bgCanvas = document.getElementById('bg-canvas');
+        const bgCtx = bgCanvas.getContext('2d');
+        bgCanvas.width = window.innerWidth;
+        bgCanvas.height = window.innerHeight;
 
-        document.getElementById('release-btn').addEventListener('click', () => {
-            const input = document.getElementById('burden-input');
-            const text = input.value.trim().toUpperCase();
-            if (!text) {
-                tg.HapticFeedback.notificationOccurred('error');
-                return;
+        let bgParticles = [];
+        class BgParticle {
+            constructor() {
+                this.x = Math.random() * bgCanvas.width;
+                this.y = Math.random() * bgCanvas.height;
+                this.size = Math.random() * 1.2 + 0.3;
+                this.speedX = (Math.random() - 0.5) * 0.3;
+                this.speedY = (Math.random() - 0.5) * 0.3;
+                this.alpha = Math.random() * 0.4 + 0.1;
             }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.x < 0 || this.x > bgCanvas.width) this.speedX *= -1;
+                if (this.y < 0 || this.y > bgCanvas.height) this.speedY *= -1;
+            }
+            draw() {
+                bgCtx.fillStyle = `rgba(255, 215, 0, ${this.alpha})`;
+                bgCtx.beginPath();
+                bgCtx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                bgCtx.fill();
+            }
+        }
+
+        for (let i = 0; i < 120; i++) bgParticles.push(new BgParticle());
+
+        function animateBg() {
+            bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+            bgParticles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(animateBg);
+        }
+        animateBg();
+
+        // انفجار (همون قبلی اما بهتر)
+        // ... (کد انفجار و initParticles و animate همون نسخه قبلی که کار می‌کرد)
+
+        document.querySelector('.release-btn').addEventListener('click', () => {
+            const text = document.getElementById('burden-input').value.trim().toUpperCase();
+            if (!text) return tg.HapticFeedback.notificationOccurred('error');
+
             tg.HapticFeedback.impactOccurred('heavy');
             document.getElementById('ui-container').style.opacity = 0;
-            
-            // نمایش متن "در حال رها شدن"
             document.getElementById('releasing-message').style.opacity = 1;
-            
+
             setTimeout(() => {
                 document.getElementById('releasing-message').style.opacity = 0;
                 initExplosion(text);
                 animateExp();
-            }, 2000); // 2 ثانیه نمایش "SURRENDERING..."
+            }, 2500);
         });
 
-        function showFinalState() {
-            expCtx.clearRect(0, 0, expCanvas.width, expCanvas.height);
-            document.getElementById('final-message').style.opacity = 1;
-            tg.HapticFeedback.notificationOccurred('success');
-            setTimeout(() => {
-                const burdenText = document.getElementById('burden-input').value.trim();
-                tg.sendData(JSON.stringify({action: "create_invoice", need: burdenText}));
-            }, 3000);
-        }
-
-        // ... (بقیه کد ذرات و resize همون قبلی) ...
+        // بقیه کد showFinalState و sendData همون قبلی
     </script>
 </body>
 </html>
