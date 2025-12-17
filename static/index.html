@@ -4,222 +4,283 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>The Void</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&display=swap" rel="stylesheet">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
             --gold: #FFD700;
-            --bg: #050505;
+            --bg: #000000;
+            --glow: #FFAA00;
         }
         body {
             margin: 0;
             padding: 0;
-            background-color: var(--bg);
+            background: var(--bg);
             color: white;
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             overflow: hidden;
+            height: 100vh;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
+        }
+        canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 1;
+            pointer-events: none;
         }
         #ui-container {
             text-align: center;
             z-index: 10;
-            transition: opacity 0.8s ease-out;
+            transition: opacity 1s ease-out;
         }
         h1 {
-            font-weight: 100;
-            letter-spacing: 5px;
-            margin-bottom: 40px;
+            font-family: 'Cinzel', serif;
+            font-weight: 900;
+            font-size: 48px;
+            letter-spacing: 10px;
             color: var(--gold);
-            text-transform: uppercase;
-            font-size: 24px;
+            text-shadow: 
+                0 0 20px var(--glow),
+                0 0 40px var(--glow),
+                0 0 60px var(--glow),
+                0 5px 10px rgba(0,0,0,0.8);
+            margin-bottom: 40px;
+            animation: pulse 4s infinite ease-in-out;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 0.9; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.02); }
         }
         p.subtitle {
             color: #aaa;
-            font-weight: 300;
-            margin-bottom: 30px;
+            font-size: 18px;
+            margin-bottom: 40px;
+            letter-spacing: 2px;
         }
         input {
             background: transparent;
             border: none;
-            border-bottom: 1px solid #333;
+            border-bottom: 2px solid #444;
             color: var(--gold);
-            font-size: 22px;
+            font-size: 24px;
             text-align: center;
-            padding: 10px;
-            width: 80%;
+            padding: 15px;
+            width: 85%;
             outline: none;
-            font-weight: 300;
-            transition: border-color 0.3s;
+            transition: border-color 0.5s, box-shadow 0.5s;
         }
         input:focus {
             border-bottom-color: var(--gold);
-        }
-        input::placeholder {
-            color: #444;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
         }
         .release-btn {
-            margin-top: 60px;
+            margin-top: 80px;
             background: transparent;
             color: var(--gold);
-            border: 1px solid var(--gold);
-            padding: 15px 50px;
-            font-size: 16px;
-            letter-spacing: 3px;
+            border: 2px solid var(--gold);
+            padding: 20px 60px;
+            font-size: 20px;
+            font-weight: bold;
+            letter-spacing: 5px;
             text-transform: uppercase;
             cursor: pointer;
-            transition: all 0.3s ease;
-            border-radius: 2px;
+            border-radius: 50px;
+            transition: all 0.6s ease;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+            position: relative;
+            overflow: hidden;
         }
         .release-btn:hover {
-            background: var(--gold);
-            color: var(--bg);
-            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+            background: rgba(255, 215, 0, 0.1);
+            transform: scale(1.1);
+            box-shadow: 0 0 50px rgba(255, 215, 0, 0.8);
         }
         .release-btn:active {
             transform: scale(0.98);
-        }
-        #particle-canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 5;
-            pointer-events: none;
         }
         #final-message {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
+            font-family: 'Cinzel', serif;
+            font-size: 32px;
+            letter-spacing: 8px;
             color: var(--gold);
-            font-size: 18px;
-            letter-spacing: 4px;
+            text-shadow: 0 0 30px var(--glow);
             opacity: 0;
-            transition: opacity 2s ease-in;
+            transition: opacity 3s ease-in;
             z-index: 20;
         }
     </style>
 </head>
 <body>
-    <canvas id="particle-canvas"></canvas>
+    <canvas id="bg-canvas"></canvas>
+    <canvas id="explosion-canvas"></canvas>
+
     <div id="ui-container">
         <h1>THE VOID</h1>
-        <p class="subtitle">What burden do you wish to release forever?</p>
-        <input type="text" id="burden-input" placeholder="e.g., Anxiety, Debt, Her…" autocomplete="off">
-        <br>
-        <button class="release-btn" onclick="startReleaseSequence()">RELEASE IT</button>
+        <p class="subtitle">What burden do you wish to surrender forever?</p>
+        <input type="text" id="burden-input" placeholder="e.g., Anxiety, Debt, Past..." autocomplete="off">
+        <button class="release-btn" id="release-btn">RELEASE IT</button>
     </div>
+
     <div id="final-message">VOID ACCEPTED.</div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
         tg.enableClosingConfirmation();
-        tg.setHeaderColor('#050505');
-        tg.setBackgroundColor('#050505');
+        tg.setHeaderColor('#000000');
+        tg.setBackgroundColor('#000000');
 
-        const canvas = document.getElementById('particle-canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        // Canvas بک‌گراند (ذرات معلق همیشه)
+        const bgCanvas = document.getElementById('bg-canvas');
+        const bgCtx = bgCanvas.getContext('2d');
+        bgCanvas.width = window.innerWidth;
+        bgCanvas.height = window.innerHeight;
 
-        let particles = [];
-        let animationFrameId;
+        let bgParticles = [];
+        class BgParticle {
+            constructor() {
+                this.x = Math.random() * bgCanvas.width;
+                this.y = Math.random() * bgCanvas.height;
+                this.size = Math.random() * 1.5 + 0.5;
+                this.speedX = (Math.random() - 0.5) * 0.5;
+                this.speedY = (Math.random() - 0.5) * 0.5;
+                this.alpha = Math.random() * 0.5 + 0.2;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.x < 0 || this.x > bgCanvas.width) this.speedX *= -1;
+                if (this.y < 0 || this.y > bgCanvas.height) this.speedY *= -1;
+            }
+            draw() {
+                bgCtx.fillStyle = `rgba(255, 215, 0, ${this.alpha})`;
+                bgCtx.beginPath();
+                bgCtx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                bgCtx.fill();
+            }
+        }
 
-        class Particle {
+        for (let i = 0; i < 150; i++) bgParticles.push(new BgParticle());
+
+        function animateBg() {
+            bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+            bgParticles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(animateBg);
+        }
+        animateBg();
+
+        // Canvas انفجار
+        const expCanvas = document.getElementById('explosion-canvas');
+        const expCtx = expCanvas.getContext('2d');
+        expCanvas.width = window.innerWidth;
+        expCanvas.height = window.innerHeight;
+
+        let expParticles = [];
+
+        class ExpParticle {
             constructor(x, y) {
                 this.x = x;
                 this.y = y;
-                this.size = Math.random() * 2 + 0.5;
-                this.speedX = (Math.random() - 0.5) * 8;
-                this.speedY = (Math.random() - 0.5) * 8;
+                this.size = Math.random() * 3 + 1;
+                this.speedX = (Math.random() - 0.5) * 12;
+                this.speedY = (Math.random() - 0.5) * 12;
                 this.alpha = 1;
-                this.drag = 0.98;
+                this.drag = 0.96;
             }
             update() {
                 this.x += this.speedX;
                 this.y += this.speedY;
                 this.speedX *= this.drag;
                 this.speedY *= this.drag;
-                this.alpha -= 0.01;
+                this.alpha -= 0.015;
             }
             draw() {
-                ctx.fillStyle = `rgba(255, 215, 0, ${this.alpha})`;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fill();
+                expCtx.fillStyle = `rgba(255, 215, 0, ${this.alpha})`;
+                expCtx.beginPath();
+                expCtx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                expCtx.fill();
             }
         }
 
-        function initParticles(text) {
-            particles = [];
+        function initExplosion(text) {
+            expParticles = [];
             const tmpCanvas = document.createElement('canvas');
             const tmpCtx = tmpCanvas.getContext('2d');
-            tmpCanvas.width = canvas.width;
-            tmpCanvas.height = canvas.height;
-            
+            tmpCanvas.width = expCanvas.width;
+            tmpCanvas.height = expCanvas.height;
+
             tmpCtx.fillStyle = '#FFD700';
-            tmpCtx.font = 'bold 60px Arial';
+            tmpCtx.font = 'bold 80px Cinzel';
             tmpCtx.textAlign = 'center';
             tmpCtx.textBaseline = 'middle';
-            tmpCtx.fillText(text, canvas.width / 2, canvas.height / 2);
+            tmpCtx.fillText(text, expCanvas.width / 2, expCanvas.height / 2);
 
-            const imgData = tmpCtx.getImageData(0, 0, canvas.width, canvas.height);
-            for (let y = 0; y < imgData.height; y += 4) {
-                for (let x = 0; x < imgData.width; x += 4) {
+            const imgData = tmpCtx.getImageData(0, 0, expCanvas.width, expCanvas.height);
+            for (let y = 0; y < imgData.height; y += 3) {
+                for (let x = 0; x < imgData.width; x += 3) {
                     if (imgData.data[(y * imgData.width + x) * 4 + 3] > 128) {
-                        particles.push(new Particle(x, y));
+                        expParticles.push(new ExpParticle(x, y));
                     }
                 }
             }
+            // واکنش ذرات بک‌گراند (موج)
+            bgParticles.forEach(p => {
+                p.speedX *= 3;
+                p.speedY *= 3;
+                setTimeout(() => { p.speedX *= 0.3; p.speedY *= 0.3; }, 1000);
+            });
         }
 
-        function animate() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            particles.forEach(p => {
+        function animateExp() {
+            expCtx.clearRect(0, 0, expCanvas.width, expCanvas.height);
+            expParticles.forEach(p => {
                 p.update();
                 p.draw();
             });
-            particles = particles.filter(p => p.alpha > 0);
-            if (particles.length > 0) {
-                animationFrameId = requestAnimationFrame(animate);
+            expParticles = expParticles.filter(p => p.alpha > 0);
+            if (expParticles.length > 0) {
+                requestAnimationFrame(animateExp);
             } else {
-                cancelAnimationFrame(animationFrameId);
                 showFinalState();
             }
         }
 
-        function startReleaseSequence() {
+        document.getElementById('release-btn').addEventListener('click', () => {
             const input = document.getElementById('burden-input');
-            const burdenText = input.value.trim();
-            if (!burdenText) {
+            const text = input.value.trim().toUpperCase();
+            if (!text) {
                 tg.HapticFeedback.notificationOccurred('error');
-                input.placeholder = "The Void needs an answer...";
                 return;
             }
             tg.HapticFeedback.impactOccurred('heavy');
             document.getElementById('ui-container').style.opacity = 0;
-            initParticles(burdenText);
-            animate();
-        }
+            initExplosion(text);
+            animateExp();
+        });
 
         function showFinalState() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            expCtx.clearRect(0, 0, expCanvas.width, expCanvas.height);
             document.getElementById('final-message').style.opacity = 1;
             tg.HapticFeedback.notificationOccurred('success');
             setTimeout(() => {
                 const burdenText = document.getElementById('burden-input').value.trim();
                 tg.sendData(JSON.stringify({action: "create_invoice", need: burdenText}));
-            }, 2500);
+            }, 3000);
         }
 
         window.addEventListener('resize', () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+            bgCanvas.width = expCanvas.width = window.innerWidth;
+            bgCanvas.height = expCanvas.height = window.innerHeight;
         });
     </script>
 </body>
