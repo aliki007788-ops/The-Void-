@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Void</title>
+    <script src=https://telegram.org/js/telegram-web-app.js></script>
+    <style>
+        :root {
+            --gold: #FFD700;
+            --bg: #050505;
+        }
+        Body {
+            Margin: 0;
+            Padding: 0;
+            Background-color: var(--bg);
+            Color: white;
+            Font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            Overflow: hidden;
+            Display: flex;
+            Flex-direction: column;
+            Align-items: center;
+            Justify-content: center;
+            Height: 100vh;
+        }
+
+        /* کانتینر اصلی رابط کاربری */
+        #ui-container {
+            Text-align: center;
+            z-index: 10;
+            transition: opacity 0.8s ease-out;
+        }
+
+        H1 {
+            Font-weight: 100;
+            Letter-spacing: 5px;
+            Margin-bottom: 40px;
+            Color: var(--gold);
+            Text-transform: uppercase;
+            Font-size: 24px;
+        }
+
+        p.subtitle {
+            color: #aaa;
+            font-weight: 300;
+            margin-bottom: 30px;
+        }
+
+        /* استایل ورودی لوکس */
+        Input {
+            Background: transparent;
+            Border: none;
+            Border-bottom: 1px solid #333;
+            Color: var(--gold);
+            Font-size: 22px;
+            Text-align: center;
+            Padding: 10px;
+            Width: 80%;
+            Outline: none;
+            Font-weight: 300;
+            Transition: border-color 0.3s;
+        }
+        Input:focus {
+            Border-bottom-color: var(--gold);
+        }
+        Input::placeholder {
+            Color: #444;
+        }
+
+        /* دکمه رهایی */
+        .release-btn {
+            Margin-top: 60px;
+            Background: transparent;
+            Color: var(--gold);
+            Border: 1px solid var(--gold);
+            Padding: 15px 50px;
+            Font-size: 16px;
+            Letter-spacing: 3px;
+            Text-transform: uppercase;
+            Cursor: pointer;
+            Transition: all 0.3s ease;
+            Border-radius: 2px;
+        }
+        .release-btn:hover {
+            Background: var(--gold);
+            Color: var(--bg);
+            Box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+        }
+        .release-btn:active {
+            Transform: scale(0.98);
+        }
+
+        /* بوم نقاشی برای انیمیشن (ابتدا مخفی) */
+        #particle-canvas {
+            Position: absolute;
+            Top: 0;
+            Left: 0;
+            Width: 100%;
+            Height: 100%;
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        /* پیام نهایی */
+        #final-message {
+            Position: absolute;
+            Top: 50%;
+            Left: 50%;
+            Transform: translate(-50%, -50%);
+            Color: var(--gold);
+            Font-size: 18px;
+            Letter-spacing: 4px;
+            Opacity: 0;
+            Transition: opacity 2s ease-in;
+            z-index: 20;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="particle-canvas"></canvas>
+
+    <div id="ui-container">
+        <h1>THE VOID</h1>
+        <p class="subtitle">What burden do you wish to release forever?</p>
+        <input type="text" id="burden-input" placeholder="e.g., Anxiety, Debt, Her…" autocomplete="off">
+        <br>
+        <button class="release-btn" onclick="startReleaseSequence()">RELEASE IT</button>
+    </div>
+
+    <div id="final-message">VOID ACCEPTED.</div>
+
+    <script>
+        // تنظیمات تلگرام
+        Let tg = window.Telegram.WebApp;
+        Tg.expand();
+        Tg.enableClosingConfirmation();
+        // تم تاریک اجباری برای هماهنگی با سیستم
+        Tg.setHeaderColor('#050505');
+        Tg.setBackgroundColor('#050505');
+
+
+        Const canvas = document.getElementById('particle-canvas');
+        Const ctx = canvas.getContext('2d');
+        Canvas.width = window.innerWidth;
+        Canvas.height = window.innerHeight;
+
+        Let particles = [];
+        Let animationFrameId;
+
+        // کلاس ذره (Particle Class)
+        Class Particle {
+            Constructor(x, y, text) {
+                This.x = x;
+                This.y = y;
+                This.size = Math.random() * 2 + 0.5; // اندازه تصادفی ذرات
+                This.speedX = (Math.random() – 0.5) * 8; // سرعت انفجار افقی
+                This.speedY = (Math.random() – 0.5) * 8; // سرعت انفجار عمودی
+                This.color = '#FFD700'; // رنگ طلایی
+                This.alpha = 1; // شفافیت اولیه
+                This.drag = 0.98; // اصطکاک هوا برای طبیعی شدن حرکت
+            }
+
+            Update() {
+                This.x += this.speedX;
+                This.y += this.speedY;
+                This.speedX *= this.drag;
+                This.speedY *= this.drag;
+                This.alpha -= 0.01; // محو شدن تدریجی
+            }
+
+            Draw() {
+                Ctx.fillStyle = `rgba(255, 215, 0, ${this.alpha})`;
+                Ctx.beginPath();
+                Ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                Ctx.fill();
+            }
+        }
+
+        Function initParticles(text) {
+            Particles = [];
+            // ایجاد یک بوم موقت برای تبدیل متن به پیکسل
+            Let tmpCanvas = document.createElement('canvas');
+            Let tmpCtx = tmpCanvas.getContext('2d');
+            tmpCanvas.width = canvas.width;
+            tmpCanvas.height = canvas.height;
+            
+            tmpCtx.fillStyle = '#FFD700';
+            tmpCtx.font = 'bold 60px Arial';
+            tmpCtx.textAlign = 'center';
+            tmpCtx.fillText(text, canvas.width/2, canvas.height/2);
+
+            // خواندن داده‌های پیکسلی متن
+            Let imgData = tmpCtx.getImageData(0, 0, canvas.width, canvas.height);
+            // پیمایش پیکسل‌ها و ایجاد ذره در جایی که متن وجود دارد
+            For(let y = 0; y < imgData.height; y += 4) { // گام 4 برای سبکی
+                For(let x = 0; x < imgData.width; x += 4) {
+                    If(imgData.data[(y * 4 * imgData.width) + (x * 4) + 3] > 128) {
+                        Particles.push(new Particle(x, y, text));
+                    }
+                }
+            }
+        }
+
+        Function animate() {
+            Ctx.clearRect(0, 0, canvas.width, canvas.height);
+            For (let I = 0; I < particles.length; i++) {
+                Particles[i].update();
+                Particles[i].draw();
+            }
+            // حذف ذرات محو شده
+            Particles = particles.filter(p => p.alpha > 0);
+
+            If (particles.length > 0) {
+                animationFrameId = requestAnimationFrame(animate);
+            } else {
+                // پایان انیمیشن
+                cancelAnimationFrame(animationFrameId);
+                showFinalState();
+            }
+        }
+
+        // تابع اصلی که با کلیک دکمه اجرا می‌شود
+        Function startReleaseSequence() {
+            Const input = document.getElementById('burden-input');
+            Const burdenText = input.value.trim();
+
+            If (!burdenText) {
+                Tg.HapticFeedback.notificationOccurred('error');
+                Input.placeholder = "The Void needs an answer...";
+                Return;
+            }
+            
+            Tg.HapticFeedback.impactOccurred('heavy'); // ویبره سنگین
+
+            // 1. مخفی کردن رابط کاربری
+            Document.getElementById('ui-container').style.opacity = 0;
+
+            // 2. شروع انیمیشن ذرات
+            initParticles(burdenText);
+            animate();
+        }
+
+        Function showFinalState() {
+            Ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // نمایش پیام نهایی
+            Document.getElementById('final-message').style.opacity = 1;
+            
+            Tg.HapticFeedback.notificationOccurred('success');
+
+            // 3. ارسال دستور پرداخت به ربات پس از 2 ثانیه مکث
+            setTimeout(() => {
+                const burdenText = document.getElementById('burden-input').value;
+                // ارسال داده به ربات پایتون برای صدور فاکتور
+                Tg.sendData(JSON.stringify({action: "create_invoice", need: burdenText}));
+                // بستن مینی اپ (اختیاری – شاید بهتر باشد باز بماند تا پرداخت انجام شود)
+                // tg.close(); 
+            }, 2500);
+        }
+
+        // تنظیم مجدد اندازه بوم در صورت چرخش صفحه
+        Window.addEventListener('resize', () => {
+            Canvas.width = window.innerWidth;
+            Canvas.height = window.innerHeight;
+        });
+
+    </script>
+</body>
+</html>

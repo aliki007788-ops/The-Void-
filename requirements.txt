@@ -1,0 +1,7 @@
+Aiogram==3.0.0
+Fastapi
+Uvicorn
+Python-dotenv
+Pillow
+Requests
+Python-multipart
