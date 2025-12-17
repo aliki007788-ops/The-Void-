@@ -9,74 +9,91 @@
         :root {
             --gold: #FFD700;
             --bg: #050505;
+            --secondary-bg: #1e1e1e;
+            --accent: #ff6600;
         }
         body {
             margin: 0;
             padding: 0;
             background-color: var(--bg);
             color: white;
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-family: 'Poppins', sans-serif;
             overflow: hidden;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             height: 100vh;
+            animation: fadeIn 2s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
         #ui-container {
             text-align: center;
             z-index: 10;
             transition: opacity 0.8s ease-out;
+            animation: slideUp 1s ease-out;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(50px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         h1 {
-            font-weight: 100;
-            letter-spacing: 5px;
+            font-weight: 700;
+            letter-spacing: 8px;
             margin-bottom: 40px;
             color: var(--gold);
             text-transform: uppercase;
-            font-size: 24px;
+            font-size: 48px;
+            text-shadow: 0 0 10px var(--gold), 0 0 20px var(--gold);
         }
         p.subtitle {
             color: #aaa;
             font-weight: 300;
             margin-bottom: 30px;
+            font-size: 18px;
         }
         input {
             background: transparent;
             border: none;
-            border-bottom: 1px solid #333;
+            border-bottom: 2px solid #333;
             color: var(--gold);
-            font-size: 22px;
+            font-size: 24px;
             text-align: center;
-            padding: 10px;
+            padding: 15px;
             width: 80%;
             outline: none;
-            font-weight: 300;
-            transition: border-color 0.3s;
+            font-weight: 400;
+            transition: border-color 0.3s, transform 0.3s ease;
         }
         input:focus {
             border-bottom-color: var(--gold);
+            transform: scale(1.05);
         }
         input::placeholder {
             color: #444;
         }
         .release-btn {
             margin-top: 60px;
-            background: transparent;
-            color: var(--gold);
+            background: linear-gradient(145deg, #ff6600, #ff3300);
+            color: white;
             border: 1px solid var(--gold);
-            padding: 15px 50px;
-            font-size: 16px;
-            letter-spacing: 3px;
+            padding: 20px 60px;
+            font-size: 18px;
+            letter-spacing: 2px;
             text-transform: uppercase;
             cursor: pointer;
-            transition: all 0.3s ease;
-            border-radius: 2px;
+            transition: all 0.4s ease;
+            border-radius: 30px;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
         }
         .release-btn:hover {
             background: var(--gold);
             color: var(--bg);
-            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.4);
         }
         .release-btn:active {
             transform: scale(0.98);
@@ -96,11 +113,20 @@
             left: 50%;
             transform: translate(-50%, -50%);
             color: var(--gold);
-            font-size: 18px;
+            font-size: 24px;
+            font-weight: 700;
             letter-spacing: 4px;
             opacity: 0;
-            transition: opacity 2s ease-in;
+            transition: opacity 2s ease-in-out;
             z-index: 20;
+            text-shadow: 0 0 10px var(--gold), 0 0 20px var(--gold);
+        }
+        .particle {
+            position: absolute;
+            background-color: var(--gold);
+            border-radius: 50%;
+            opacity: 1;
+            pointer-events: none;
         }
     </style>
 </head>
@@ -137,9 +163,9 @@
             constructor(x, y) {
                 this.x = x;
                 this.y = y;
-                this.size = Math.random() * 2 + 0.5;
-                this.speedX = (Math.random() - 0.5) * 8;
-                this.speedY = (Math.random() - 0.5) * 8;
+                this.size = Math.random() * 5 + 2;
+                this.speedX = (Math.random() - 0.5) * 6;
+                this.speedY = (Math.random() - 0.5) * 6;
                 this.color = '#FFD700';
                 this.alpha = 1;
                 this.drag = 0.98;
@@ -150,7 +176,7 @@
                 this.y += this.speedY;
                 this.speedX *= this.drag;
                 this.speedY *= this.drag;
-                this.alpha -= 0.01;
+                this.alpha -= 0.02;
             }
 
             draw() {
@@ -169,14 +195,14 @@
             tmpCanvas.height = canvas.height;
             
             tmpCtx.fillStyle = '#FFD700';
-            tmpCtx.font = 'bold 60px Arial';
+            tmpCtx.font = 'bold 70px Poppins';
             tmpCtx.textAlign = 'center';
-            tmpCtx.fillText(text, canvas.width/2, canvas.height/2);
+            tmpCtx.fillText(text, canvas.width / 2, canvas.height / 2);
 
             let imgData = tmpCtx.getImageData(0, 0, canvas.width, canvas.height);
-            for(let y = 0; y < imgData.height; y += 4) {
-                for(let x = 0; x < imgData.width; x += 4) {
-                    if(imgData.data[(y * 4 * imgData.width) + (x * 4) + 3] > 128) {
+            for (let y = 0; y < imgData.height; y += 4) {
+                for (let x = 0; x < imgData.width; x += 4) {
+                    if (imgData.data[(y * 4 * imgData.width) + (x * 4) + 3] > 128) {
                         particles.push(new Particle(x, y));
                     }
                 }
@@ -208,7 +234,7 @@
                 input.placeholder = "The Void needs an answer...";
                 return;
             }
-            
+
             tg.HapticFeedback.impactOccurred('heavy');
 
             document.getElementById('ui-container').style.opacity = 0;
@@ -220,7 +246,7 @@
         function showFinalState() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             document.getElementById('final-message').style.opacity = 1;
-            
+
             tg.HapticFeedback.notificationOccurred('success');
 
             setTimeout(() => {
@@ -233,7 +259,6 @@
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
         });
-
     </script>
 </body>
 </html>
