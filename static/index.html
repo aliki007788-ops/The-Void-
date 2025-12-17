@@ -101,7 +101,7 @@
         .release-btn:active {
             transform: scale(0.98);
         }
-        #final-message {
+        #releasing-message, #final-message {
             position: absolute;
             top: 50%;
             left: 50%;
@@ -112,7 +112,7 @@
             color: var(--gold);
             text-shadow: 0 0 30px var(--glow);
             opacity: 0;
-            transition: opacity 3s ease-in;
+            transition: opacity 2s ease-in;
             z-index: 20;
         }
     </style>
@@ -128,6 +128,7 @@
         <button class="release-btn" id="release-btn">RELEASE IT</button>
     </div>
 
+    <div id="releasing-message">SURRENDERING TO THE VOID...</div>
     <div id="final-message">VOID ACCEPTED.</div>
 
     <script>
@@ -137,123 +138,7 @@
         tg.setHeaderColor('#000000');
         tg.setBackgroundColor('#000000');
 
-        // Canvas بک‌گراند (ذرات معلق همیشه)
-        const bgCanvas = document.getElementById('bg-canvas');
-        const bgCtx = bgCanvas.getContext('2d');
-        bgCanvas.width = window.innerWidth;
-        bgCanvas.height = window.innerHeight;
-
-        let bgParticles = [];
-        class BgParticle {
-            constructor() {
-                this.x = Math.random() * bgCanvas.width;
-                this.y = Math.random() * bgCanvas.height;
-                this.size = Math.random() * 1.5 + 0.5;
-                this.speedX = (Math.random() - 0.5) * 0.5;
-                this.speedY = (Math.random() - 0.5) * 0.5;
-                this.alpha = Math.random() * 0.5 + 0.2;
-            }
-            update() {
-                this.x += this.speedX;
-                this.y += this.speedY;
-                if (this.x < 0 || this.x > bgCanvas.width) this.speedX *= -1;
-                if (this.y < 0 || this.y > bgCanvas.height) this.speedY *= -1;
-            }
-            draw() {
-                bgCtx.fillStyle = `rgba(255, 215, 0, ${this.alpha})`;
-                bgCtx.beginPath();
-                bgCtx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                bgCtx.fill();
-            }
-        }
-
-        for (let i = 0; i < 150; i++) bgParticles.push(new BgParticle());
-
-        function animateBg() {
-            bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
-            bgParticles.forEach(p => {
-                p.update();
-                p.draw();
-            });
-            requestAnimationFrame(animateBg);
-        }
-        animateBg();
-
-        // Canvas انفجار
-        const expCanvas = document.getElementById('explosion-canvas');
-        const expCtx = expCanvas.getContext('2d');
-        expCanvas.width = window.innerWidth;
-        expCanvas.height = window.innerHeight;
-
-        let expParticles = [];
-
-        class ExpParticle {
-            constructor(x, y) {
-                this.x = x;
-                this.y = y;
-                this.size = Math.random() * 3 + 1;
-                this.speedX = (Math.random() - 0.5) * 12;
-                this.speedY = (Math.random() - 0.5) * 12;
-                this.alpha = 1;
-                this.drag = 0.96;
-            }
-            update() {
-                this.x += this.speedX;
-                this.y += this.speedY;
-                this.speedX *= this.drag;
-                this.speedY *= this.drag;
-                this.alpha -= 0.015;
-            }
-            draw() {
-                expCtx.fillStyle = `rgba(255, 215, 0, ${this.alpha})`;
-                expCtx.beginPath();
-                expCtx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                expCtx.fill();
-            }
-        }
-
-        function initExplosion(text) {
-            expParticles = [];
-            const tmpCanvas = document.createElement('canvas');
-            const tmpCtx = tmpCanvas.getContext('2d');
-            tmpCanvas.width = expCanvas.width;
-            tmpCanvas.height = expCanvas.height;
-
-            tmpCtx.fillStyle = '#FFD700';
-            tmpCtx.font = 'bold 80px Cinzel';
-            tmpCtx.textAlign = 'center';
-            tmpCtx.textBaseline = 'middle';
-            tmpCtx.fillText(text, expCanvas.width / 2, expCanvas.height / 2);
-
-            const imgData = tmpCtx.getImageData(0, 0, expCanvas.width, expCanvas.height);
-            for (let y = 0; y < imgData.height; y += 3) {
-                for (let x = 0; x < imgData.width; x += 3) {
-                    if (imgData.data[(y * imgData.width + x) * 4 + 3] > 128) {
-                        expParticles.push(new ExpParticle(x, y));
-                    }
-                }
-            }
-            // واکنش ذرات بک‌گراند (موج)
-            bgParticles.forEach(p => {
-                p.speedX *= 3;
-                p.speedY *= 3;
-                setTimeout(() => { p.speedX *= 0.3; p.speedY *= 0.3; }, 1000);
-            });
-        }
-
-        function animateExp() {
-            expCtx.clearRect(0, 0, expCanvas.width, expCanvas.height);
-            expParticles.forEach(p => {
-                p.update();
-                p.draw();
-            });
-            expParticles = expParticles.filter(p => p.alpha > 0);
-            if (expParticles.length > 0) {
-                requestAnimationFrame(animateExp);
-            } else {
-                showFinalState();
-            }
-        }
+        // ... (کد ذرات بک‌گراند و انفجار همون قبلی بمونه) ...
 
         document.getElementById('release-btn').addEventListener('click', () => {
             const input = document.getElementById('burden-input');
@@ -264,8 +149,15 @@
             }
             tg.HapticFeedback.impactOccurred('heavy');
             document.getElementById('ui-container').style.opacity = 0;
-            initExplosion(text);
-            animateExp();
+            
+            // نمایش متن "در حال رها شدن"
+            document.getElementById('releasing-message').style.opacity = 1;
+            
+            setTimeout(() => {
+                document.getElementById('releasing-message').style.opacity = 0;
+                initExplosion(text);
+                animateExp();
+            }, 2000); // 2 ثانیه نمایش "SURRENDERING..."
         });
 
         function showFinalState() {
@@ -278,10 +170,7 @@
             }, 3000);
         }
 
-        window.addEventListener('resize', () => {
-            bgCanvas.width = expCanvas.width = window.innerWidth;
-            bgCanvas.height = expCanvas.height = window.innerHeight;
-        });
+        // ... (بقیه کد ذرات و resize همون قبلی) ...
     </script>
 </body>
 </html>
