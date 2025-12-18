@@ -1,60 +1,61 @@
-import os, random, math
+import os, random
 from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageFilter
 
 def create_certificate(user_id, burden, photo_path=None):
-    width, height = 1000, 1000
-    img = Image.new('RGB', (width, height), color='#000814')
+    w, h = 1000, 1000
+    img = Image.new('RGB', (w, h), '#000814')
     draw = ImageDraw.Draw(img)
 
-    # Cosmic Background
-    for i in range(height):
-        alpha = int(35 * (1 - i / height))
-        draw.line((0, i, width, i), fill=(15, 10, 50, alpha))
-    for _ in range(400):
-        x, y = random.randint(10, 990), random.randint(10, 990)
-        draw.ellipse((x, y, x+1, y+1), fill='#FFFFFF')
+    # ستاره‌ها
+    for _ in range(300):
+        x, y = random.randint(0, w), random.randint(0, h)
+        draw.ellipse((x, y, x+2, y+2), fill='#FFFFFF')
 
     gold = '#FFD700'
-    draw.rectangle([30, 30, 970, 970], outline=gold, width=12)
+    draw.rectangle([40, 40, 960, 960], outline=gold, width=12)
 
-    # Ornate Corners
-    for cx, cy, rot in [(30, 30, 0), (970, 30, 90), (30, 970, 270), (970, 970, 180)]:
-        for r in [100, 75, 50]:
-            draw.arc((cx-r, cy-r, cx+r, cy+r), start=rot, end=rot+90, fill=gold, width=8)
-
-    is_premium = True if photo_path else False
-    y_text = 680 if is_premium else 560
-
-    if is_premium:
-        p_img = Image.open(photo_path).convert("RGBA").resize((250, 250))
-        mask = Image.new('L', (250, 250), 0)
-        ImageDraw.Draw(mask).ellipse((0, 0, 250, 250), fill=255)
-        p_img.putalpha(mask)
-        
-        glow = Image.new('RGBA', (320, 320), (0,0,0,0))
-        for i in range(35, 0, -2):
-            alpha = int(200 * (i/35))
-            ImageDraw.Draw(glow).ellipse((i, i, 320-i, 320-i), fill=(255, 215, 0, alpha))
-        glow = glow.filter(ImageFilter.GaussianBlur(15))
-        img.paste(glow, (340, 365), glow)
-        img.paste(p_img, (375, 400), p_img)
-        draw.ellipse((370, 395, 630, 655), outline=gold, width=10)
-
-    title = "DIVINE ASCENSION" if is_premium else "VOID ASCENSION"
-    grade = "PREMIUM GRADE" if is_premium else "ETERNAL GRADE"
-    
+    # لوگو V
+    logo_size = 400 if not photo_path else 340
+    logo = Image.new('RGBA', (logo_size, logo_size), (0,0,0,0))
+    d = ImageDraw.Draw(logo)
+    for r in range(180, 40, -30):
+        d.ellipse((logo_size//2 - r, logo_size//2 - r, logo_size//2 + r, logo_size//2 + r), outline=gold, width=8)
     try:
-        f_title = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 75)
-        f_sub = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 38)
-    except: f_title = f_sub = ImageFont.load_default()
+        f = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", int(logo_size * 0.8))
+    except:
+        f = ImageFont.load_default()
+    d.text((logo_size//2, logo_size//2 + 50), "V", fill=gold, font=f, anchor="mm")
+    img.paste(logo, ((w - logo_size)//2, 80), logo)
 
-    draw.text((500, 220), "V", fill=gold, font=f_title, anchor="mm")
-    draw.ellipse((420, 140, 580, 300), outline=gold, width=5)
-    
-    draw.text((500, y_text), title, fill=gold, font=f_title, anchor="mm")
-    draw.text((500, y_text+130), f"\"{burden.upper()}\"", fill="#FFF", font=f_title, anchor="mm")
-    draw.text((500, y_text+250), f"RANK: {grade}", fill=gold, font=f_sub, anchor="mm")
-    draw.text((500, 940), f"HOLDER: {user_id} | 2025.VO-ID", fill="#555", font=f_sub, anchor="mm")
+    y_text = 650 if not photo_path else 750
+    if photo_path:
+        try:
+            p = Image.open(photo_path).convert("RGBA").resize((240, 240))
+            mask = Image.new('L', (240, 240), 0)
+            ImageDraw.Draw(mask).ellipse((0, 0, 240, 240), fill=255)
+            p.putalpha(mask)
+            glow = Image.new('RGBA', (320, 320), (0,0,0,0))
+            dg = ImageDraw.Draw(glow)
+            for i in range(40, 0, -3):
+                dg.ellipse((i, i, 320-i, 320-i), fill=(255,215,0,int(200*(i/40))))
+            glow = glow.filter(ImageFilter.GaussianBlur(20))
+            img.paste(glow, (340, 450), glow)
+            img.paste(p, (380, 470), p)
+            draw.ellipse((370, 460, 630, 710), outline=gold, width=10)
+        except: pass
+
+    try:
+        ft = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 75)
+        fs = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 40)
+    except:
+        ft = fs = ImageFont.load_default()
+
+    draw.text((500, y_text - 100), "VOID ASCENSION", fill=gold, font=ft, anchor="mm")
+    draw.text((500, y_text), "THIS DOCUMENT CERTIFIES THAT", fill=gold, font=fs, anchor="mm")
+    draw.text((500, y_text + 100), f"\"{burden.upper()}\"", fill="#FFFFFF", font=ft, anchor="mm")
+    draw.text((500, y_text + 220), "HAS BEEN CONSUMED BY THE ETERNAL VOID", fill=gold, font=fs, anchor="mm")
+    draw.text((500, 920), f"HOLDER ID: {user_id}", fill=gold, font=fs, anchor="mm")
+    draw.text((500, 970), "TIMESTAMP: 2025.VO-ID", fill="#888", font=fs, anchor="mm")
 
     path = f"nft_{user_id}.png"
     img.save(path)
