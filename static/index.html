@@ -3,25 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>THE VOID - Absolute Rebirth</title>
+    <title>THE VOID</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root { --gold: #FFD700; --bg: #000000; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: var(--bg); font-family: 'serif'; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: var(--bg); color: white; font-family: 'Times New Roman', serif; }
         
-        #ui-container { position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; transition: opacity 1.5s; }
-        h1 { color: var(--gold); letter-spacing: 15px; font-weight: 100; margin-bottom: 50px; text-shadow: 0 0 30px rgba(255, 215, 0, 0.4); }
+        #ui-container { position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; transition: opacity 1s; }
         
-        input { background: transparent; border: none; border-bottom: 1px solid #333; color: var(--gold); font-size: 1.8rem; text-align: center; width: 80%; outline: none; padding: 10px; transition: 0.5s; }
+        h1 { color: var(--gold); letter-spacing: 12px; font-weight: 100; font-size: 2.5rem; margin-bottom: 40px; text-shadow: 0 0 20px rgba(255, 215, 0, 0.3); }
+        
+        input { background: transparent; border: none; border-bottom: 1px solid #444; color: var(--gold); font-size: 1.5rem; text-align: center; width: 85%; outline: none; padding: 15px; margin-bottom: 40px; transition: 0.3s; }
         input:focus { border-bottom-color: var(--gold); }
 
-        .release-btn { margin-top: 50px; background: transparent; color: var(--gold); border: 1px solid var(--gold); padding: 15px 50px; letter-spacing: 5px; cursor: pointer; transition: 0.4s; }
-        .release-btn:hover { background: var(--gold); color: black; }
+        .release-btn { 
+            background: transparent; color: var(--gold); border: 1px solid var(--gold); 
+            padding: 20px 60px; font-size: 1rem; letter-spacing: 4px; cursor: pointer; 
+            transition: all 0.4s; text-transform: uppercase;
+        }
+        .release-btn:active { background: var(--gold); color: black; transform: scale(0.95); }
 
-        #final-action { position: absolute; bottom: 15%; width: 100%; display: none; justify-content: center; z-index: 200; opacity: 0; transition: 2s; }
-        .buy-btn { background: var(--gold); color: black; border: none; padding: 20px 40px; font-weight: bold; cursor: pointer; box-shadow: 0 0 40px rgba(255, 215, 0, 0.5); }
-
-        canvas { position: absolute; top: 0; left: 0; pointer-events: none; }
+        canvas { position: absolute; top: 0; left: 0; z-index: 5; }
+        
+        #final-action { position: absolute; bottom: 15%; width: 100%; display: none; justify-content: center; z-index: 200; opacity: 0; }
+        .buy-btn { background: var(--gold); color: black; border: none; padding: 22px 40px; font-weight: bold; font-size: 0.9rem; letter-spacing: 2px; cursor: pointer; box-shadow: 0 0 30px rgba(255, 215, 0, 0.4); }
     </style>
 </head>
 <body>
@@ -34,19 +39,17 @@
     </div>
 
     <div id="final-action">
-        <button class="buy-btn" onclick="sendToBot()">CLAIM YOUR ETERNAL CERTIFICATE ($1)</button>
+        <button class="buy-btn" onclick="sendToBot()">CLAIM ETERNAL CERTIFICATE ($1)</button>
     </div>
 
 <script>
     const tg = window.Telegram.WebApp;
     tg.expand();
-    tg.setHeaderColor('#000000');
 
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
     let particles = [];
-    let state = 'idle'; // idle, exploding, morphing
-    const morphText = "YOU ARE REBORN";
+    let state = 'idle';
 
     function resize() {
         canvas.width = window.innerWidth;
@@ -56,111 +59,87 @@
     resize();
 
     class Particle {
-        constructor(x, y, targetX, targetY) {
-            this.x = x;
-            this.y = y;
-            this.originX = x;
-            this.originY = y;
-            this.targetX = targetX;
-            this.targetY = targetY;
-            this.vx = (Math.random() - 0.5) * 25; // قدرت انفجار بیشتر
-            this.vy = (Math.random() - 0.5) * 25;
-            this.friction = 0.95;
-            this.ease = 0.05; // سرعت مورف شدن
-            this.size = Math.random() * 2 + 1;
-            this.color = '#FFD700';
-            this.alpha = 1;
+        constructor(x, y, tx, ty) {
+            this.x = x; this.y = y;
+            this.tx = tx; this.ty = ty;
+            this.vx = (Math.random() - 0.5) * 30;
+            this.vy = (Math.random() - 0.5) * 30;
+            this.friction = 0.96;
+            this.size = Math.random() * 2 + 0.5;
         }
-
         update() {
             if (state === 'exploding') {
-                this.vx *= this.friction;
-                this.vy *= this.friction;
-                this.x += this.vx;
-                this.y += this.vy;
+                this.vx *= this.friction; this.vy *= this.friction;
+                this.x += this.vx; this.y += this.vy;
             } else if (state === 'morphing') {
-                this.x += (this.targetX - this.x) * this.ease;
-                this.y += (this.targetY - this.y) * this.ease;
+                this.x += (this.tx - this.x) * 0.07;
+                this.y += (this.ty - this.y) * 0.07;
             }
         }
-
         draw() {
-            ctx.fillStyle = this.color;
+            ctx.fillStyle = '#FFD700';
             ctx.beginPath();
             ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
             ctx.fill();
         }
     }
 
-    function getTextPoints(text) {
-        const tempCanvas = document.createElement('canvas');
-        const tCtx = tempCanvas.getContext('2d');
-        tempCanvas.width = canvas.width;
-        tempCanvas.height = canvas.height;
-        tCtx.fillStyle = 'white';
-        tCtx.font = 'bold 40px serif';
-        tCtx.textAlign = 'center';
-        tCtx.fillText(text, canvas.width/2, canvas.height/2);
-        
-        const data = tCtx.getImageData(0, 0, canvas.width, canvas.height).data;
-        const points = [];
-        for (let y = 0; y < canvas.height; y += 4) { // تراکم بالا [cite: 338]
-            for (let x = 0; x < canvas.width; x += 4) {
-                if (data[(y * canvas.width + x) * 4 + 3] > 128) {
-                    points.push({x, y});
-                }
+    function getPoints(text, size) {
+        const temp = document.createElement('canvas');
+        const tctx = temp.getContext('2d');
+        temp.width = canvas.width; temp.height = canvas.height;
+        tctx.fillStyle = 'white';
+        tctx.font = `bold ${size}px serif`;
+        tctx.textAlign = 'center';
+        tctx.fillText(text, canvas.width/2, canvas.height/2);
+        const data = tctx.getImageData(0,0,canvas.width,canvas.height).data;
+        const pts = [];
+        for(let y=0; y<canvas.height; y+=5) {
+            for(let x=0; x<canvas.width; x+=5) {
+                if(data[(y*canvas.width+x)*4+3] > 128) pts.push({x,y});
             }
         }
-        return points;
+        return pts;
     }
 
     function startSacrifice() {
-        const text = document.getElementById('input-field').value;
-        if(!text) return tg.HapticFeedback.notificationOccurred('error');
+        const val = document.getElementById('input-field').value;
+        if(!val) return;
 
-        // افکت صوتی و لرزش شدید [cite: 407]
         tg.HapticFeedback.impactOccurred('heavy');
         document.getElementById('ui-container').style.opacity = '0';
+        
+        const startPts = getPoints(val.toUpperCase(), 40);
+        const endPts = getPoints("REBORN IN SILENCE", 35);
 
-        const startPoints = getTextPoints(text.toUpperCase());
-        const endPoints = getTextPoints(morphText);
-
-        particles = startPoints.map((p, i) => {
-            const target = endPoints[i % endPoints.length];
+        particles = startPts.map((p, i) => {
+            const target = endPts[i % endPts.length];
             return new Particle(p.x, p.y, target.x, target.y);
         });
 
         state = 'exploding';
-        animate();
+        requestAnimationFrame(animate);
 
-        // شروع مرحله مورف (تبدیل به جمله نهایی) بعد از ۲ ثانیه
         setTimeout(() => {
             state = 'morphing';
-            tg.HapticFeedback.notificationOccurred('success');
-            
-            // نمایش دکمه خرید [cite: 101]
             setTimeout(() => {
-                const btn = document.getElementById('final-action');
-                btn.style.display = 'flex';
-                setTimeout(() => btn.style.opacity = '1', 100);
+                const fa = document.getElementById('final-action');
+                fa.style.display = 'flex';
+                setTimeout(() => fa.style.opacity = '1', 100);
             }, 2000);
         }, 1500);
     }
 
     function animate() {
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        particles.forEach(p => {
-            p.update();
-            p.draw();
-        });
+        ctx.fillStyle = 'rgba(0,0,0,0.15)';
+        ctx.fillRect(0,0,canvas.width, canvas.height);
+        particles.forEach(p => { p.update(); p.draw(); });
         requestAnimationFrame(animate);
     }
 
     function sendToBot() {
         const val = document.getElementById('input-field').value;
-        tg.sendData(JSON.stringify({action: "create_invoice", need: val})); [cite: 135, 387]
+        tg.sendData(JSON.stringify({action: "create_invoice", need: val}));
     }
 </script>
 </body>
