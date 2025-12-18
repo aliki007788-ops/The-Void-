@@ -6,192 +6,107 @@
     <title>THE VOID</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { background: #000; color: #FFD700; font-family: 'Courier New', monospace; text-align: center; margin: 0; overflow: hidden; }
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap');
+        body { background: #000; color: #FFD700; font-family: 'Cinzel', serif; text-align: center; margin: 0; overflow: hidden; }
         canvas { position: fixed; top: 0; left: 0; z-index: 1; pointer-events: none; }
-        
-        /* کانتینر اصلی */
-        .stage { position: relative; z-index: 10; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: 1s ease-in-out; }
-        
-        /* استایل ورودی‌ها */
-        input[type="text"] { background: none; border: none; border-bottom: 2px solid #333; color: #FFD700; font-size: 1.5rem; text-align: center; width: 80%; outline: none; margin-bottom: 20px; }
-        .btn { border: 2px solid #FFD700; padding: 15px 40px; background: none; color: #FFD700; cursor: pointer; letter-spacing: 4px; font-weight: bold; text-transform: uppercase; }
-        
-        /* بخش تنظیمات (صفحه دوم) که در ابتدا مخفی است */
-        #options-page { display: none; opacity: 0; transform: scale(0.9); }
-        .option-box { background: rgba(255, 215, 0, 0.05); border: 1px solid #333; padding: 20px; border-radius: 15px; margin: 20px 0; width: 85%; }
-        
-        .grade-card { font-size: 1.2rem; margin-bottom: 10px; color: #fff; }
-        .price-tag { font-size: 2.5rem; font-weight: bold; margin: 10px 0; }
-        .diamond { color: #00d4ff; }
-
-        #upload-label { border: 1px dashed #FFD700; padding: 10px; display: block; margin: 10px 0; cursor: pointer; font-size: 0.8rem; }
-        input[type="file"] { display: none; }
+        .stage { position: relative; z-index: 10; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: 1.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .main-title { font-size: 3.5rem; letter-spacing: 25px; margin-bottom: 40px; text-shadow: 0 0 20px rgba(255, 215, 0, 0.5); animation: glow 4s infinite alternate; }
+        @keyframes glow { to { text-shadow: 0 0 40px rgba(255, 215, 0, 0.9); } }
+        input[type="text"] { background: none; border: none; border-bottom: 1px solid #444; color: #FFD700; font-size: 1.2rem; text-align: center; width: 70%; outline: none; font-family: monospace; }
+        .btn-large { border: 1px solid #FFD700; padding: 20px 80px; background: rgba(0,0,0,0.5); color: #FFD700; cursor: pointer; letter-spacing: 8px; font-weight: bold; margin-top: 50px; transition: 0.4s; backdrop-filter: blur(5px); }
+        .btn-large:hover { background: #FFD700; color: #000; box-shadow: 0 0 30px #FFD700; }
+        #step2 { display: none; opacity: 0; transform: scale(1.1); }
+        .option-card { background: rgba(10,10,10,0.8); border: 1px solid #222; padding: 25px; border-radius: 2px; width: 85%; margin-top: 20px; }
+        .price-display { font-size: 3.5rem; font-weight: bold; margin: 15px 0; display: flex; align-items: center; justify-content: center; gap: 15px; }
+        .diamond-icon { color: #00d4ff; font-size: 4rem; text-shadow: 0 0 25px #00d4ff; }
     </style>
 </head>
 <body>
+    <canvas id="cvs"></canvas>
+    <audio id="snd-whoosh" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"></audio>
+    <audio id="snd-magic" src="https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3"></audio>
 
-    <canvas id="canvas"></canvas>
-    <audio id="snd-ignite" src="https://www.soundjay.com/magic/magic-spell-01.mp3"></audio>
-
-    <div id="first-page" class="stage">
-        <h1 style="letter-spacing: 15px; margin-bottom: 50px;">THE VOID</h1>
-        <input type="text" id="sacrifice-input" placeholder="WHAT IS YOUR SACRIFICE?" maxlength="15">
-        <button class="btn" onclick="startAscension()">NEXT</button>
+    <div id="step1" class="stage">
+        <h1 class="main-title">THE VOID</h1>
+        <input type="text" id="burden" placeholder="NAME YOUR SACRIFICE" maxlength="15">
+        <button class="btn-large" onclick="ascend()">ASCEND</button>
     </div>
 
-    <div id="options-page" class="stage">
-        <h2 id="dynamic-grade" class="grade-card">ETERNAL GRADE</h2>
-        <div class="price-tag"><span id="price-val">70</span> <span class="diamond">💎</span></div>
-        
-        <div class="option-box">
-            <p style="font-size: 0.7rem; color: #888;">UPGRADE TO DIVINE GRADE (120 💎)</p>
-            <label id="upload-label" for="file-input">➕ UPLOAD IMAGE</label>
-            <input type="file" id="file-input" accept="image/*" onchange="updatePrice()">
-            
-            <div style="margin-top: 15px;">
-                <input type="checkbox" id="use-profile" onchange="updatePrice()">
-                <label for="use-profile"> USE PROFILE PHOTO</label>
-            </div>
+    <div id="step2" class="stage">
+        <h3 id="grade-label" style="letter-spacing: 5px; color: #AAA;">ETERNAL GRADE</h3>
+        <div class="price-display"><span id="price-amt">70</span> <span class="diamond-icon">💎</span></div>
+        <div class="option-card">
+            <label style="cursor: pointer; border: 1px dashed #444; padding: 15px; display: block; margin-bottom: 15px;">
+                <input type="file" id="file-up" style="display:none" onchange="refresh()">
+                <span id="file-text">UPLOAD SOUL IMAGE</span>
+            </label>
+            <label style="font-size: 0.8rem; letter-spacing: 2px;">
+                <input type="checkbox" id="prof-check" onchange="refresh()"> USE PROFILE PHOTO
+            </label>
         </div>
-
-        <button class="btn" onclick="finalMint()">MINT NFT</button>
-        <p onclick="location.reload()" style="font-size: 0.6rem; margin-top: 20px; color: #444; cursor: pointer;">← CHANGE SACRIFICE</p>
+        <button class="btn-large" onclick="mint()">MINT NFT</button>
     </div>
 
     <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
-        tg.enableClosingConfirmation();
+        const tg = window.Telegram.WebApp; tg.expand();
+        const canvas = document.getElementById('cvs'); const ctx = canvas.getContext('2d');
+        let stars = [], meteors = [], particles = [], state = 'idle';
 
-        // --- سیستم ذرات و انیمیشن ---
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        let particles = [];
-        let exploding = false;
+        function init() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.onresize = init; init();
+        for(let i=0; i<180; i++) stars.push({x: Math.random()*canvas.width, y: Math.random()*canvas.height, s: Math.random()*1.2, o: Math.random()});
 
-        function initCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-        window.addEventListener('resize', initCanvas);
-        initCanvas();
-
-        class Particle {
-            constructor(x, y, color, speed) {
-                this.x = x; this.y = y;
-                this.color = color;
-                this.size = Math.random() * 2 + 1;
-                this.vx = (Math.random() - 0.5) * speed;
-                this.vy = (Math.random() - 0.5) * speed;
-                this.alpha = 1;
-            }
-            update() {
-                this.x += this.vx; this.y += this.vy;
-                if (exploding) this.alpha -= 0.01;
-            }
-            draw() {
-                ctx.globalAlpha = this.alpha;
-                ctx.fillStyle = this.color;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-
-        // ایجاد ذرات معلق اولیه
-        for(let i=0; i<100; i++) particles.push(new Particle(Math.random()*canvas.width, Math.random()*canvas.height, '#FFD700', 0.5));
-
-        function animate() {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            particles.forEach((p, i) => {
-                p.update();
-                p.draw();
-                if(p.alpha <= 0) particles.splice(i, 1);
+        function draw() {
+            ctx.fillStyle = '#000'; ctx.fillRect(0,0,canvas.width,canvas.height);
+            stars.forEach(s => { ctx.fillStyle = `rgba(255,255,255, ${s.o})`; ctx.fillRect(s.x, s.y, s.s, s.s); s.o += (Math.random()-0.5)*0.02; });
+            if(Math.random() < 0.02) meteors.push({x: Math.random()*canvas.width, y: 0, s: Math.random()*3+2, l: Math.random()*50+20});
+            meteors.forEach((m, i) => { ctx.strokeStyle = 'rgba(255,215,0,0.3)'; ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(m.x-m.l, m.y+m.l); ctx.stroke(); m.x+=10; m.y+=10; if(m.y>canvas.height) meteors.splice(i,1); });
+            particles.forEach((p, i) => { ctx.fillStyle = p.c; ctx.beginPath(); ctx.arc(p.x, p.y, p.z, 0, Math.PI*2); ctx.fill(); 
+                if(state==='exploding'){ p.x+=p.vx; p.y+=p.vy; p.z*=0.98; } else if(state==='imploding'){ p.x+=(canvas.width/2-p.x)*0.1; p.y+=(canvas.height/2-p.y)*0.1; p.z*=0.95; }
+                if(p.z<0.1) particles.splice(i,1);
             });
-            requestAnimationFrame(animate);
+            requestAnimationFrame(draw);
         }
-        animate();
+        draw();
 
-        // --- منطق تغییر صفحات ---
-        function startAscension() {
-            const val = document.getElementById('sacrifice-input').value.trim();
-            if(!val) { tg.showAlert("The Void requires a word."); return; }
-
-            document.getElementById('snd-ignite').play();
-            tg.HapticFeedback.impactOccurred('medium');
-
-            // انیمیشن انفجار ذرات
-            exploding = true;
-            for(let i=0; i<200; i++) {
-                particles.push(new Particle(window.innerWidth/2, window.innerHeight/2, '#FFD700', 10));
-            }
-
-            // انتقال بصری به صفحه دوم
-            document.getElementById('first-page').style.opacity = '0';
-            setTimeout(() => {
-                document.getElementById('first-page').style.display = 'none';
-                const secondPage = document.getElementById('options-page');
-                secondPage.style.display = 'flex';
-                setTimeout(() => {
-                    secondPage.style.opacity = '1';
-                    secondPage.style.transform = 'scale(1)';
-                    exploding = false;
-                }, 50);
-            }, 1000);
+        function ascend() {
+            if(!document.getElementById('burden').value) return tg.showAlert("VOID REQUIRES A NAME");
+            tg.HapticFeedback.impactOccurred('heavy');
+            document.getElementById('snd-whoosh').play();
+            state='exploding'; for(let i=0; i<150; i++) particles.push({x:canvas.width/2, y:canvas.height/2, vx:(Math.random()-0.5)*25, vy:(Math.random()-0.5)*25, z:Math.random()*3+2, c:'#FFD700'});
+            document.getElementById('step1').style.opacity=0;
+            setTimeout(() => { state='imploding'; document.getElementById('step1').style.display='none'; const s2=document.getElementById('step2'); s2.style.display='flex'; setTimeout(()=>{s2.style.opacity=1; s2.style.transform='scale(1)';},100); }, 800);
         }
 
-        function updatePrice() {
-            const hasFile = document.getElementById('file-input').files.length > 0;
-            const hasProf = document.getElementById('use-profile').checked;
-            const isPremium = hasFile || hasProf;
-
-            document.getElementById('price-val').innerText = isPremium ? "120" : "70";
-            document.getElementById('dynamic-grade').innerText = isPremium ? "DIVINE GRADE" : "ETERNAL GRADE";
-            document.getElementById('dynamic-grade').style.color = isPremium ? "#FFD700" : "#fff";
-            
-            if(hasFile) document.getElementById('upload-label').innerText = "✅ IMAGE READY";
+        function refresh() {
+            const prem = document.getElementById('file-up').files[0] || document.getElementById('prof-check').checked;
+            document.getElementById('price-amt').innerText = prem ? "120" : "70";
+            const lbl = document.getElementById('grade-label');
+            lbl.innerText = prem ? "DIVINE GRADE" : "ETERNAL GRADE";
+            lbl.style.color = prem ? "#FFD700" : "#AAAAAA";
             tg.HapticFeedback.selectionChanged();
         }
 
-        async function finalMint() {
-            const b = document.getElementById('sacrifice-input').value;
-            const file = document.getElementById('file-input').files[0];
-            const useProf = document.getElementById('use-profile').checked;
-
+        async function mint() {
+            tg.MainButton.showProgress();
+            const b = document.getElementById('burden').value, file = document.getElementById('file-up').files[0], prof = document.getElementById('prof-check').checked;
             let pData = null;
             if(file) {
                 pData = await new Promise(r => {
-                    const rd = new FileReader();
-                    rd.onload = e => {
-                        const img = new Image();
-                        img.onload = () => {
-                            const cv = document.createElement('canvas');
-                            cv.width=600; cv.height=600;
-                            cv.getContext('2d').drawImage(img,0,0,600,600);
-                            r(cv.toDataURL('image/jpeg', 0.7));
-                        };
-                        img.src = e.target.result;
-                    };
-                    rd.readAsDataURL(file);
+                    const rd = new FileReader(); rd.onload = e => {
+                        const img = new Image(); img.onload = () => {
+                            const c = document.createElement('canvas'); c.width=600; c.height=600;
+                            c.getContext('2d').drawImage(img,0,0,600,600); r(c.toDataURL('image/jpeg', 0.6));
+                        }; img.src = e.target.result;
+                    }; rd.readAsDataURL(file);
                 });
             }
-
-            const payload = btoa(JSON.stringify({
-                u: tg.initDataUnsafe.user.id,
-                b: b, p: pData, prof: useProf
-            }));
-
-            const res = await fetch(`/create_stars_invoice?d=${payload}`);
+            const d = btoa(JSON.stringify({ u: tg.initDataUnsafe.user?.id, b: b, p: pData, prof: prof }));
+            const res = await fetch('/create_stars_invoice?d=' + d);
             const j = await res.json();
-            if(j.free) {
-                tg.showAlert("VIP ACCESS GRANTED.");
-                tg.close();
-            } else if(j.url) {
-                tg.openInvoice(j.url, status => {
-                    if(status === 'paid') tg.close();
-                });
-            }
+            if(j.url) tg.openInvoice(j.url, s => { if(s==='paid') tg.close(); });
+            else if(j.free) { tg.showAlert("🔱 DIVINE ACCESS GRANTED\nYour soul has been recorded."); tg.close(); }
+            tg.MainButton.hideProgress();
         }
     </script>
 </body>
