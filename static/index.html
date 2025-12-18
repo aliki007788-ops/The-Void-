@@ -3,24 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>THE VOID 2040</title>
+    <title>THE VOID | PRESTIGE</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root { --gold: #FFD700; --bg: #000; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: var(--bg); font-family: 'Courier New', Courier, monospace; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: var(--bg); font-family: 'Segoe UI', Tahoma, sans-serif; }
         canvas { position: absolute; top: 0; left: 0; z-index: 1; pointer-events: none; }
         .ui { position: relative; z-index: 100; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: 1s; }
-        h1 { color: var(--gold); letter-spacing: 15px; font-size: 2.5rem; margin-bottom: 30px; text-shadow: 0 0 20px rgba(255,215,0,0.5); }
-        input { background: transparent; border: none; border-bottom: 2px solid #333; color: var(--gold); font-size: 1.3rem; text-align: center; width: 75%; outline: none; padding: 10px; margin-bottom: 40px; letter-spacing: 2px; }
-        .sac-btn { background: transparent; color: var(--gold); border: 1px solid var(--gold); padding: 15px 55px; font-size: 0.9rem; letter-spacing: 5px; cursor: pointer; text-transform: uppercase; transition: 0.4s; }
-        .sac-btn:hover { background: var(--gold); color: #000; }
+        h1 { color: var(--gold); letter-spacing: 15px; font-size: 2.5rem; margin-bottom: 30px; text-shadow: 0 0 20px rgba(255,215,0,0.4); }
+        input { background: transparent; border: none; border-bottom: 2px solid #333; color: var(--gold); font-size: 1.3rem; text-align: center; width: 80%; outline: none; padding: 10px; margin-bottom: 40px; letter-spacing: 2px; }
+        .sac-btn { background: transparent; color: var(--gold); border: 1px solid var(--gold); padding: 15px 60px; font-size: 1rem; letter-spacing: 5px; cursor: pointer; text-transform: uppercase; transition: 0.3s; }
+        .sac-btn:hover { background: var(--gold); color: #000; box-shadow: 0 0 30px var(--gold); }
     </style>
 </head>
 <body>
     <canvas id="canvas"></canvas>
     <div id="ui-layer" class="ui">
         <h1>THE VOID</h1>
-        <input type="text" id="user-input" placeholder="NAME YOUR BURDEN..." maxlength="18">
+        <input type="text" id="user-input" placeholder="ENTER YOUR SACRIFICE..." maxlength="18" autocomplete="off">
         <button class="sac-btn" onclick="start()">SACRIFICE</button>
     </div>
 
@@ -51,7 +51,7 @@
             if(state==='exp'){this.x+=this.vx; this.y+=this.vy; this.vx*=0.94; this.vy*=0.94;}
             else if(state==='gat'){this.x+=(this.tx-this.x)*0.1; this.y+=(this.ty-this.y)*0.1;}
         }
-        draw() { ctx.fillStyle = "#FFD700"; ctx.fillRect(this.x, this.y, 2.2, 2.2); }
+        draw() { ctx.fillStyle = "#FFD700"; ctx.fillRect(this.x, this.y, 2, 2); }
     }
 
     function get(text) {
@@ -78,7 +78,7 @@
             state = 'gat';
             setTimeout(() => {
                 const secret = btoa(JSON.stringify({u: tg.initDataUnsafe.user.id, b: v}));
-                // استفاده از مسیر نسبی برای جلوگیری از خطای اتصال
+                // استفاده از مسیر مستقیم برای جلوگیری از فریز شدن دکمه
                 window.location.href = `/pay_now?d=${secret}`;
             }, 3000);
         }, 1200);
