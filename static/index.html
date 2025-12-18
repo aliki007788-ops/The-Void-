@@ -3,53 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>THE VOID | FINAL RESOLUTION</title>
+    <title>THE VOID 2040</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root { --gold: #FFD700; --bg: #000; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: var(--bg); font-family: sans-serif; color: var(--gold); }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: var(--bg); font-family: sans-serif; }
         canvas { position: absolute; top: 0; left: 0; z-index: 1; pointer-events: none; }
-
-        .container { 
+        .ui { 
             position: relative; z-index: 100; height: 100%; width: 100%;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
-
-        h1 { letter-spacing: 8px; font-size: 2.5rem; margin-bottom: 20px; text-align: center; }
+        h1 { color: var(--gold); letter-spacing: 8px; font-size: 2.2rem; margin-bottom: 30px; }
         input { 
             background: transparent; border: none; border-bottom: 2px solid #333; 
-            color: var(--gold); font-size: 1.2rem; text-align: center; width: 75%; 
+            color: var(--gold); font-size: 1.2rem; text-align: center; width: 70%; 
             outline: none; padding: 10px; margin-bottom: 30px;
         }
-
-        .sac-btn {
+        .btn {
             background: transparent; color: var(--gold); border: 1px solid var(--gold);
-            padding: 15px 40px; font-size: 0.9rem; letter-spacing: 3px; cursor: pointer;
-        }
-
-        #final-stage { 
-            position: absolute; bottom: 12%; width: 100%; display: none; 
-            flex-direction: column; align-items: center; z-index: 200;
-        }
-
-        /* دکمه کشیده و شکیل */
-        .mint-btn {
-            background: var(--gold); color: #000; border: none;
-            padding: 18px 0; width: 80%; max-width: 320px;
-            font-size: 1rem; font-weight: bold; letter-spacing: 2px;
-            border-radius: 4px; cursor: pointer; transition: 0.3s;
+            padding: 15px 45px; font-size: 0.9rem; letter-spacing: 3px; cursor: pointer;
         }
     </style>
 </head>
 <body>
     <canvas id="canvas"></canvas>
-    <div id="ui-wrapper" class="container">
+    <div id="wrapper" class="ui">
         <h1>THE VOID</h1>
-        <input type="text" id="user-input" placeholder="NAME YOUR BURDEN..." maxlength="15">
-        <button class="sac-btn" onclick="startRitual()">SACRIFICE</button>
-    </div>
-    <div id="final-stage">
-        <button id="mint-btn" class="mint-btn">MINT NFT PROOF ($1)</button>
+        <input type="text" id="inp" placeholder="NAME YOUR BURDEN..." maxlength="15">
+        <button class="btn" onclick="run()">SACRIFICE</button>
     </div>
 
 <script>
@@ -57,70 +38,66 @@
     tg.expand();
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
-    let particles = [], state = 'idle';
+    let pts = [], state = 'idle';
 
-    class Particle {
+    function init() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    init();
+
+    class P {
         constructor(x, y, tx, ty) {
             this.x = canvas.width/2; this.y = canvas.height/2;
             this.tx = tx; this.ty = ty;
-            this.vx = (Math.random()-0.5)*40; this.vy = (Math.random()-0.5)*40;
+            this.vx = (Math.random()-0.5)*50; this.vy = (Math.random()-0.5)*50;
         }
         update() {
-            if(state === 'exploding') { this.x+=this.vx; this.y+=this.vy; this.vx*=0.96; this.vy*=0.96; }
-            else if(state === 'gathering') {
-                this.x += (this.tx - this.x) * 0.12;
-                this.y += (this.ty - this.y) * 0.12;
-            }
+            if(state === 'exp') { this.x+=this.vx; this.y+=this.vy; this.vx*=0.96; this.vy*=0.96; }
+            else if(state === 'gat') { this.x+=(this.tx-this.x)*0.12; this.y+=(this.ty-this.y)*0.12; }
         }
         draw() { ctx.fillStyle = "#FFD700"; ctx.fillRect(this.x, this.y, 2, 2); }
     }
 
-    function getPoints(text) {
-        const tmp = document.createElement('canvas');
-        const tctx = tmp.getContext('2d');
-        tmp.width = window.innerWidth; tmp.height = window.innerHeight;
-        tctx.fillStyle = 'white';
-        // مهار اندازه متن بر اساس عرض صفحه
-        let fSize = Math.min(window.innerWidth / 7, 60);
-        tctx.font = `bold ${fSize}px serif`;
-        tctx.textAlign = "center";
-        tctx.fillText(text, tmp.width/2, tmp.height/2);
-        const data = tctx.getImageData(0,0,tmp.width,tmp.height).data;
-        const pts = [];
-        for(let y=0; y<tmp.height; y+=2) {
-            for(let x=0; x<tmp.width; x+=2) {
-                if(data[(y*tmp.width+x)*4+3] > 128) pts.push({x,y});
+    function get(text) {
+        const t = document.createElement('canvas');
+        const c = t.getContext('2d');
+        t.width = canvas.width; t.height = canvas.height;
+        let f = Math.min(canvas.width / 7, 60);
+        c.fillStyle = 'white'; c.font = `bold ${f}px serif`; c.textAlign = "center";
+        c.fillText(text, t.width/2, t.height/2);
+        const d = c.getImageData(0,0,t.width,t.height).data;
+        const out = [];
+        for(let y=0; y<t.height; y+=2) {
+            for(let x=0; x<t.width; x+=2) {
+                if(d[(y*t.width+x)*4+3] > 128) out.push({x,y});
             }
         }
-        return pts;
+        return out;
     }
 
-    function startRitual() {
-        const val = document.getElementById('user-input').value;
-        if(!val) return;
-        document.getElementById('ui-wrapper').style.display = 'none';
-        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-        particles = getPoints("ETERNAL PEACE").map(p => new Particle(0,0, p.x, p.y));
-        state = 'exploding';
+    function run() {
+        const v = document.getElementById('inp').value;
+        if(!v) return;
+        document.getElementById('wrapper').style.display = 'none';
+        pts = get("ETERNAL PEACE").map(p => new P(0,0, p.x, p.y));
+        state = 'exp';
         setTimeout(() => {
-            state = 'gathering';
+            state = 'gat';
             setTimeout(() => {
-                document.getElementById('final-stage').style.display = 'flex';
-                document.getElementById('mint-btn').onclick = () => {
-                    // بجای sendData که باعث کرش می‌شود، داده را به ربات می‌گوییم پردازش کند
-                    tg.sendData(JSON.stringify({need: val})); 
-                    // اگر باز هم خارج شد، تلگرام شما قدیمی است؛ این کد استانداردترین حالت است.
-                };
+                // استفاده از دکمه اصلی تلگرام به جای دکمه گرافیکی برای جلوگیری از کرش
+                tg.MainButton.setText("MINT ETERNAL PROOF ($1)");
+                tg.MainButton.show();
+                tg.MainButton.onClick(() => {
+                    tg.sendData(JSON.stringify({need: v}));
+                });
             }, 2500);
         }, 1000);
     }
 
-    function animate() {
+    function anim() {
         ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.fillRect(0,0,canvas.width,canvas.height);
-        particles.forEach(p => { p.update(); p.draw(); });
-        requestAnimationFrame(animate);
+        pts.forEach(p => { p.update(); p.draw(); });
+        requestAnimationFrame(anim);
     }
-    animate();
+    anim();
 </script>
 </body>
 </html>
