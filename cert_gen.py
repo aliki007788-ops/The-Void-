@@ -10,7 +10,7 @@ def create_certificate(user_id, burden, photo_path=None):
     for i in range(height):
         alpha = int(35 * (1 - i / height))
         draw.line((0, i, width, i), fill=(15, 10, 50, alpha))
-    for _ in range(350):
+    for _ in range(400):
         x, y = random.randint(10, 990), random.randint(10, 990)
         draw.ellipse((x, y, x+1, y+1), fill='#FFFFFF')
 
@@ -26,7 +26,6 @@ def create_certificate(user_id, burden, photo_path=None):
     y_text = 680 if is_premium else 560
 
     if is_premium:
-        # Divine Glow & Photo
         p_img = Image.open(photo_path).convert("RGBA").resize((250, 250))
         mask = Image.new('L', (250, 250), 0)
         ImageDraw.Draw(mask).ellipse((0, 0, 250, 250), fill=255)
@@ -41,7 +40,6 @@ def create_certificate(user_id, burden, photo_path=None):
         img.paste(p_img, (375, 400), p_img)
         draw.ellipse((370, 395, 630, 655), outline=gold, width=10)
 
-    # Dynamic Texts
     title = "DIVINE ASCENSION" if is_premium else "VOID ASCENSION"
     grade = "PREMIUM GRADE" if is_premium else "ETERNAL GRADE"
     
