@@ -1,34 +1,107 @@
-import os
-from PIL import Image, ImageDraw, ImageFont
+import os, json, base64, logging
+from fastapi import FastAPI, Request
+from fastapi.staticfiles import StaticFiles
+from aiogram import Bot, Dispatcher, types, F
+from aiogram.types import WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup, Update, FSInputFile, LabeledPrice
+from aiogram.filters import Command
+from cert_gen import create_certificate
+from dotenv import load_dotenv
 
-def create_certificate(user_id, burden):
-    width, height = 1000, 1000
-    image = Image.new('RGB', (width, height), color='#000000')
-    draw = ImageDraw.Draw(image)
+# پیکربندی لاگ برای عیب‌یابی سریع در سرور
+logging.basicConfig(level=logging.INFO)
+load_dotenv()
 
-    # طراحی حاشیه طلایی دوتایی
-    draw.rectangle([20, 20, 980, 980], outline='#FFD700', width=3)
-    draw.rectangle([45, 45, 955, 955], outline='#FFD700', width=1)
+bot = Bot(token=os.getenv("BOT_TOKEN"))
+dp = Dispatcher()
+app = FastAPI()
 
-    # تلاش برای بارگذاری فونت سیستم یا پیش‌فرض
+@dp.message(Command("start"))
+async def cmd_start(message: types.Message):
+    """نقطه ورود کاربر و باز کردن مینی‌آپ"""
+    kb = InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(
+            text="🔱 ASCEND TO THE VOID", 
+            web_app=WebAppInfo(url=f"{os.getenv('WEBHOOK_URL')}/static/index.html")
+        )
+    ]])
+    await message.answer(
+        "<b>THE VOID IS CALLING.</b>\nWill you sacrifice your burden for eternal peace?",
+        reply_markup=kb,
+        parse_mode="HTML"
+    )
+
+@app.get("/create_stars_invoice")
+async def create_inv(d: str):
+    """دریافت درخواست فاکتور از فرانت‌اِند"""
     try:
-        # در اکثر سرورهای لینوکس این مسیر وجود دارد
-        font_main = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 65)
-        font_sub = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 35)
-    except:
-        font_main = ImageFont.load_default()
-        font_sub = ImageFont.load_default()
+        # رمزگشایی Payload ارسالی از JS
+        decoded = json.loads(base64.b64decode(d).decode('utf-8'))
+        uid = decoded.get('u')
+        burden = decoded.get('b')
+        
+        if not uid or not burden:
+            return {"error": "Incomplete data"}
 
-    # متون با چیدمان مرکز‌چین
-    draw.text((500, 250), "VOID ASCENSION", fill="#FFD700", font=font_main, anchor="mm")
-    draw.text((500, 420), "THIS DOCUMENT CERTIFIES THAT", fill="#888888", font=font_sub, anchor="mm")
-    draw.text((500, 520), f"\"{burden.upper()}\"", fill="#FFFFFF", font=font_main, anchor="mm")
-    draw.text((500, 620), "HAS BEEN CONSUMED BY THE ETERNAL VOID", fill="#888888", font=font_sub, anchor="mm")
-    
-    # متادیتای پایین
-    draw.text((500, 850), f"HOLDER ID: {user_id}", fill="#FFD700", font=font_sub, anchor="mm")
-    draw.text((500, 910), "TIMESTAMP: 2025.VO-ID", fill="#333333", font=font_sub, anchor="mm")
+        # ایجاد لینک فاکتور Stars (قیمت: 50 ستاره)
+        prices = [LabeledPrice(label="Ascension Ritual", amount=50)]
+        link = await bot.create_invoice_link(
+            title="THE VOID | PRESTIGE",
+            description=f"Personalized NFT for: {burden}",
+            payload=f"{uid}:{burden}",
+            currency="XTR", 
+            prices=prices
+        )
+        return {"url": link}
+    except Exception as e:
+        logging.error(f"Invoice Error: {e}")
+        return {"error": "Cosmic interference"}
 
-    file_path = f"nft_{user_id}.png"
-    image.save(file_path)
-    return file_path
+@dp.pre_checkout_query()
+async def pre_checkout_handler(query: types.PreCheckoutQuery):
+    """تأیید نهایی قبل از کسر وجه (اجباری تلگرام)"""
+    await query.answer(ok=True)
+
+@dp.message(F.successful_payment)
+async def on_payment_success(message: types.Message):
+    """اجرای عملیات پس از پرداخت موفق ستاره‌ها"""
+    try:
+        payload = message.successful_payment.invoice_payload
+        uid_str, burden = payload.split(":")
+        chat_id = int(uid_str)
+        
+        # ۱. تولید فایل تصویری گواهی
+        nft_path = create_certificate(chat_id, burden)
+        
+        # ۲. ارسال مدرک دیجیتال به کاربر
+        await bot.send_document(
+            chat_id=chat_id, 
+            document=FSInputFile(nft_path), 
+            caption=f"🔱 <b>ASCENSION COMPLETE</b>\nYour burden <i>{burden}</i> is now stardust.\n\nAsset ID: #VOID-{chat_id}",
+            parse_mode="HTML"
+        )
+        
+        # ۳. ارسال فایل صوتی اتمسفریک (در صورت وجود)
+        voice_path = "_Everything you were.ogg"
+        if os.path.exists(voice_path):
+            await bot.send_voice(chat_id=chat_id, voice=FSInputFile(voice_path))
+        
+        # پاکسازی خودکار فایل موقت
+        if os.path.exists(nft_path):
+            os.remove(nft_path)
+            
+    except Exception as e:
+        logging.error(f"Post-Payment Error: {e}")
+
+@app.post("/webhook")
+async def handle_webhook(request: Request):
+    """هندلر وب‌هوک تلگرام"""
+    update = Update.model_validate(await request.json(), context={"bot": bot})
+    await dp.feed_update(bot, update)
+    return {"ok": True}
+
+# سرو فایل‌های استاتیک (HTML/JS)
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+@app.on_event("startup")
+async def on_startup():
+    await bot.set_webhook(f"{os.getenv('WEBHOOK_URL')}/webhook")
