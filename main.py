@@ -1,272 +1,175 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>The Void</title>
+import os
+import json
+import requests
+from fastapi import FastAPI, Request
+from fastapi.staticfiles import StaticFiles
 
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
+from aiogram import Bot, Dispatcher, F
+from aiogram.filters import Command
+from aiogram.types import (
+    WebAppInfo,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    Update,
+    FSInputFile,
+)
+from aiogram import types
 
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400&display=swap');
+from cert_gen import create_certificate
 
-:root {
-  --gold: #e6d9a2;
-  --bg: #020203;
-  --glass: rgba(255,255,255,0.06);
-}
 
-* { box-sizing: border-box; }
+# ================== ENV ==================
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+CRYPTO_TOKEN = os.getenv("CRYPTO_PAY_TOKEN")
+BASE_URL = os.getenv("WEBHOOK_URL")  # e.g. https://your-app.onrender.com
 
-body {
-  margin: 0;
-  background: radial-gradient(circle at center, #08080c, #000);
-  color: white;
-  font-family: 'Inter', sans-serif;
-  overflow: hidden;
-  height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher()
+app = FastAPI()
 
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background:
-    radial-gradient(circle at 30% 30%, rgba(255,255,255,0.03), transparent 40%),
-    radial-gradient(circle at 70% 60%, rgba(255,215,160,0.04), transparent 45%);
-  pointer-events: none;
-}
 
-canvas {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-}
+# ================== STARTUP ==================
+@app.on_event("startup")
+async def on_startup():
+    webhook_url = f"{BASE_URL}/webhook"
+    await bot.set_webhook(webhook_url)
+    print(f"[VOID] Webhook set → {webhook_url}")
 
-#ui-container {
-  z-index: 10;
-  text-align: center;
-  max-width: 520px;
-  padding: 40px;
-  transition: opacity 1.2s ease, transform 1.2s ease;
-}
 
-h1 {
-  font-size: 56px;
-  font-weight: 200;
-  letter-spacing: 14px;
-  margin-bottom: 28px;
-  color: var(--gold);
-  text-shadow:
-    0 0 40px rgba(230,217,162,0.25),
-    0 0 80px rgba(230,217,162,0.15);
-}
+# ================== TELEGRAM WEBHOOK ==================
+@app.post("/webhook")
+async def telegram_webhook(request: Request):
+    update = Update.model_validate(
+        await request.json(),
+        context={"bot": bot}
+    )
+    await dp.feed_update(bot=bot, update=update)
+    return {"ok": True}
 
-.subtitle {
-  font-size: 15px;
-  font-weight: 300;
-  letter-spacing: 3px;
-  line-height: 1.8;
-  color: rgba(255,255,255,0.6);
-  margin-bottom: 50px;
-}
 
-input {
-  width: 100%;
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid rgba(255,255,255,0.15);
-  padding: 18px 10px;
-  font-size: 20px;
-  text-align: center;
-  color: var(--gold);
-  letter-spacing: 2px;
-  outline: none;
-  transition: border-color .4s ease;
-}
+# ================== /start ==================
+@dp.message(Command("start"))
+async def start(message: types.Message):
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[[
+            InlineKeyboardButton(
+                text="⚫ ENTER THE VOID",
+                web_app=WebAppInfo(
+                    url=f"{BASE_URL}/static/index.html"
+                )
+            )
+        ]]
+    )
 
-input:focus {
-  border-bottom-color: rgba(230,217,162,0.8);
-}
+    await message.answer(
+        "Welcome to The Void.\nLeave your burdens behind.",
+        reply_markup=keyboard
+    )
 
-input::placeholder {
-  color: rgba(255,255,255,0.25);
-}
 
-.release-btn {
-  margin-top: 70px;
-  padding: 18px 70px;
-  font-size: 13px;
-  letter-spacing: 6px;
-  text-transform: uppercase;
-  color: white;
+# ================== WEB APP DATA ==================
+@dp.message(F.web_app_data)
+async def handle_webapp_data(message: types.Message):
+    try:
+        data = json.loads(message.web_app_data.data)
 
-  background: linear-gradient(
-    135deg,
-    rgba(255,255,255,0.12),
-    rgba(255,255,255,0.02)
-  );
-  border: 1px solid rgba(255,255,255,0.25);
-  border-radius: 999px;
+        if data.get("action") != "create_invoice":
+            return
 
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+        need = data.get("need", "").strip()
+        if not need:
+            await message.answer("⚠️ The Void needs an answer.")
+            return
 
-  cursor: pointer;
-  transition: 
-    transform .6s cubic-bezier(.2,.8,.2,1),
-    box-shadow .6s ease,
-    background .6s ease;
-}
+        user_id = message.from_user.id
 
-.release-btn:hover {
-  transform: scale(1.08);
-  box-shadow:
-    0 0 40px rgba(255,255,255,0.15),
-    0 0 120px rgba(230,217,162,0.15);
-  background: linear-gradient(
-    135deg,
-    rgba(255,255,255,0.18),
-    rgba(255,255,255,0.04)
-  );
-}
+        url = "https://pay.cryptobot.io/api/createInvoice"
+        headers = {
+            "Crypto-Pay-API-Token": CRYPTO_TOKEN
+        }
 
-.release-btn:active {
-  transform: scale(0.96);
-}
+        payload = {
+            "asset": "USDT",
+            "amount": "1",
+            "description": f"Release your burden: {need}",
+            "payload": f"{user_id}:{need}",
+            "paid_btn_name": "viewInvoice",
+            "paid_btn_url": f"https://t.me/{(await bot.get_me()).username}",
+        }
 
-#final-message {
-  position: absolute;
-  font-size: 18px;
-  letter-spacing: 8px;
-  color: var(--gold);
-  opacity: 0;
-  z-index: 20;
-  transition: opacity 2s ease;
-  text-shadow: 0 0 40px rgba(230,217,162,0.4);
-}
-</style>
-</head>
+        response = requests.post(url, headers=headers, json=payload)
+        result = response.json()
 
-<body>
+        if response.status_code == 200 and result.get("ok"):
+            invoice = result["result"]
+            pay_url = invoice["bot_invoice_url"]
 
-<canvas id="particle-canvas"></canvas>
+            keyboard = InlineKeyboardMarkup(
+                inline_keyboard=[[
+                    InlineKeyboardButton(
+                        text="💰 SEAL IT IN THE VOID — $1",
+                        url=pay_url
+                    )
+                ]]
+            )
 
-<div id="ui-container">
-  <h1>THE VOID</h1>
-  <p class="subtitle">
-    NAME THE BURDEN<br>
-    YOU NO LONGER WISH TO CARRY
-  </p>
+            await message.answer(
+                "🕳 VOID ACCEPTED.\n\n"
+                f"Burden erased: 「 {need.upper()} 」\n\n"
+                "Complete the ritual to receive your certificate.",
+                reply_markup=keyboard
+            )
+        else:
+            await message.answer("❌ Payment system error. Try again later.")
 
-  <input id="burden-input" placeholder="FEAR · DEBT · MEMORY">
+    except Exception as e:
+        print(f"[VOID ERROR] {e}")
+        await message.answer("❌ An error occurred. Try again.")
 
-  <button class="release-btn" onclick="startReleaseSequence()">
-    RELEASE INTO THE VOID
-  </button>
-</div>
 
-<div id="final-message">VOID ACCEPTED</div>
+# ================== CRYPTO PAY CALLBACK ==================
+@app.post("/crypto_callback")
+async def crypto_callback(request: Request):
+    try:
+        data = await request.json()
 
-<script>
-const tg = window.Telegram.WebApp;
-tg.expand();
-tg.setBackgroundColor("#020203");
-tg.setHeaderColor("#020203");
+        if data.get("update_type") != "invoice_paid":
+            return {"ok": True}
 
-const canvas = document.getElementById("particle-canvas");
-const ctx = canvas.getContext("2d");
-resize();
-window.addEventListener("resize", resize);
-function resize() {
-  canvas.width = innerWidth;
-  canvas.height = innerHeight;
-}
+        invoice = data.get("payload", {})
+        payload = invoice.get("payload", "")
 
-let particles = [];
+        if ":" not in payload:
+            return {"ok": True}
 
-class Particle {
-  constructor(x,y) {
-    const a = Math.random()*Math.PI*2;
-    const p = Math.random()*6+2;
-    this.x=x; this.y=y;
-    this.vx=Math.cos(a)*p;
-    this.vy=Math.sin(a)*p;
-    this.life=1;
-    this.size=Math.random()*2+1;
-    this.color=`rgb(230,${200+Math.random()*40},150)`;
-  }
-  update(){
-    this.x+=this.vx;
-    this.y+=this.vy;
-    this.vx*=0.96;
-    this.vy*=0.96;
-    this.vy+=0.02;
-    this.life-=0.014;
-  }
-  draw(){
-    ctx.globalAlpha=this.life;
-    ctx.shadowBlur=20;
-    ctx.shadowColor=this.color;
-    ctx.fillStyle=this.color;
-    ctx.fillRect(this.x,this.y,this.size,this.size);
-    ctx.globalAlpha=1;
-  }
-}
+        user_id_str, need = payload.split(":", 1)
+        user_id = int(user_id_str)
 
-function initExplosion(text){
-  particles=[];
-  const t=document.createElement("canvas");
-  const c=t.getContext("2d");
-  t.width=canvas.width;
-  t.height=canvas.height;
-  c.fillStyle="#fff";
-  c.textAlign="center";
-  c.textBaseline="middle";
-  c.font="bold 80px Inter";
-  c.fillText(text,t.width/2,t.height/2);
-  const d=c.getImageData(0,0,t.width,t.height).data;
-  for(let y=0;y<t.height;y+=3){
-    for(let x=0;x<t.width;x+=3){
-      if(d[(y*t.width+x)*4+3]>150){
-        particles.push(new Particle(x,y));
-      }
-    }
-  }
-}
+        path = create_certificate(user_id_str, need)
 
-function animate(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  particles.forEach(p=>{p.update();p.draw();});
-  particles=particles.filter(p=>p.life>0);
-  if(particles.length) requestAnimationFrame(animate);
-  else showFinal();
-}
+        await bot.send_document(
+            chat_id=user_id,
+            document=FSInputFile(path),
+            caption=(
+                "YOU ARE NOW FREE.\n\n"
+                "The Void has accepted your burden forever.\n"
+                "Your official attestation is attached."
+            )
+        )
 
-function startReleaseSequence(){
-  const text=document.getElementById("burden-input").value.trim();
-  if(!text){ tg.HapticFeedback.notificationOccurred("error"); return; }
-  tg.HapticFeedback.impactOccurred("heavy");
-  document.getElementById("ui-container").style.opacity=0;
-  initExplosion(text);
-  animate();
-}
+        if os.path.exists(path):
+            os.remove(path)
 
-function showFinal(){
-  document.getElementById("final-message").style.opacity=1;
-  tg.HapticFeedback.notificationOccurred("success");
-  setTimeout(()=>{
-    tg.sendData(JSON.stringify({
-      action:"create_invoice",
-      need:document.getElementById("burden-input").value
-    }));
-  },2200);
-}
-</script>
+        return {"ok": True}
 
-</body>
-</html>
+    except Exception as e:
+        print(f"[CRYPTO ERROR] {e}")
+        return {"ok": False}
+
+
+# ================== STATIC FILES ==================
+app.mount(
+    "/static",
+    StaticFiles(directory="static"),
+    name="static"
+)
