@@ -1,105 +1,83 @@
-import os
+import os, random
 from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageFilter
 
 def create_certificate(user_id, burden, photo_path=None):
     width, height = 1000, 1000
-    img = Image.new('RGB', (width, height), color='#000000')
+    # پس‌زمینه آبی عمیق و کیهانی
+    img = Image.new('RGB', (width, height), color='#000814')
     draw = ImageDraw.Draw(img)
 
-    # پس‌زمینه cosmic با ستاره‌های ریز
-    for _ in range(250):
-        x = (_ * 17) % width
-        y = (_ * 23) % height
-        size = 1 if _ % 3 == 0 else 2
-        draw.ellipse((x, y, x + size, y + size), fill='#FFFFFF')
+    # پس‌زمینه Nebula (ایجاد گرادینت و ستاره‌ها)
+    for i in range(height):
+        alpha = int(30 * (1 - i / height))
+        draw.line((0, i, width, i), fill=(10, 5, 40, alpha))
+    
+    for _ in range(400):
+        x, y = random.randint(20, width-20), random.randint(20, height-20)
+        size = random.choice([1, 1, 1, 2])
+        draw.ellipse((x, y, x+size, y+size), fill='#FFFFFF')
 
-    # حاشیه ornate طلایی با گوشه‌های decorative (دقیقاً مثل نمونه اولیه)
+    # حاشیه Ornate طلایی
     border_color = '#FFD700'
-    draw.rectangle([40, 40, 960, 960], outline=border_color, width=10)
+    draw.rectangle([35, 35, 965, 965], outline=border_color, width=12)
 
-    # گوشه‌های فلورال/ornate
-    corner_patterns = [
-        (40, 40), (960, 40), (40, 960), (960, 960)
-    ]
-    for cx, cy in corner_patterns:
-        # arcهای decorative
-        for r in [80, 60, 40]:
-            draw.arc((cx - r, cy - r, cx + r, cy + r), start=0, end=90, fill=border_color, width=8)
-        # خطوط اضافی برای ornate بودن
-        draw.line((cx, cy + 50, cx, cy + 100), fill=border_color, width=6)
-        draw.line((cx + 50, cy, cx + 100, cy), fill=border_color, width=6)
+    # گوشه‌های دکوراتیو پیچیده
+    for cx, cy, rot in [(35, 35, 0), (965, 35, 90), (35, 965, 270), (965, 965, 180)]:
+        for r in [90, 70, 50]:
+            draw.arc((cx - r, cy - r, cx + r, cy + r), start=rot, end=rot+90, fill=border_color, width=10)
+        draw.line((cx, cy + 60, cx + 40, cy + 100), fill=border_color, width=8)
+        draw.line((cx + 60, cy, cx + 100, cy + 40), fill=border_color, width=8)
 
-    # لوگو V بزرگ و mystical وسط بالا (دقیقاً مثل نمونه اولیه)
-    logo_size = 380 if not photo_path else 320
+    # لوگوی V با نمادهای Occult
+    logo_size = 400 if not photo_path else 350
     logo = Image.new('RGBA', (logo_size, logo_size), (0,0,0,0))
     d_logo = ImageDraw.Draw(logo)
+    
+    symbols = ['△', '○', '☆', '◉', '✦']
+    for i, r in enumerate(range(190, 40, -25)):
+        d_logo.ellipse((logo_size//2 - r, logo_size//2 - r, logo_size//2 + r, logo_size//2 + r), outline=border_color, width=6)
+        if i < len(symbols):
+            try: sym_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 40)
+            except: sym_font = ImageFont.load_default()
+            d_logo.text((logo_size//2 + r - 10, logo_size//2), symbols[i], fill=border_color, font=sym_font)
 
-    # دایره‌های concentric با افکت
-    for r, w in [(180, 8), (150, 6), (120, 5), (90, 4), (60, 3)]:
-        d_logo.ellipse((logo_size//2 - r, logo_size//2 - r, logo_size//2 + r, logo_size//2 + r), outline=border_color, width=w)
-
-    # حرف V طلایی با فونت bold
-    try:
-        font_v = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 280)
-    except:
-        font_v = ImageFont.load_default()
+    try: font_v = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 250 if photo_path else 300)
+    except: font_v = ImageFont.load_default()
     d_logo.text((logo_size//2, logo_size//2 + 40), "V", fill=border_color, font=font_v, anchor="mm")
+    
+    img.paste(logo, ((width - logo_size) // 2, 80), logo)
 
-    # چسباندن لوگو
-    logo_x = (width - logo_size) // 2
-    logo_y = 60 if not photo_path else 100
-    img.paste(logo, (logo_x, logo_y), logo)
-
-    # عکس کاربر زیر لوگو (اختیاری – با glow و shadow طلایی)
-    y_text_start = 520 if not photo_path else 700
+    # بخش تصویر کاربر با Glow بسیار قوی
+    y_text_start = 650 if not photo_path else 750
     if photo_path and os.path.exists(photo_path):
         try:
-            p_img = Image.open(photo_path).convert("RGBA").resize((240, 240))
-
-            # ماسک دایره‌ای
-            mask = Image.new('L', (240, 240), 0)
-            ImageDraw.Draw(mask).ellipse((0, 0, 240, 240), fill=255)
+            p_img = Image.open(photo_path).convert("RGBA").resize((220, 220))
+            mask = Image.new('L', (220, 220), 0)
+            ImageDraw.Draw(mask).ellipse((0, 0, 220, 220), fill=255)
             p_img.putalpha(mask)
 
-            # Glow طلایی لوکس
             glow = Image.new('RGBA', (300, 300), (0,0,0,0))
             d_glow = ImageDraw.Draw(glow)
-            for i in range(25, 0, -2):
-                alpha = int(200 * (i/25))
+            for i in range(40, 0, -3):
+                alpha = int(220 * (i/40))
                 d_glow.ellipse((i, i, 300-i, 300-i), fill=(255,215,0,alpha))
-            glow = glow.filter(ImageFilter.GaussianBlur(12))
-            img.paste(glow, (350, 420), glow)
+            glow = glow.filter(ImageFilter.GaussianBlur(20))
+            img.paste(glow, (350, 450), glow)
+            img.paste(p_img, (390, 470), p_img)
+            draw.ellipse((380, 460, 620, 700), outline=border_color, width=10)
+        except: pass
 
-            # Shadow نرم
-            shadow = Image.new('RGBA', (260, 260), (0,0,0,0))
-            d_shadow = ImageDraw.Draw(shadow)
-            d_shadow.ellipse((15, 15, 245, 245), fill=(0,0,0,140))
-            shadow = shadow.filter(ImageFilter.GaussianBlur(18))
-            img.paste(shadow, (370, 440), shadow)
-
-            img.paste(p_img, (380, 430), p_img)
-
-            # حاشیه طلایی دور عکس
-            draw.ellipse((370, 425, 630, 685), outline=border_color, width=8)
-
-        except Exception as e:
-            print(f"Photo error: {e}")
-
-    # متن‌ها با فونت gothic و طلایی (حس رسمی و ابدی)
+    # متون نهایی طلایی و گوتیک
     try:
-        font_title = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 70)
-        font_sub = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 38)
-        font_small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 32)
-    except:
-        font_title = font_sub = font_small = ImageFont.load_default()
+        f_title = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 75)
+        f_sub = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 40)
+    except: f_title = f_sub = ImageFont.load_default()
 
-    draw.text((500, y_text_start - 80), "VOID ASCENSION", fill="#FFD700", font=font_title, anchor="mm")
-    draw.text((500, y_text_start + 20), "THIS DOCUMENT CERTIFIES THAT", fill="#FFD700", font=font_sub, anchor="mm")
-    draw.text((500, y_text_start + 120), f"\"{burden.upper()}\"", fill="#FFFFFF", font=font_title, anchor="mm")
-    draw.text((500, y_text_start + 240), "HAS BEEN CONSUMED BY", fill="#FFD700", font=font_sub, anchor="mm")
-    draw.text((500, y_text_start + 300), "THE ETERNAL VOID", fill="#FFD700", font=font_sub, anchor="mm")
-    draw.text((500, 920), f"HOLDER ID: {user_id}", fill="#FFD700", font=font_small, anchor="mm")
-    draw.text((500, 970), "TIMESTAMP: 2025.VO-ID", fill="#BBBBBB", font=font_small, anchor="mm")
+    draw.text((500, y_text_start - 100), "VOID ASCENSION", fill=border_color, font=f_title, anchor="mm")
+    draw.text((500, y_text_start), "THIS DOCUMENT CERTIFIES THAT", fill=border_color, font=f_sub, anchor="mm")
+    draw.text((500, y_text_start + 110), f"\"{burden.upper()}\"", fill="#FFFFFF", font=f_title, anchor="mm")
+    draw.text((500, y_text_start + 230), "HAS BEEN CONSUMED BY THE VOID", fill=border_color, font=f_sub, anchor="mm")
+    draw.text((500, 930), f"HOLDER ID: {user_id} | 2025.VO-ID", fill="#888888", font=f_sub, anchor="mm")
 
     path = f"nft_{user_id}.png"
     img.save(path)
