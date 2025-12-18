@@ -8,75 +8,67 @@ from cert_gen import create_certificate
 from dotenv import load_dotenv
 
 load_dotenv()
-API_TOKEN = os.getenv("BOT_TOKEN")
-CRYPTO_TOKEN = os.getenv("CRYPTO_PAY_TOKEN")
-WEBHOOK_URL = os.getenv("WEBHOOK_URL")
-
-bot = Bot(token=API_TOKEN)
+bot = Bot(token=os.getenv("BOT_TOKEN"))
 dp = Dispatcher()
 app = FastAPI()
 
 @dp.message(Command("start"))
 async def start(message: types.Message):
-    markup = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="🔱 ASCEND TO THE VOID", web_app=WebAppInfo(url=f"{WEBHOOK_URL}/static/index.html"))
+    # دکمه ورود به مینی اپ
+    kb = InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="🔱 ASCEND TO THE VOID", web_app=WebAppInfo(url=f"{os.getenv('WEBHOOK_URL')}/static/index.html"))
     ]])
-    await message.answer("<b>THE VOID IS READY.</b>", reply_markup=markup, parse_mode="HTML")
+    await message.answer("<b>THE VOID IS WAITING.</b>", reply_markup=kb, parse_mode="HTML")
 
-@dp.message(lambda message: message.web_app_data is not None)
+@dp.message(lambda m: m.web_app_data is not None)
 async def handle_webapp_data(message: types.Message):
-    """بخش حیاتی: دریافت داده و صدور آنی فاکتور"""
+    """دریافت داده از مینی اپ و صدور فاکتور"""
     try:
         data = json.loads(message.web_app_data.data)
-        burden = data.get("need", "Something")
+        burden = data.get("need", "Sacrifice")
         
-        headers = {"Crypto-Pay-API-Token": CRYPTO_TOKEN}
+        # ساخت فاکتور در CryptoPay
+        headers = {"Crypto-Pay-API-Token": os.getenv("CRYPTO_PAY_TOKEN")}
         payload = {
             "asset": "USDT", "amount": "1.00",
-            "description": f"NFT Certificate for {burden}",
+            "description": f"NFT Certificate: {burden}",
             "payload": f"{message.from_user.id}:{burden}"
         }
+        res = requests.post("https://pay.cryptotextnet.me/api/createInvoice", headers=headers, json=payload).json()
         
-        # فراخوانی API کریپتو بات
-        response = requests.post("https://pay.cryptotextnet.me/api/createInvoice", headers=headers, json=payload).json()
-        
-        if response.get('ok'):
-            pay_url = response['result']['pay_url']
-            btn = InlineKeyboardMarkup(inline_keyboard=[[
-                InlineKeyboardButton(text="💳 PAY & MINT NFT", url=pay_url)
+        if res.get('ok'):
+            pay_url = res['result']['pay_url']
+            kb = InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="💳 MINT NFT ($1.00)", url=pay_url)
             ]])
-            await message.answer(f"Transaction for <b>{burden}</b> initialized.\nFinalize below:", reply_markup=btn, parse_mode="HTML")
-        else:
-            await message.answer("Connection to CryptoPay failed. Please retry.")
-            
+            await message.answer(f"Ritual for <b>{burden}</b> is ready.\nProceed to mint your eternal proof on the blockchain:", reply_markup=kb, parse_mode="HTML")
     except Exception as e:
-        logging.error(f"Error in handle_webapp_data: {e}")
+        logging.error(e)
 
 @app.post("/webhook")
-async def telegram_webhook(request: Request):
+async def webhook_update(request: Request):
     update = Update.model_validate(await request.json(), context={"bot": bot})
     await dp.feed_update(bot, update)
     return {"ok": True}
 
 @app.post("/pay_callback")
-async def payment_webhook(request: Request, bg_tasks: BackgroundTasks):
+async def payment_success(request: Request, bg: BackgroundTasks):
     data = await request.json()
     if data.get('update_type') == 'invoice_paid':
-        payload = data.get('payload', '')
-        if ":" in payload:
-            user_id, burden = payload.split(":")
-            bg_tasks.add_task(send_nft_reward, user_id, burden)
+        uid, bur = data['payload'].split(":")
+        bg.add_task(finalize_nft, uid, bur)
     return {"ok": True}
 
-async def send_nft_reward(user_id, burden):
-    cert_path = create_certificate(str(user_id), burden)
-    await bot.send_document(chat_id=user_id, document=FSInputFile(cert_path), caption=f"🔱 NFT Minted: {burden}")
+async def finalize_nft(uid, bur):
+    # تولید گواهی NFT
+    path = create_certificate(uid, bur)
+    await bot.send_document(uid, FSInputFile(path), caption=f"🔱 **NFT MINTED**\nYour burden '{bur}' is now stardust.")
     if os.path.exists("_Everything you were.ogg"):
-        await bot.send_voice(chat_id=user_id, voice=FSInputFile("_Everything you were.ogg"))
-    os.remove(cert_path)
+        await bot.send_voice(uid, FSInputFile("_Everything you were.ogg"))
+    os.remove(path)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.on_event("startup")
 async def on_startup():
-    await bot.set_webhook(url=f"{WEBHOOK_URL}/webhook")
+    await bot.set_webhook(f"{os.getenv('WEBHOOK_URL')}/webhook")
