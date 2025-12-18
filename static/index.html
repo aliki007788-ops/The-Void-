@@ -13,8 +13,8 @@
         .main-title { font-size: 3.5rem; letter-spacing: 25px; margin-bottom: 40px; text-shadow: 0 0 20px rgba(255, 215, 0, 0.5); animation: glow 4s infinite alternate; }
         @keyframes glow { to { text-shadow: 0 0 40px rgba(255, 215, 0, 0.9); } }
         input[type="text"] { background: none; border: none; border-bottom: 1px solid #444; color: #FFD700; font-size: 1.2rem; text-align: center; width: 70%; outline: none; font-family: monospace; }
-        .btn-large { border: 1px solid #FFD700; padding: 20px 80px; background: rgba(0,0,0,0.5); color: #FFD700; cursor: pointer; letter-spacing: 8px; font-weight: bold; margin-top: 50px; transition: 0.4s; backdrop-filter: blur(5px); }
-        .btn-large:hover { background: #FFD700; color: #000; box-shadow: 0 0 30px #FFD700; }
+        .btn-large { border: 1px solid #FFD700; padding: 20px 80px; background: rgba(0,0,0,0.3); color: #FFD700; cursor: pointer; letter-spacing: 8px; font-weight: bold; margin-top: 50px; transition: 0.4s; backdrop-filter: blur(5px); outline: none; }
+        .btn-large:active { transform: scale(0.95); background: #FFD700; color: #000; }
         #step2 { display: none; opacity: 0; transform: scale(1.1); }
         .option-card { background: rgba(10,10,10,0.8); border: 1px solid #222; padding: 25px; border-radius: 2px; width: 85%; margin-top: 20px; }
         .price-display { font-size: 3.5rem; font-weight: bold; margin: 15px 0; display: flex; align-items: center; justify-content: center; gap: 15px; }
@@ -45,6 +45,7 @@
             </label>
         </div>
         <button class="btn-large" onclick="mint()">MINT NFT</button>
+        <p onclick="location.reload()" style="font-size: 0.6rem; color: #444; margin-top: 20px; cursor: pointer;">← BACK TO VOID</p>
     </div>
 
     <script>
@@ -84,6 +85,7 @@
             const lbl = document.getElementById('grade-label');
             lbl.innerText = prem ? "DIVINE GRADE" : "ETERNAL GRADE";
             lbl.style.color = prem ? "#FFD700" : "#AAAAAA";
+            if(document.getElementById('file-up').files[0]) document.getElementById('file-text').innerText = "IMAGE CRYSTALLIZED";
             tg.HapticFeedback.selectionChanged();
         }
 
@@ -95,17 +97,28 @@
                 pData = await new Promise(r => {
                     const rd = new FileReader(); rd.onload = e => {
                         const img = new Image(); img.onload = () => {
-                            const c = document.createElement('canvas'); c.width=600; c.height=600;
-                            c.getContext('2d').drawImage(img,0,0,600,600); r(c.toDataURL('image/jpeg', 0.6));
+                            const cv = document.createElement('canvas'); cv.width=600; cv.height=600;
+                            cv.getContext('2d').drawImage(img,0,0,600,600); r(cv.toDataURL('image/jpeg', 0.6));
                         }; img.src = e.target.result;
                     }; rd.readAsDataURL(file);
                 });
             }
             const d = btoa(JSON.stringify({ u: tg.initDataUnsafe.user?.id, b: b, p: pData, prof: prof }));
-            const res = await fetch('/create_stars_invoice?d=' + d);
-            const j = await res.json();
-            if(j.url) tg.openInvoice(j.url, s => { if(s==='paid') tg.close(); });
-            else if(j.free) { tg.showAlert("🔱 DIVINE ACCESS GRANTED\nYour soul has been recorded."); tg.close(); }
+            try {
+                const res = await fetch('/create_stars_invoice?d=' + d);
+                const j = await res.json();
+                if(j.url) {
+                    tg.openInvoice(j.url, s => { 
+                        if(s==='paid') {
+                            tg.showAlert("🔱 ASCENSION COMPLETE\nYour soul has been recorded.");
+                            setTimeout(() => tg.close(), 1000);
+                        }
+                    });
+                } else if(j.free) {
+                    tg.showAlert("🔱 DIVINE ACCESS GRANTED\nYour soul has been recorded.");
+                    setTimeout(() => tg.close(), 1000);
+                }
+            } catch(e) { tg.showAlert("Connection to Void lost."); }
             tg.MainButton.hideProgress();
         }
     </script>
