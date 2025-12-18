@@ -6,107 +6,75 @@
     <title>THE VOID</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { background: #000; color: #FFD700; font-family: 'Courier New', monospace; text-align: center; overflow: hidden; margin: 0; }
+        body { background: #000; color: #FFD700; font-family: monospace; text-align: center; margin: 0; overflow: hidden; }
         .ui { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: 1s; }
-        input[type="text"] { background: none; border: none; border-bottom: 2px solid #333; color: #FFD700; font-size: 1.4rem; text-align: center; outline: none; width: 80%; padding: 10px; }
-        .btn { border: 2px solid #FFD700; padding: 15px 50px; margin-top: 40px; background: none; color: #FFD700; cursor: pointer; letter-spacing: 4px; font-weight: bold; }
-        #loading-screen { position: fixed; top: 0; width: 100%; height: 100%; background: #000; display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 100; }
-        .diamond { color: #00d4ff; font-size: 2rem; margin-bottom: 10px; }
-        #canvas { position: fixed; top: 0; left: 0; z-index: -1; }
+        input[type="text"] { background: none; border: none; border-bottom: 2px solid #333; color: #FFD700; font-size: 1.4rem; text-align: center; width: 80%; outline: none; }
+        .btn { border: 2px solid #FFD700; padding: 15px 50px; margin-top: 40px; background: none; color: #FFD700; cursor: pointer; letter-spacing: 4px; }
+        #loader { position: fixed; top: 0; width: 100%; height: 100%; background: #000; display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 100; }
+        canvas { position: fixed; top: 0; left: 0; z-index: -1; }
     </style>
 </head>
 <body>
-    <canvas id="canvas"></canvas>
+    <canvas id="cvs"></canvas>
     <audio id="snd" src="ascend.mp3"></audio>
-
     <div class="ui" id="main-ui">
-        <h1 style="letter-spacing: 15px;">THE VOID</h1>
-        <input type="text" id="inp" placeholder="WHAT IS YOUR SACRIFICE?" maxlength="15">
-        <div style="margin-top: 30px; border: 1px dashed #333; padding: 20px; border-radius: 15px;">
+        <h1 style="letter-spacing: 10px;">THE VOID</h1>
+        <input type="text" id="inp" placeholder="YOUR SACRIFICE" maxlength="15">
+        <div style="margin-top: 30px; padding: 10px; border: 1px dashed #444; border-radius: 10px;">
             <input type="file" id="f-up" accept="image/*"><br><br>
             <label><input type="checkbox" id="c-prof"> USE PROFILE PHOTO</label>
         </div>
         <button class="btn" onclick="ignite()">SACRIFICE</button>
     </div>
-
-    <div id="loading-screen">
-        <div class="diamond">💎</div>
-        <h2 id="grade-title" style="letter-spacing: 5px;">ANALYZING SACRIFICE...</h2>
-        <p id="price-tag" style="font-size: 1.5rem; color: #FFF;"></p>
-        <p style="color: #555; font-size: 0.8rem; margin-top: 20px;">TRANSCENDING REALITY</p>
+    <div id="loader">
+        <h2 id="grade-title">ANALYZING...</h2>
+        <h1 id="price-tag" style="font-size: 3rem;"></h1>
     </div>
+    <script>
+        const tg = window.Telegram.WebApp; tg.expand();
+        // Star Background Animation
+        const c = document.getElementById('cvs'); const ctx = c.getContext('2d');
+        function res() { c.width = innerWidth; c.height = innerHeight; }
+        window.onresize = res; res();
+        let s = Array.from({length: 100}, () => ({x: Math.random()*c.width, y: Math.random()*c.height, r: Math.random()*2}));
+        function draw() {
+            ctx.fillStyle = 'black'; ctx.fillRect(0,0,c.width,c.height);
+            ctx.fillStyle = 'white'; s.forEach(p => { ctx.fillRect(p.x, p.y, p.r, p.r); p.y -= 0.5; if(p.y<0) p.y=c.height; });
+            requestAnimationFrame(draw);
+        }
+        draw();
 
-<script>
-    const tg = window.Telegram.WebApp;
-    tg.expand();
-    
-    // Star Animation
-    const cvs = document.getElementById('canvas');
-    const ctx = cvs.getContext('2d');
-    function res() { cvs.width = innerWidth; cvs.height = innerHeight; }
-    window.onresize = res; res();
-    let stars = Array.from({length: 150}, () => ({x: Math.random()*cvs.width, y: Math.random()*cvs.height, s: Math.random()*2}));
-    function anim() {
-        ctx.fillStyle = 'black'; ctx.fillRect(0,0,cvs.width,cvs.height);
-        ctx.fillStyle = 'white'; stars.forEach(p => { ctx.fillRect(p.x, p.y, p.s, p.s); p.y -= 0.3; if(p.y<0) p.y=cvs.height; });
-        requestAnimationFrame(anim);
-    }
-    anim();
+        async function ignite() {
+            const b = document.getElementById('inp').value.trim(); if(!b) return;
+            document.getElementById('snd').play(); tg.HapticFeedback.impactOccurred('heavy');
+            document.getElementById('main-ui').style.opacity = 0;
+            const loader = document.getElementById('loader'); loader.style.display = 'flex';
+            
+            const isPrem = document.getElementById('f-up').files[0] || document.getElementById('c-prof').checked;
+            setTimeout(() => {
+                document.getElementById('grade-title').innerText = isPrem ? "DIVINE GRADE" : "ETERNAL GRADE";
+                document.getElementById('price-tag').innerText = isPrem ? "120 💎" : "70 💎";
+            }, 1500);
 
-    async function ignite() {
-        const val = document.getElementById('inp').value.trim();
-        if(!val) return;
-
-        document.getElementById('snd').play();
-        tg.HapticFeedback.impactOccurred('heavy');
-        document.getElementById('main-ui').style.opacity = 0;
-        
-        const loader = document.getElementById('loading-screen');
-        loader.style.display = 'flex';
-
-        const isPremium = document.getElementById('f-up').files[0] || document.getElementById('c-prof').checked;
-        
-        setTimeout(() => {
-            document.getElementById('grade-title').innerText = isPremium ? "DIVINE GRADE DETECTED" : "ETERNAL GRADE DETECTED";
-            document.getElementById('price-tag').innerText = isPremium ? "120 STARS" : "70 STARS";
-            if(isPremium) document.getElementById('price-tag').style.color = "#FFD700";
-        }, 1500);
-
-        setTimeout(async () => {
-            let pData = null;
-            const file = document.getElementById('f-up').files[0];
-            if(file) {
-                pData = await new Promise(r => {
-                    const rd = new FileReader();
-                    rd.onload = e => {
-                        const img = new Image();
-                        img.onload = () => {
-                            const c = document.createElement('canvas');
-                            c.width = 600; c.height = 600;
-                            c.getContext('2d').drawImage(img,0,0,600,600);
-                            r(c.toDataURL('image/jpeg', 0.7));
-                        };
-                        img.src = e.target.result;
-                    };
-                    rd.readAsDataURL(file);
-                });
-            }
-
-            const payload = btoa(JSON.stringify({
-                u: tg.initDataUnsafe.user.id,
-                b: val, p: pData, prof: document.getElementById('c-prof').checked
-            }));
-
-            const res = await fetch(`/create_stars_invoice?d=${payload}`);
-            const json = await res.json();
-            if(json.free) {
-                tg.showAlert("GIFT GRANTED. CHECK YOUR CHAT.");
-                tg.close();
-            } else if(json.url) {
-                tg.openInvoice(json.url, status => tg.close());
-            }
-        }, 4000);
-    }
-</script>
+            setTimeout(async () => {
+                let pData = null; const file = document.getElementById('f-up').files[0];
+                if(file) {
+                    pData = await new Promise(r => {
+                        const rd = new FileReader(); rd.onload = e => {
+                            const img = new Image(); img.onload = () => {
+                                const cv = document.createElement('canvas'); cv.width=600; cv.height=600;
+                                cv.getContext('2d').drawImage(img,0,0,600,600); r(cv.toDataURL('image/jpeg', 0.7));
+                            }; img.src = e.target.result;
+                        }; rd.readAsDataURL(file);
+                    });
+                }
+                const payload = btoa(JSON.stringify({ u: tg.initDataUnsafe.user.id, b: b, p: pData, prof: document.getElementById('c-prof').checked }));
+                const res = await fetch(`/create_stars_invoice?d=${payload}`);
+                const j = await res.json();
+                if(j.free) { tg.showAlert("GIFT GRANTED."); tg.close(); }
+                else if(j.url) tg.openInvoice(j.url, s => tg.close());
+            }, 4000);
+        }
+    </script>
 </body>
 </html>
