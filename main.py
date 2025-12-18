@@ -1,89 +1,81 @@
 import os
 import logging
+import json
 import requests
+import asyncio
 from fastapi import FastAPI, Request, BackgroundTasks
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.types import WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup, Update, FSInputFile
 from dotenv import load_dotenv
 
-# وارد کردن تابع تولید گواهی از فایل cert_gen.py
-from cert_gen import create_certificate
+# وارد کردن تابع تولید گواهی
+try:
+    from cert_gen import create_certificate
+except ImportError:
+    def create_certificate(uid, burden): return None # برای جلوگیری از کرش در صورت نبود فایل
 
-# تنظیمات اولیه
 load_dotenv()
 API_TOKEN = os.getenv("BOT_TOKEN")
 CRYPTO_TOKEN = os.getenv("CRYPTO_PAY_TOKEN")
-WEBHOOK_URL = os.getenv("WEBHOOK_URL") # مثال: https://your-app.render.com
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
-# راه‌اندازی ربات و اپلیکیشن
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher()
 app = FastAPI()
 
 logging.basicConfig(level=logging.INFO)
 
-# --- بخش مدیریت تلگرام ---
+# --- مدیریت تعاملات تلگرام ---
 
 @dp.message(Command("start"))
 async def start_handler(message: types.Message):
-    """خوش‌آمدگویی و باز کردن مینی‌اپ لوکس"""
     markup = InlineKeyboardMarkup(inline_keyboard=[[
         InlineKeyboardButton(
             text="🔱 ENTER THE VOID", 
             web_app=WebAppInfo(url=f"{WEBHOOK_URL}/static/index.html")
         )
     ]])
-    
     await message.answer(
-        "<b>Welcome to THE VOID.</b>\n\n"
-        "Here, your burdens are transmuted into nothingness. "
-        "Proceed to the ritual.",
-        reply_markup=markup,
-        parse_mode="HTML"
+        "<b>THE VOID IS WAITING.</b>\n\n"
+        "Your burdens are about to become cosmic dust.\n"
+        "Click below to begin the ritual.",
+        reply_markup=markup, parse_mode="HTML"
     )
 
 @dp.message(lambda message: message.web_app_data is not None)
-async def web_app_data_handler(message: types.Message):
-    """دریافت داده از مینی‌اپ و ایجاد فاکتور پرداخت"""
-    import json
+async def handle_webapp_data(message: types.Message):
+    """دریافت داده از مینی‌اپ و ایجاد فاکتور کریپتو"""
     data = json.loads(message.web_app_data.data)
-    burden_text = data.get("need", "Unknown Burden")
+    burden = data.get("need", "Something")
     
-    # ایجاد فاکتور در Crypto Pay (۱ دلار تتر یا معادل آن)
+    # ساخت فاکتور در کریپتو بات
     headers = {"Crypto-Pay-API-Token": CRYPTO_TOKEN}
     payload = {
         "asset": "USDT",
         "amount": "1.00",
-        "description": f"The Void: Erasing {burden_text}",
-        "payload": f"{message.from_user.id}:{burden_text}", # ذخیره اطلاعات در فاکتور
-        "paid_btn_name": "viewItem",
-        "paid_btn_url": "https://t.me/YourBotUsername"
+        "description": f"The Void: Sacrificing {burden}",
+        "payload": f"{message.from_user.id}:{burden}",
+        "paid_btn_name": "openBot",
+        "paid_btn_url": f"https://t.me/{(await bot.get_me()).username}"
     }
     
     try:
-        response = requests.post(
-            "https://pay.cryptotextnet.me/api/createInvoice", # آدرس مستقیم CryptoBot API
-            headers=headers, 
-            json=payload
-        )
-        result = response.json()
-        
-        if result['ok']:
-            pay_url = result['result']['pay_url']
+        res = requests.post("https://pay.cryptotextnet.me/api/createInvoice", headers=headers, json=payload).json()
+        if res['ok']:
+            pay_url = res['result']['pay_url']
             btn = InlineKeyboardMarkup(inline_keyboard=[[
-                InlineKeyboardButton(text="💳 PAY $1 TO RELEASE", url=pay_url)
+                InlineKeyboardButton(text="💳 PAY $1 TO REBORN", url=pay_url)
             ]])
             await message.answer(
-                f"The ritual for <b>'{burden_text}'</b> is ready.\n"
-                "Once the payment is confirmed, your certificate of rebirth will be issued.",
-                reply_markup=btn,
-                parse_mode="HTML"
+                f"Ritual initiated for: <b>{burden}</b>\n"
+                "To complete the atomization, proceed with the payment.",
+                reply_markup=btn, parse_mode="HTML"
             )
     except Exception as e:
-        await message.answer("The Void is momentarily unstable. Try again.")
+        logging.error(f"Invoice error: {e}")
 
-# --- بخش وب‌هوک و پرداخت (Automated Engine) ---
+# --- بخش وب‌هوک و اتوماسیون پرداخت ---
 
 @app.on_event("startup")
 async def on_startup():
@@ -91,52 +83,54 @@ async def on_startup():
 
 @app.post("/webhook")
 async def telegram_webhook(request: Request):
-    """پردازش آپدیت‌های تلگرام"""
     update = Update.model_validate(await request.json(), context={"bot": bot})
     await dp.feed_update(bot, update)
     return {"ok": True}
 
 @app.post("/pay_callback")
-async def crypto_pay_callback(request: Request, background_tasks: BackgroundTasks):
-    """وب‌هوک تایید پرداخت: قلب تپنده سیستم"""
+async def payment_webhook(request: Request, bg_tasks: BackgroundTasks):
+    """تایید خودکار پرداخت و ارسال گواهی و وویس"""
     data = await request.json()
     
-    # بررسی وضعیت پرداخت (توسط Crypto Pay ارسال می‌شود)
-    if data.get('status') == 'paid' or data.get('update_type') == 'invoice_paid':
-        # استخراج اطلاعات از Payload
-        payload_data = data['payload'] if 'payload' in data else data['request_data']['payload']
-        user_id, burden = payload_data.split(":")
+    # استخراج داده‌ها بر اساس فرمت Crypto Pay
+    status = data.get('update_type') or data.get('status')
+    if status in ['invoice_paid', 'paid']:
+        payload = data.get('payload') or data['request_data'].get('payload')
+        user_id, burden = payload.split(":")
         
-        # اجرای عملیات سنگین (تولید تصویر) در پس‌زمینه برای جلوگیری از Timeout
-        background_tasks.add_task(send_final_certificate, user_id, burden)
+        # اجرای عملیات نهایی در پس‌زمینه
+        bg_tasks.add_task(send_final_reward, user_id, burden)
         
     return {"ok": True}
 
-async def send_final_certificate(user_id, burden):
-    """تولید و ارسال گواهی به صورت کاملاً خودکار"""
+async def send_final_reward(user_id, burden):
+    """ارسال گواهی طلایی + وویس نجوا (صددرصد خودکار)"""
     try:
-        # ۱. تولید گواهی با استفاده از موتور هنری cert_gen
-        file_path = create_certificate(str(user_id), burden) [cite: 100]
+        # ۱. تولید گواهی
+        cert_path = create_certificate(str(user_id), burden)
         
-        # ۲. ارسال پیام نهایی با استایل سینمایی
-        await bot.send_document(
-            chat_id=user_id,
-            document=FSInputFile(file_path),
-            caption=(
-                "<b>THE RITUAL IS COMPLETE.</b>\n\n"
-                f"The burden of <i>'{burden}'</i> has been atomized.\n"
-                "You are now free. Carry this attestation as a symbol of your rebirth."
-            ),
-            parse_mode="HTML"
-        )
-        
-        # ۳. حذف فایل برای صرفه‌جویی در فضای سرور
-        if os.path.exists(file_path):
-            os.remove(file_path)
-            
-    except Exception as e:
-        logging.error(f"Error in final delivery: {e}")
+        # ۲. ارسال گواهی
+        if cert_path and os.path.exists(cert_path):
+            await bot.send_document(
+                chat_id=user_id,
+                document=FSInputFile(cert_path),
+                caption=f"<b>VOID CONFIRMED.</b>\n'{burden}' is gone forever.\nYou are free.",
+                parse_mode="HTML"
+            )
+            os.remove(cert_path) # پاکسازی
 
-# سرو کردن فایل‌های استاتیک مینی‌اپ
+        # ۳. ارسال وویس نجوا (The Whisper)
+        # نکته: باید فایلی به نام whisper.ogg در پوشه اصلی باشد
+        if os.path.exists("whisper.ogg"):
+            await bot.send_voice(
+                chat_id=user_id,
+                voice=FSInputFile("whisper.ogg"),
+                caption="🔕 <i>The silence of your rebirth...</i>",
+                parse_mode="HTML"
+            )
+
+    except Exception as e:
+        logging.error(f"Final reward error: {e}")
+
 from fastapi.staticfiles import StaticFiles
 app.mount("/static", StaticFiles(directory="static"), name="static")
