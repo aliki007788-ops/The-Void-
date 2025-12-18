@@ -1,4 +1,4 @@
-import os, json, requests, base64
+import os, json, requests, base64, logging
 from fastapi import FastAPI, Request, BackgroundTasks
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -9,6 +9,7 @@ from cert_gen import create_certificate
 from dotenv import load_dotenv
 
 load_dotenv()
+logging.basicConfig(level=logging.INFO)
 bot = Bot(token=os.getenv("BOT_TOKEN"))
 dp = Dispatcher()
 app = FastAPI()
@@ -16,29 +17,33 @@ app = FastAPI()
 @dp.message(Command("start"))
 async def start(message: types.Message):
     kb = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="🔱 ورود به خلاء", web_app=WebAppInfo(url=f"{os.getenv('WEBHOOK_URL')}/static/index.html"))
+        InlineKeyboardButton(text="🔱 ASCEND TO THE VOID", web_app=WebAppInfo(url=f"{os.getenv('WEBHOOK_URL')}/static/index.html"))
     ]])
-    await message.answer("<b>درگاه خلاء باز شد...</b>", reply_markup=kb, parse_mode="HTML")
+    await message.answer("<b>THE VOID IS OPEN.</b>", reply_markup=kb, parse_mode="HTML")
 
 @app.get("/pay_now")
 async def pay_now(d: str):
-    """انتقال مستقیم کاربر از مینی‌اپ به درگاه پرداخت"""
+    """رفع مشکل خطای اتصال و انتقال به درگاه"""
     try:
-        decoded = json.loads(base64.b64decode(d))
+        decoded = json.loads(base64.b64decode(d).decode('utf-8'))
         uid, burden = decoded['u'], decoded['b']
         
         headers = {"Crypto-Pay-API-Token": os.getenv("CRYPTO_PAY_TOKEN")}
         payload = {
             "asset": "USDT", "amount": "1.00",
-            "description": f"NFT Certificate for {burden}",
+            "description": f"NFT Certificate: {burden}",
             "payload": f"{uid}:{burden}"
         }
         res = requests.post("https://pay.cryptotextnet.me/api/createInvoice", headers=headers, json=payload).json()
         
         if res.get('ok'):
             return RedirectResponse(url=res['result']['pay_url'])
-    except:
-        return {"error": "خطا در اتصال"}
+        else:
+            logging.error(f"CryptoPay Error: {res}")
+            return {"error": "CryptoPay failed to respond"}
+    except Exception as e:
+        logging.error(f"Internal Error: {e}")
+        return {"error": "System Connection Error"}
 
 @app.post("/webhook")
 async def webhook(request: Request):
@@ -56,7 +61,7 @@ async def callback(request: Request, bg: BackgroundTasks):
 
 async def send_final_nft(uid, bur):
     path = create_certificate(uid, bur)
-    await bot.send_document(uid, FSInputFile(path), caption=f"🔱 ابدیت برای شما ثبت شد: {bur}")
+    await bot.send_document(uid, FSInputFile(path), caption=f"🔱 NFT MINTED: {bur}")
     if os.path.exists("_Everything you were.ogg"):
         await bot.send_voice(uid, FSInputFile("_Everything you were.ogg"))
     os.remove(path)
