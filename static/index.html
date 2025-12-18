@@ -3,66 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>THE VOID - Absolute Release</title>
+    <title>THE VOID - Absolute Rebirth</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root { --gold: #FFD700; --deep-gold: #CCAC00; --bg: #000000; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: var(--bg); font-family: 'Cinzel', serif; color: white; }
+        :root { --gold: #FFD700; --bg: #000000; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: var(--bg); font-family: 'serif'; }
         
-        /* افکت گلیچ و تایپوگرافی سینمایی */
-        #ui-container { position: relative; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; transition: all 1.5s cubic-bezier(0.4, 0, 0.2, 1); }
-        h1 { font-size: 2.5rem; letter-spacing: 12px; color: var(--gold); text-shadow: 0 0 20px rgba(255, 215, 0, 0.5); margin-bottom: 10px; font-weight: 200; }
-        .subtitle { font-size: 0.9rem; color: #666; text-transform: uppercase; letter-spacing: 4px; margin-bottom: 40px; }
-
-        /* ورودی لوکس */
-        .input-wrapper { width: 80%; max-width: 400px; position: relative; }
-        input { width: 100%; background: transparent; border: none; border-bottom: 1px solid #333; color: var(--gold); font-size: 1.5rem; text-align: center; padding: 15px 0; outline: none; transition: border-color 0.8s; }
+        #ui-container { position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; transition: opacity 1.5s; }
+        h1 { color: var(--gold); letter-spacing: 15px; font-weight: 100; margin-bottom: 50px; text-shadow: 0 0 30px rgba(255, 215, 0, 0.4); }
+        
+        input { background: transparent; border: none; border-bottom: 1px solid #333; color: var(--gold); font-size: 1.8rem; text-align: center; width: 80%; outline: none; padding: 10px; transition: 0.5s; }
         input:focus { border-bottom-color: var(--gold); }
 
-        /* دکمه رهایی */
-        .release-btn { margin-top: 50px; background: transparent; color: var(--gold); border: 1px solid var(--gold); padding: 20px 60px; font-size: 1rem; letter-spacing: 5px; cursor: pointer; transition: all 0.5s; position: relative; overflow: hidden; }
-        .release-btn:hover { background: var(--gold); color: black; box-shadow: 0 0 50px rgba(255, 215, 0, 0.4); }
+        .release-btn { margin-top: 50px; background: transparent; color: var(--gold); border: 1px solid var(--gold); padding: 15px 50px; letter-spacing: 5px; cursor: pointer; transition: 0.4s; }
+        .release-btn:hover { background: var(--gold); color: black; }
 
-        /* صفحه نهایی و دکمه پرداخت */
-        #final-stage { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; pointer-events: none; z-index: 200; transition: opacity 2s; }
-        .cert-btn { background: var(--gold); color: black; border: none; padding: 20px 40px; font-weight: bold; border-radius: 4px; font-size: 1.1rem; cursor: pointer; box-shadow: 0 10px 30px rgba(255, 215, 0, 0.3); transform: translateY(20px); transition: 0.5s; }
-        .cert-btn:hover { transform: translateY(15px) scale(1.05); }
+        #final-action { position: absolute; bottom: 15%; width: 100%; display: none; justify-content: center; z-index: 200; opacity: 0; transition: 2s; }
+        .buy-btn { background: var(--gold); color: black; border: none; padding: 20px 40px; font-weight: bold; cursor: pointer; box-shadow: 0 0 40px rgba(255, 215, 0, 0.5); }
 
-        canvas { position: absolute; top: 0; left: 0; z-index: 50; pointer-events: none; }
-        .overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: radial-gradient(circle, transparent 0%, black 90%); pointer-events: none; z-index: 60; }
+        canvas { position: absolute; top: 0; left: 0; pointer-events: none; }
     </style>
 </head>
 <body>
-    <div class="overlay"></div>
     <canvas id="canvas"></canvas>
 
     <div id="ui-container">
         <h1>THE VOID</h1>
-        <p class="subtitle">Eternal Erasure System</p>
-        <div class="input-wrapper">
-            <input type="text" id="burden-input" placeholder="..." autocomplete="off">
-        </div>
-        <button class="release-btn" onclick="initiateSacrifice()">RELEASE TO VOID</button>
+        <input type="text" id="input-field" placeholder="WHAT BURDENS YOU?" autocomplete="off">
+        <button class="release-btn" onclick="startSacrifice()">SACRIFICE</button>
     </div>
 
-    <div id="final-stage">
-        <h2 style="letter-spacing: 8px; margin-bottom: 30px;">VOID ACCEPTED</h2>
-        <p style="color: #888; margin-bottom: 40px; text-align: center; padding: 0 20px;">Your burden has been atomized. Formalize your liberation.</p>
-        <button class="cert-btn" onclick="requestPayment()">GET OFFICIAL ATTESTATION ($1)</button>
+    <div id="final-action">
+        <button class="buy-btn" onclick="sendToBot()">CLAIM YOUR ETERNAL CERTIFICATE ($1)</button>
     </div>
 
 <script>
     const tg = window.Telegram.WebApp;
     tg.expand();
-    tg.enableClosingConfirmation();
     tg.setHeaderColor('#000000');
 
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
     let particles = [];
-    let animationId;
+    let state = 'idle'; // idle, exploding, morphing
+    const morphText = "YOU ARE REBORN";
 
-    // تنظیم ابعاد بوم
     function resize() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
@@ -70,121 +55,112 @@
     window.addEventListener('resize', resize);
     resize();
 
-    // سیستم صوتی سینمایی (تولید فرکانس در لحظه)
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    function playBoomSound() {
-        const oscillator = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-        
-        oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(150, audioCtx.currentTime);
-        oscillator.frequency.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 2);
-        
-        gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 2);
-        
-        oscillator.start();
-        oscillator.stop(audioCtx.currentTime + 2);
-    }
-
     class Particle {
-        constructor(x, y) {
+        constructor(x, y, targetX, targetY) {
             this.x = x;
             this.y = y;
-            this.size = Math.random() * 3 + 1;
-            // انفجار شدیدتر
-            const angle = Math.random() * Math.PI * 2;
-            const force = Math.random() * 15 + 5;
-            this.speedX = Math.cos(angle) * force;
-            this.speedY = Math.sin(angle) * force;
-            this.gravity = 0.05;
-            this.friction = 0.97;
+            this.originX = x;
+            this.originY = y;
+            this.targetX = targetX;
+            this.targetY = targetY;
+            this.vx = (Math.random() - 0.5) * 25; // قدرت انفجار بیشتر
+            this.vy = (Math.random() - 0.5) * 25;
+            this.friction = 0.95;
+            this.ease = 0.05; // سرعت مورف شدن
+            this.size = Math.random() * 2 + 1;
+            this.color = '#FFD700';
             this.alpha = 1;
-            this.color = Math.random() > 0.5 ? '#FFD700' : '#FFFFFF';
         }
+
         update() {
-            this.speedX *= this.friction;
-            this.speedY *= this.friction;
-            this.speedY += this.gravity;
-            this.x += this.speedX;
-            this.y += this.speedY;
-            this.alpha -= 0.006;
+            if (state === 'exploding') {
+                this.vx *= this.friction;
+                this.vy *= this.friction;
+                this.x += this.vx;
+                this.y += this.vy;
+            } else if (state === 'morphing') {
+                this.x += (this.targetX - this.x) * this.ease;
+                this.y += (this.targetY - this.y) * this.ease;
+            }
         }
+
         draw() {
-            ctx.save();
-            ctx.globalAlpha = this.alpha;
             ctx.fillStyle = this.color;
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = this.color;
             ctx.beginPath();
             ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
             ctx.fill();
-            ctx.restore();
         }
     }
 
-    function initiateSacrifice() {
-        const input = document.getElementById('burden-input');
-        if (!input.value.trim()) {
-            tg.HapticFeedback.notificationOccurred('error');
-            return;
+    function getTextPoints(text) {
+        const tempCanvas = document.createElement('canvas');
+        const tCtx = tempCanvas.getContext('2d');
+        tempCanvas.width = canvas.width;
+        tempCanvas.height = canvas.height;
+        tCtx.fillStyle = 'white';
+        tCtx.font = 'bold 40px serif';
+        tCtx.textAlign = 'center';
+        tCtx.fillText(text, canvas.width/2, canvas.height/2);
+        
+        const data = tCtx.getImageData(0, 0, canvas.width, canvas.height).data;
+        const points = [];
+        for (let y = 0; y < canvas.height; y += 4) { // تراکم بالا [cite: 338]
+            for (let x = 0; x < canvas.width; x += 4) {
+                if (data[(y * canvas.width + x) * 4 + 3] > 128) {
+                    points.push({x, y});
+                }
+            }
         }
+        return points;
+    }
 
-        // ۱. صدای انفجار و ویبره سنگین
-        playBoomSound();
+    function startSacrifice() {
+        const text = document.getElementById('input-field').value;
+        if(!text) return tg.HapticFeedback.notificationOccurred('error');
+
+        // افکت صوتی و لرزش شدید [cite: 407]
         tg.HapticFeedback.impactOccurred('heavy');
-        setTimeout(() => tg.HapticFeedback.impactOccurred('medium'), 100);
-        setTimeout(() => tg.HapticFeedback.impactOccurred('light'), 200);
-
-        // ۲. ناپدید کردن UI
         document.getElementById('ui-container').style.opacity = '0';
-        document.getElementById('ui-container').style.transform = 'scale(0.9)';
 
-        // ۳. ایجاد انفجار ذرات از مرکز متن
-        const centerX = canvas.width / 2;
-        const centerY = canvas.height / 2;
-        for (let i = 0; i < 300; i++) {
-            particles.push(new Particle(centerX, centerY));
-        }
+        const startPoints = getTextPoints(text.toUpperCase());
+        const endPoints = getTextPoints(morphText);
 
+        particles = startPoints.map((p, i) => {
+            const target = endPoints[i % endPoints.length];
+            return new Particle(p.x, p.y, target.x, target.y);
+        });
+
+        state = 'exploding';
         animate();
 
-        // ۴. نمایش مرحله نهایی پس از اتمام انفجار
+        // شروع مرحله مورف (تبدیل به جمله نهایی) بعد از ۲ ثانیه
         setTimeout(() => {
-            document.getElementById('final-stage').style.opacity = '1';
-            document.getElementById('final-stage').style.pointerEvents = 'all';
+            state = 'morphing';
             tg.HapticFeedback.notificationOccurred('success');
-        }, 3000);
+            
+            // نمایش دکمه خرید [cite: 101]
+            setTimeout(() => {
+                const btn = document.getElementById('final-action');
+                btn.style.display = 'flex';
+                setTimeout(() => btn.style.opacity = '1', 100);
+            }, 2000);
+        }, 1500);
     }
 
     function animate() {
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        particles.forEach((p, index) => {
-            if (p.alpha <= 0) {
-                particles.splice(index, 1);
-            } else {
-                p.update();
-                p.draw();
-            }
+        particles.forEach(p => {
+            p.update();
+            p.draw();
         });
-
-        if (particles.length > 0) {
-            animationId = requestAnimationFrame(animate);
-        }
+        requestAnimationFrame(animate);
     }
 
-    function requestPayment() {
-        const burden = document.getElementById('burden-input').value;
-        tg.HapticFeedback.impactOccurred('rigid');
-        // ارسال داده به ربات برای ایجاد فاکتور
-        tg.sendData(JSON.stringify({
-            action: "create_invoice",
-            need: burden
-        }));
+    function sendToBot() {
+        const val = document.getElementById('input-field').value;
+        tg.sendData(JSON.stringify({action: "create_invoice", need: val})); [cite: 135, 387]
     }
 </script>
 </body>
