@@ -3,85 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>THE VOID 2040 | FINAL FIX</title>
+    <title>THE VOID | ULTIMATE FIX</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root { --gold: #FFD700; --bg: #010103; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: var(--bg); font-family: sans-serif; }
-        
+        :root { --gold: #FFD700; --bg: #000; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: var(--bg); font-family: 'Segoe UI', sans-serif; }
         canvas { position: absolute; top: 0; left: 0; z-index: 1; pointer-events: none; }
 
         #ui-wrapper { 
             position: absolute; width: 100%; height: 100%; display: flex; 
             flex-direction: column; align-items: center; justify-content: center; 
-            z-index: 50; transition: opacity 1s ease;
+            z-index: 100; transition: 0.8s;
         }
 
-        h1 { color: var(--gold); letter-spacing: 12px; font-size: 2.5rem; margin-bottom: 30px; }
-
+        h1 { color: var(--gold); letter-spacing: 15px; font-weight: 100; font-size: 2.2rem; margin-bottom: 40px; }
         input { 
-            background: transparent; border: none; border-bottom: 2px solid #333; 
-            color: var(--gold); font-size: 1.5rem; text-align: center; width: 80%; 
-            outline: none; padding: 15px; margin-bottom: 40px;
+            background: transparent; border: none; border-bottom: 1px solid #333; 
+            color: var(--gold); font-size: 1.2rem; text-align: center; width: 70%; 
+            outline: none; padding: 10px; letter-spacing: 2px;
         }
 
         .sac-btn {
-            background: transparent; color: var(--gold); border: 2px solid var(--gold);
-            padding: 20px 50px; font-size: 1rem; letter-spacing: 5px; cursor: pointer;
+            background: transparent; color: var(--gold); border: 1px solid var(--gold);
+            padding: 15px 40px; margin-top: 30px; font-size: 0.8rem; letter-spacing: 4px; 
+            cursor: pointer; text-transform: uppercase; transition: 0.3s;
         }
 
-        /* دکمه نهایی با استایل نئون و موقعیت ثابت */
-        #mint-action-container { 
-            position: absolute; bottom: 10%; left: 50%; transform: translateX(-50%);
-            display: none; z-index: 9999;
+        #final-stage { 
+            position: absolute; bottom: 12%; width: 100%; display: none; 
+            flex-direction: column; align-items: center; z-index: 1000;
         }
 
         .mint-btn {
-            background: #FFD700; color: #000; border: none; 
-            padding: 22px 45px; font-weight: 900; font-size: 1rem; 
-            border-radius: 50px; cursor: pointer; letter-spacing: 2px;
-            box-shadow: 0 0 40px rgba(255, 215, 0, 0.6);
-            -webkit-tap-highlight-color: transparent;
+            background: transparent; color: var(--gold); border: 1px solid var(--gold);
+            padding: 20px 50px; font-size: 0.9rem; letter-spacing: 3px;
+            border-radius: 2px; cursor: pointer; text-transform: uppercase;
+            box-shadow: 0 0 15px rgba(255,215,0,0.1);
+            transition: 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+            opacity: 0; transform: translateY(20px);
         }
+        .mint-btn.active { opacity: 1; transform: translateY(0); }
+        .mint-btn:active { background: var(--gold); color: #000; }
     </style>
 </head>
 <body>
     <canvas id="canvas"></canvas>
-
     <div id="ui-wrapper">
         <h1>THE VOID</h1>
-        <input type="text" id="user-input" placeholder="WHAT MUST DIE?">
+        <input type="text" id="user-input" placeholder="WHISPER TO THE VOID..." autocomplete="off">
         <button class="sac-btn" onclick="startRitual()">SACRIFICE</button>
     </div>
-
-    <div id="mint-action-container">
-        <button id="final-btn" class="mint-btn">MINT NFT PROOF ($1)</button>
+    <div id="final-stage">
+        <button id="mint-btn" class="mint-btn">MINT ETERNAL PROOF</button>
     </div>
 
 <script>
     const tg = window.Telegram.WebApp;
     tg.expand();
-
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
     let particles = [], stars = [], state = 'idle';
 
     function init() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        stars = Array.from({length: 200}, () => ({
+        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+        stars = Array.from({length: 150}, () => ({
             x: Math.random()*canvas.width, y: Math.random()*canvas.height,
-            s: Math.random()*2, o: Math.random(), sp: Math.random()*0.4
+            s: Math.random()*1.2, sp: Math.random()*0.3
         }));
     }
-    window.onresize = init;
     init();
 
     class Particle {
         constructor(x, y, tx, ty) {
             this.x = canvas.width/2; this.y = canvas.height/2;
             this.tx = tx; this.ty = ty;
-            this.vx = (Math.random()-0.5)*90; this.vy = (Math.random()-0.5)*90;
+            this.vx = (Math.random()-0.5)*60; this.vy = (Math.random()-0.5)*60;
             this.f = 0.95;
         }
         update() {
@@ -91,10 +87,7 @@
                 this.y += (this.ty - this.y) * 0.08;
             }
         }
-        draw() {
-            ctx.fillStyle = "#FFD700";
-            ctx.beginPath(); ctx.arc(this.x, this.y, 1.8, 0, Math.PI*2); ctx.fill();
-        }
+        draw() { ctx.fillStyle = "#FFD700"; ctx.fillRect(this.x, this.y, 1.5, 1.5); }
     }
 
     function getPoints(text) {
@@ -102,14 +95,14 @@
         const tctx = tmp.getContext('2d');
         tmp.width = canvas.width; tmp.height = canvas.height;
         tctx.fillStyle = 'white';
-        tctx.font = "bold 60px serif";
+        tctx.font = "bold 80px serif"; // فونت بزرگ و با شکوه
         tctx.textAlign = "center";
         tctx.fillText(text, canvas.width/2, canvas.height/2);
         const data = tctx.getImageData(0,0,canvas.width,canvas.height).data;
         const pts = [];
-        for(let y=0; y<canvas.height; y+=3) { // تراکم بالا
-            for(let x=0; x<canvas.width; x+=3) {
-                if(data[(y*canvas.width + x)*4 + 3] > 128) pts.push({x,y});
+        for(let y=0; y<canvas.height; y+=1) { // اسکن دقیق 1 پیکسلی برای پر شدن کامل حروف
+            for(let x=0; x<canvas.width; x+=1) {
+                if(data[(y*canvas.width+x)*4+3] > 128) pts.push({x,y});
             }
         }
         return pts;
@@ -118,35 +111,31 @@
     function startRitual() {
         const val = document.getElementById('user-input').value;
         if(!val) return;
-        
-        tg.HapticFeedback.impactOccurred('heavy');
+        tg.HapticFeedback.impactOccurred('medium');
         document.getElementById('ui-wrapper').style.opacity = '0';
-        
         particles = getPoints("ETERNAL PEACE").map(p => new Particle(0,0, p.x, p.y));
         state = 'exploding';
-
         setTimeout(() => {
             state = 'gathering';
             setTimeout(() => {
-                const btnContainer = document.getElementById('mint-action-container');
-                btnContainer.style.display = 'block';
-                document.getElementById('final-btn').onclick = () => {
-                    tg.HapticFeedback.notificationOccurred('success');
-                    tg.sendData(JSON.stringify({action: "create_invoice", need: val}));
-                    // اضافه کردن یک بستن اجباری برای اطمینان از خروج داده
-                    setTimeout(() => tg.close(), 150);
-                };
-            }, 3000);
-        }, 1200);
+                const stage = document.getElementById('final-stage');
+                const btn = document.getElementById('mint-btn');
+                stage.style.display = 'flex';
+                setTimeout(() => {
+                    btn.classList.add('active');
+                    btn.onclick = () => {
+                        tg.sendData(JSON.stringify({action: "mint", need: val}));
+                    };
+                }, 100);
+            }, 2500);
+        }, 1000);
     }
 
     function animate() {
-        ctx.fillStyle = 'rgba(1, 1, 3, 0.3)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.fillRect(0,0,canvas.width,canvas.height);
         stars.forEach(s => {
             s.y -= s.sp; if(s.y < 0) s.y = canvas.height;
-            ctx.fillStyle = `rgba(255,255,255,${s.o})`;
-            ctx.fillRect(s.x, s.y, s.s, s.s);
+            ctx.fillStyle = "#fff"; ctx.fillRect(s.x, s.y, s.s, s.s);
         });
         particles.forEach(p => { p.update(); p.draw(); });
         requestAnimationFrame(animate);
