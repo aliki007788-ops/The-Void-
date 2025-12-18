@@ -4,61 +4,90 @@ from fastapi.staticfiles import StaticFiles
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.types import WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup, Update, FSInputFile, LabeledPrice
 from aiogram.filters import Command
-from cert_gen import create_certificate
+from cert_gen import create_certificate  # وارد کردن تابع فایل اول
 from dotenv import load_dotenv
 
 load_dotenv()
-bot = Bot(token=os.getenv("BOT_TOKEN"))
+
+# تنظیمات اصلی
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+
+bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 app = FastAPI()
 
 @dp.message(Command("start"))
-async def start(message: types.Message):
+async def start_cmd(message: types.Message):
+    """ارسال دکمه ورود به مینی‌اپ"""
     kb = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="🔱 ASCEND TO THE VOID", web_app=WebAppInfo(url=f"{os.getenv('WEBHOOK_URL')}/static/index.html"))
+        InlineKeyboardButton(
+            text="🔱 ASCEND TO THE VOID", 
+            web_app=WebAppInfo(url=f"{WEBHOOK_URL}/static/index.html")
+        )
     ]])
-    await message.answer("<b>THE VOID AWAITS.</b>", reply_markup=kb, parse_mode="HTML")
+    await message.answer(
+        "<b>WELCOME TO THE VOID.</b>\nYour journey to eternity begins here.",
+        reply_markup=kb,
+        parse_mode="HTML"
+    )
 
-@app.get("/create_invoice")
-async def create_inv(d: str):
-    """ایجاد لینک فاکتور Stars برای پرداخت داخلی"""
+@app.get("/create_stars_invoice")
+async def create_invoice(d: str):
+    """ساخت لینک پرداخت Stars که فرانت‌اِند آن را فراخوانی می‌کند"""
     try:
+        # رمزگشایی دیتای ارسالی از مینی‌اپ
         decoded = json.loads(base64.b64decode(d).decode('utf-8'))
         uid, burden = decoded['u'], decoded['b']
         
-        # تعیین قیمت (مثلاً ۵۰ استارز)
-        prices = [LabeledPrice(label="Ascension Proof", amount=50)]
+        # قیمت به ستاره (مثلاً ۵۰ ستاره تلگرام)
+        prices = [LabeledPrice(label="Eternity Fee", amount=50)]
         
-        link = await bot.create_invoice_link(
-            title="THE VOID | PRESTIGE",
-            description=f"Immortalize: {burden}",
-            payload=f"{uid}:{burden}",
-            currency="XTR", # واحد پول Stars
+        invoice_link = await bot.create_invoice_link(
+            title="VOID ASCENSION NFT",
+            description=f"Sacrifice Proof for: {burden}",
+            payload=f"{uid}:{burden}", # ذخیره اطلاعات برای مرحله بعد از پرداخت
+            currency="XTR", # واحد رسمی ستاره تلگرام
             prices=prices
         )
-        return {"invoice_url": link}
+        return {"url": invoice_link}
     except Exception as e:
         return {"error": str(e)}
 
 @dp.pre_checkout_query()
-async def pre_checkout(query: types.PreCheckoutQuery):
-    """تأیید نهایی قبل از کسر وجه (اجباری تلگرام)"""
+async def pre_checkout_handler(query: types.PreCheckoutQuery):
+    """تأیید نهایی تراکنش توسط ربات (اجباری)"""
     await query.answer(ok=True)
 
 @dp.message(F.successful_payment)
-async def on_payment(message: types.Message):
-    """هندل کردن پرداخت موفق و ارسال ان‌اف‌تی"""
+async def payment_success(message: types.Message):
+    """این بخش وقتی اجرا می‌شود که پرداخت Stars با موفقیت انجام شد"""
     payload = message.successful_payment.invoice_payload
-    uid, burden = payload.split(":")
+    user_id, burden = payload.split(":")
     
-    path = create_certificate(uid, burden)
-    await bot.send_document(uid, FSInputFile(path), caption=f"🔱 <b>ASCENSION COMPLETE</b>\nBurden '{burden}' is now eternal.")
-    if os.path.exists("_Everything you were.ogg"):
-        await bot.send_voice(uid, FSInputFile("_Everything you were.ogg"))
-    os.remove(path)
+    # ۱. تولید تصویر NFT/گواهی
+    nft_path = create_certificate(user_id, burden)
+    
+    # ۲. ارسال گواهی برای کاربر
+    await bot.send_document(
+        user_id, 
+        FSInputFile(nft_path), 
+        caption=f"🔱 <b>ASCENSION SUCCESSFUL</b>\nYour burden <i>{burden}</i> has been immortalized.\n\nAsset: VOID-NFT-2040",
+        parse_mode="HTML"
+    )
+    
+    # ۳. ارسال فایل صوتی (اگر در پوشه موجود باشد)
+    voice_path = "_Everything you were.ogg"
+    if os.path.exists(voice_path):
+        await bot.send_voice(user_id, FSInputFile(voice_path))
+    
+    # پاکسازی فایل موقت
+    if os.path.exists(nft_path):
+        os.remove(nft_path)
 
 @app.post("/webhook")
-async def webhook(request: Request):
+async def handle_webhook(request: Request):
+    """دریافت آپدیت‌ها از تلگرام"""
     update = Update.model_validate(await request.json(), context={"bot": bot})
     await dp.feed_update(bot, update)
     return {"ok": True}
@@ -67,4 +96,8 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.on_event("startup")
 async def on_startup():
-    await bot.set_webhook(f"{os.getenv('WEBHOOK_URL')}/webhook")
+    await bot.set_webhook(f"{WEBHOOK_URL}/webhook")
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", 8000)))
