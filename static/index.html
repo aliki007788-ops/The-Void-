@@ -6,143 +6,113 @@
     <title>THE VOID</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Courier New', monospace; }
+        :root { --gold: #FFD700; --bg: #000; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: var(--bg); font-family: 'Courier New', monospace; color: var(--gold); }
         canvas { position: absolute; top: 0; left: 0; z-index: 1; pointer-events: none; }
         .ui { position: relative; z-index: 10; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 1s; }
-        h1 { color: #FFD700; letter-spacing: 15px; font-size: 2.8rem; margin-bottom: 20px; text-shadow: 0 0 15px rgba(255,215,0,0.2); }
-        input { background: transparent; border: none; border-bottom: 2px solid #333; color: #FFD700; font-size: 1.4rem; text-align: center; width: 80%; outline: none; padding: 10px 0; margin: 30px 0; letter-spacing: 2px; }
-        .btn { background: transparent; color: #FFD700; border: 1px solid #FFD700; padding: 16px 60px; cursor: pointer; letter-spacing: 5px; font-size: 1rem; text-transform: uppercase; transition: 0.3s; }
-        .btn:hover { background: #FFD700; color: #000; }
-        #loading { position: absolute; bottom: 15%; color: #FFD700; opacity: 0; transition: 0.5s; font-size: 0.8rem; letter-spacing: 3px; }
+        h1 { letter-spacing: 12px; font-size: 2.5rem; margin-bottom: 10px; text-shadow: 0 0 15px rgba(255,215,0,0.3); }
+        input[type="text"] { background: transparent; border: none; border-bottom: 2px solid #333; color: var(--gold); font-size: 1.2rem; text-align: center; width: 80%; outline: none; padding: 10px; margin-bottom: 20px; }
+        .options { background: rgba(255, 215, 0, 0.05); padding: 15px; border-radius: 10px; margin-bottom: 25px; border: 1px solid #222; width: 75%; text-align: center; }
+        .btn { background: transparent; color: var(--gold); border: 1px solid var(--gold); padding: 15px 50px; cursor: pointer; letter-spacing: 3px; font-weight: bold; text-transform: uppercase; transition: 0.3s; }
+        .btn:hover { background: var(--gold); color: #000; }
+        #loading { position: absolute; bottom: 10%; opacity: 0; transition: 0.5s; font-size: 0.8rem; }
     </style>
 </head>
 <body>
     <canvas id="canvas"></canvas>
+    <audio id="void-sound" src="ascend.mp3" preload="auto"></audio>
+    
     <div id="ui" class="ui">
         <h1>THE VOID</h1>
-        <input type="text" id="inp" placeholder="WHAT DO YOU SACRIFICE?" maxlength="18" autocomplete="off">
+        <input type="text" id="inp" placeholder="WHAT IS YOUR SACRIFICE?" maxlength="18">
+        
+        <div class="options">
+            <span style="font-size: 0.7rem; color: #888; display: block; margin-bottom: 10px;">PERSONALIZATION</span>
+            <input type="file" id="photo-upload" accept="image/*" style="font-size: 0.7rem;">
+            <div style="margin-top: 10px;">
+                <input type="checkbox" id="use-profile"> <label style="font-size: 0.8rem;">USE TELEGRAM PHOTO</label>
+            </div>
+        </div>
+        
         <button class="btn" onclick="ignite()">SACRIFICE</button>
-        <div id="loading">COMMUNING WITH THE ETERNAL VOID...</div>
+        <div id="loading">TRANSCENDING REALITY...</div>
     </div>
 
 <script>
     const tg = window.Telegram.WebApp;
     tg.expand();
-    tg.enableClosingConfirmation();
-
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
     let pts = [], stars = [], state = 'idle';
 
     function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-    window.addEventListener('resize', resize);
-    resize();
+    window.addEventListener('resize', resize); resize();
+    stars = Array.from({length: 150}, () => ({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, s: Math.random()*2, sp: Math.random()*0.5 }));
 
-    // ایجاد فضای ستاره‌ای متحرک
-    stars = Array.from({length: 180}, () => ({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        s: Math.random() * 1.5 + 0.5,
-        o: Math.random() * 0.6 + 0.2,
-        sp: Math.random() * 0.4 + 0.1
-    }));
-
-    class P {
-        constructor(tx, ty) {
-            this.x = canvas.width / 2;
-            this.y = canvas.height / 2;
-            this.tx = tx; this.ty = ty;
-            const a = Math.random() * Math.PI * 2;
-            const f = Math.random() * 60 + 20;
-            this.vx = Math.cos(a) * f;
-            this.vy = Math.sin(a) * f;
-        }
-        update() {
-            if (state === 'exp') {
-                this.x += this.vx; this.y += this.vy;
-                this.vx *= 0.95; this.vy *= 0.95;
-            } else if (state === 'gat') {
-                this.x += (this.tx - this.x) * 0.1;
-                this.y += (this.ty - this.y) * 0.1;
-            }
-        }
-        draw() {
-            ctx.fillStyle = "#FFD700";
-            ctx.shadowBlur = 5; ctx.shadowColor = "#FFD700";
-            ctx.fillRect(this.x - 1, this.y - 1, 3, 3);
-            ctx.shadowBlur = 0;
-        }
-    }
-
-    function generateParticles() {
-        const tCanvas = document.createElement('canvas');
-        const tCtx = tCanvas.getContext('2d');
-        tCanvas.width = canvas.width; tCanvas.height = canvas.height;
-        tCtx.fillStyle = 'white';
-        const size = Math.min(canvas.width / 6, 80);
-        tCtx.font = `bold ${size}px Georgia, serif`;
-        tCtx.textAlign = "center"; tCtx.textBaseline = "middle";
-        tCtx.fillText("ETERNAL PEACE", canvas.width / 2, canvas.height / 2);
-        const data = tCtx.getImageData(0, 0, tCanvas.width, tCanvas.height).data;
-        pts = [];
-        for (let y = 0; y < tCanvas.height; y += 3) {
-            for (let x = 0; x < tCanvas.width; x += 3) {
-                if (data[(y * tCanvas.width + x) * 4 + 3] > 100) pts.push(new P(x, y));
-            }
-        }
+    async function resizeImage(file) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvasBox = document.createElement('canvas');
+                    const MAX_SIZE = 800;
+                    let w = img.width, h = img.height;
+                    if (w > h) { if (w > MAX_SIZE) { h *= MAX_SIZE / w; w = MAX_SIZE; } }
+                    else { if (h > MAX_SIZE) { w *= MAX_SIZE / h; h = MAX_SIZE; } }
+                    canvasBox.width = w; canvasBox.height = h;
+                    canvasBox.getContext('2d').drawImage(img, 0, 0, w, h);
+                    resolve(canvasBox.toDataURL('image/jpeg', 0.7));
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
     }
 
     async function ignite() {
         const val = document.getElementById('inp').value.trim();
-        if (!val) { tg.HapticFeedback.notificationOccurred('error'); return; }
+        if(!val) { tg.HapticFeedback.notificationOccurred('error'); return; }
 
+        // پخش صدای اتمسفریک
+        document.getElementById('void-sound').play().catch(()=>{});
         tg.HapticFeedback.impactOccurred('heavy');
+
+        let photoData = null;
+        const file = document.getElementById('photo-upload').files[0];
+        if(file) photoData = await resizeImage(file);
+
         document.getElementById('ui').style.opacity = '0';
-        generateParticles();
-        state = 'exp';
+        document.getElementById('loading').style.opacity = '1';
 
-        setTimeout(() => {
-            state = 'gat';
-            document.getElementById('loading').style.opacity = '1';
-            setTimeout(async () => {
-                const userId = tg.initDataUnsafe.user?.id || 0;
-                if (!userId) { tg.showAlert("User context missing."); resetUI(); return; }
+        const payload = btoa(JSON.stringify({
+            u: tg.initDataUnsafe.user?.id || 0,
+            b: val,
+            p: photoData,
+            prof: document.getElementById('use-profile').checked
+        }));
 
-                const payload = btoa(JSON.stringify({ u: userId, b: val }));
-                try {
-                    const res = await fetch(`/create_stars_invoice?d=${payload}`);
-                    const json = await res.json();
-                    if (json.url) {
-                        tg.openInvoice(json.url, (status) => {
-                            if (status === 'paid') {
-                                tg.HapticFeedback.notificationOccurred('success');
-                                setTimeout(() => tg.close(), 1500);
-                            } else {
-                                tg.HapticFeedback.notificationOccurred('warning');
-                                resetUI();
-                            }
-                        });
-                    } else { tg.showAlert("Void error: " + (json.error || "unknown")); resetUI(); }
-                } catch (e) { tg.showAlert("Cosmic interference."); resetUI(); }
-            }, 3500);
-        }, 1500);
+        try {
+            const res = await fetch(`/create_stars_invoice?d=${payload}`);
+            const json = await res.json();
+            if(json.url) {
+                tg.openInvoice(json.url, status => {
+                    if(status === 'paid') tg.close();
+                    else resetUI();
+                });
+            }
+        } catch(e) { tg.showAlert("Connection lost."); resetUI(); }
     }
 
     function resetUI() {
         document.getElementById('ui').style.opacity = '1';
         document.getElementById('loading').style.opacity = '0';
-        state = 'idle'; pts = [];
+        document.getElementById('inp').value = '';
     }
 
     function anim() {
-        ctx.fillStyle = 'rgba(0,0,0,0.15)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        stars.forEach(s => {
-            s.y -= s.sp; if (s.y < 0) s.y = canvas.height;
-            ctx.fillStyle = `rgba(255,255,255,${s.o})`;
-            ctx.fillRect(s.x, s.y, s.s, s.s);
-        });
-        pts.forEach(p => { p.update(); p.draw(); });
+        ctx.fillStyle = 'rgba(0,0,0,0.1)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+        stars.forEach(s => { s.y -= s.sp; if (s.y < 0) s.y = canvas.height; ctx.fillStyle = "#fff"; ctx.fillRect(s.x, s.y, s.s, s.s); });
         requestAnimationFrame(anim);
     }
     anim();
