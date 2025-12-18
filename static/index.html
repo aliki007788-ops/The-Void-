@@ -9,61 +9,60 @@
         @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap');
         body { background: #000; color: #FFD700; font-family: 'Cinzel', serif; text-align: center; margin: 0; overflow: hidden; }
         canvas { position: fixed; top: 0; left: 0; z-index: 1; pointer-events: none; }
-        .stage { position: relative; z-index: 10; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: 1.2s cubic-bezier(0.4, 0, 0.2, 1); }
-        .main-title { font-size: 3.5rem; letter-spacing: 25px; margin-bottom: 40px; text-shadow: 0 0 20px rgba(255, 215, 0, 0.5); animation: glow 4s infinite alternate; }
-        @keyframes glow { to { text-shadow: 0 0 40px rgba(255, 215, 0, 0.9); } }
-        input[type="text"] { background: none; border: none; border-bottom: 1px solid #444; color: #FFD700; font-size: 1.2rem; text-align: center; width: 70%; outline: none; font-family: monospace; }
-        .btn-large { border: 1px solid #FFD700; padding: 20px 80px; background: rgba(0,0,0,0.3); color: #FFD700; cursor: pointer; letter-spacing: 8px; font-weight: bold; margin-top: 50px; transition: 0.4s; backdrop-filter: blur(5px); outline: none; }
-        .btn-large:active { transform: scale(0.95); background: #FFD700; color: #000; }
-        #step2 { display: none; opacity: 0; transform: scale(1.1); }
-        .option-card { background: rgba(10,10,10,0.8); border: 1px solid #222; padding: 25px; border-radius: 2px; width: 85%; margin-top: 20px; }
-        .price-display { font-size: 3.5rem; font-weight: bold; margin: 15px 0; display: flex; align-items: center; justify-content: center; gap: 15px; }
-        .diamond-icon { color: #00d4ff; font-size: 4rem; text-shadow: 0 0 25px #00d4ff; }
+        .stage { position: relative; z-index: 10; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: 1s; }
+        
+        /* تیتر یک خطی و بالاتر */
+        .main-title { font-size: 2.2rem; letter-spacing: 12px; margin-bottom: 80px; white-space: nowrap; text-shadow: 0 0 20px rgba(255,215,0,0.4); }
+        
+        input[type="text"] { background: none; border: none; border-bottom: 1px solid #333; color: #FFD700; font-size: 1.2rem; text-align: center; width: 70%; outline: none; font-family: monospace; }
+        .btn-large { border: 1px solid #FFD700; padding: 18px 60px; background: rgba(0,0,0,0.4); color: #FFD700; cursor: pointer; letter-spacing: 5px; font-weight: bold; margin-top: 40px; transition: 0.3s; }
+        
+        #step2 { display: none; opacity: 0; }
+        .option-card { background: rgba(15,15,15,0.9); border: 1px solid #222; padding: 20px; border-radius: 5px; width: 80%; margin-top: 20px; backdrop-filter: blur(10px); }
+        .price-display { font-size: 3rem; font-weight: bold; margin: 10px 0; color: #FFD700; }
+        .diamond { color: #00d4ff; text-shadow: 0 0 15px #00d4ff; }
     </style>
 </head>
 <body>
     <canvas id="cvs"></canvas>
-    <audio id="snd-whoosh" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"></audio>
-    <audio id="snd-magic" src="https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3"></audio>
+    <audio id="snd-boom" src="https://assets.mixkit.co/active_storage/sfx/2895/2895-preview.mp3"></audio>
 
     <div id="step1" class="stage">
         <h1 class="main-title">THE VOID</h1>
-        <input type="text" id="burden" placeholder="NAME YOUR SACRIFICE" maxlength="15">
+        <input type="text" id="burden" placeholder="ENTER SACRIFICE" maxlength="15">
         <button class="btn-large" onclick="ascend()">ASCEND</button>
     </div>
 
     <div id="step2" class="stage">
-        <h3 id="grade-label" style="letter-spacing: 5px; color: #AAA;">ETERNAL GRADE</h3>
-        <div class="price-display"><span id="price-amt">70</span> <span class="diamond-icon">💎</span></div>
+        <h3 id="grade-label" style="letter-spacing: 3px; color: #888;">ETERNAL GRADE</h3>
+        <div class="price-display"><span id="price-amt">70</span> <span class="diamond">💎</span></div>
         <div class="option-card">
-            <label style="cursor: pointer; border: 1px dashed #444; padding: 15px; display: block; margin-bottom: 15px;">
+            <label style="cursor: pointer; border: 1px dashed #444; padding: 10px; display: block; margin-bottom: 15px;">
                 <input type="file" id="file-up" style="display:none" onchange="refresh()">
                 <span id="file-text">UPLOAD SOUL IMAGE</span>
             </label>
-            <label style="font-size: 0.8rem; letter-spacing: 2px;">
-                <input type="checkbox" id="prof-check" onchange="refresh()"> USE PROFILE PHOTO
-            </label>
+            <label><input type="checkbox" id="prof-check" onchange="refresh()"> USE PROFILE PHOTO</label>
         </div>
         <button class="btn-large" onclick="mint()">MINT NFT</button>
-        <p onclick="location.reload()" style="font-size: 0.6rem; color: #444; margin-top: 20px; cursor: pointer;">← BACK TO VOID</p>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp; tg.expand();
         const canvas = document.getElementById('cvs'); const ctx = canvas.getContext('2d');
-        let stars = [], meteors = [], particles = [], state = 'idle';
+        let stars = [], particles = [], state = 'idle';
 
         function init() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
         window.onresize = init; init();
-        for(let i=0; i<180; i++) stars.push({x: Math.random()*canvas.width, y: Math.random()*canvas.height, s: Math.random()*1.2, o: Math.random()});
+        for(let i=0; i<150; i++) stars.push({x: Math.random()*canvas.width, y: Math.random()*canvas.height, s: Math.random()*1.5, o: Math.random()});
 
         function draw() {
             ctx.fillStyle = '#000'; ctx.fillRect(0,0,canvas.width,canvas.height);
-            stars.forEach(s => { ctx.fillStyle = `rgba(255,255,255, ${s.o})`; ctx.fillRect(s.x, s.y, s.s, s.s); s.o += (Math.random()-0.5)*0.02; });
-            if(Math.random() < 0.02) meteors.push({x: Math.random()*canvas.width, y: 0, s: Math.random()*3+2, l: Math.random()*50+20});
-            meteors.forEach((m, i) => { ctx.strokeStyle = 'rgba(255,215,0,0.3)'; ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(m.x-m.l, m.y+m.l); ctx.stroke(); m.x+=10; m.y+=10; if(m.y>canvas.height) meteors.splice(i,1); });
-            particles.forEach((p, i) => { ctx.fillStyle = p.c; ctx.beginPath(); ctx.arc(p.x, p.y, p.z, 0, Math.PI*2); ctx.fill(); 
-                if(state==='exploding'){ p.x+=p.vx; p.y+=p.vy; p.z*=0.98; } else if(state==='imploding'){ p.x+=(canvas.width/2-p.x)*0.1; p.y+=(canvas.height/2-p.y)*0.1; p.z*=0.95; }
+            stars.forEach(s => { ctx.fillStyle = `rgba(255,255,255,${s.o})`; ctx.fillRect(s.x, s.y, s.s, s.s); });
+            
+            particles.forEach((p, i) => {
+                ctx.fillStyle = p.c; ctx.beginPath(); ctx.arc(p.x, p.y, p.z, 0, Math.PI*2); ctx.fill();
+                if(state==='exploding') { p.x+=p.vx; p.y+=p.vy; p.z*=0.97; }
+                else if(state==='imploding') { p.x+=(canvas.width/2-p.x)*0.15; p.y+=(canvas.height/2-p.y)*0.15; p.z*=0.95; }
                 if(p.z<0.1) particles.splice(i,1);
             });
             requestAnimationFrame(draw);
@@ -73,52 +72,48 @@
         function ascend() {
             if(!document.getElementById('burden').value) return tg.showAlert("VOID REQUIRES A NAME");
             tg.HapticFeedback.impactOccurred('heavy');
-            document.getElementById('snd-whoosh').play();
-            state='exploding'; for(let i=0; i<150; i++) particles.push({x:canvas.width/2, y:canvas.height/2, vx:(Math.random()-0.5)*25, vy:(Math.random()-0.5)*25, z:Math.random()*3+2, c:'#FFD700'});
-            document.getElementById('step1').style.opacity=0;
-            setTimeout(() => { state='imploding'; document.getElementById('step1').style.display='none'; const s2=document.getElementById('step2'); s2.style.display='flex'; setTimeout(()=>{s2.style.opacity=1; s2.style.transform='scale(1)';},100); }, 800);
+            document.getElementById('snd-boom').play();
+            
+            state = 'exploding';
+            for(let i=0; i<100; i++) particles.push({
+                x: canvas.width/2, y: canvas.height/2, 
+                vx: (Math.random()-0.5)*30, vy: (Math.random()-0.5)*30, 
+                z: 4, c: '#FFD700'
+            });
+
+            document.getElementById('step1').style.opacity = 0;
+            setTimeout(() => {
+                state = 'imploding'; // ذرات به مرکز برمی‌گردند
+                document.getElementById('step1').style.display = 'none';
+                const s2 = document.getElementById('step2');
+                s2.style.display = 'flex';
+                setTimeout(() => { s2.style.opacity = 1; }, 100);
+            }, 700);
         }
 
         function refresh() {
             const prem = document.getElementById('file-up').files[0] || document.getElementById('prof-check').checked;
             document.getElementById('price-amt').innerText = prem ? "120" : "70";
-            const lbl = document.getElementById('grade-label');
-            lbl.innerText = prem ? "DIVINE GRADE" : "ETERNAL GRADE";
-            lbl.style.color = prem ? "#FFD700" : "#AAAAAA";
-            if(document.getElementById('file-up').files[0]) document.getElementById('file-text').innerText = "IMAGE CRYSTALLIZED";
+            document.getElementById('grade-label').innerText = prem ? "DIVINE GRADE" : "ETERNAL GRADE";
+            document.getElementById('grade-label').style.color = prem ? "#FFD700" : "#888";
             tg.HapticFeedback.selectionChanged();
         }
 
         async function mint() {
             tg.MainButton.showProgress();
-            const b = document.getElementById('burden').value, file = document.getElementById('file-up').files[0], prof = document.getElementById('prof-check').checked;
+            const b = document.getElementById('burden').value;
+            const file = document.getElementById('file-up').files[0];
             let pData = null;
             if(file) {
                 pData = await new Promise(r => {
-                    const rd = new FileReader(); rd.onload = e => {
-                        const img = new Image(); img.onload = () => {
-                            const cv = document.createElement('canvas'); cv.width=600; cv.height=600;
-                            cv.getContext('2d').drawImage(img,0,0,600,600); r(cv.toDataURL('image/jpeg', 0.6));
-                        }; img.src = e.target.result;
-                    }; rd.readAsDataURL(file);
+                    const rd = new FileReader(); rd.onload = e => r(e.target.result); rd.readAsDataURL(file);
                 });
             }
-            const d = btoa(JSON.stringify({ u: tg.initDataUnsafe.user?.id, b: b, p: pData, prof: prof }));
-            try {
-                const res = await fetch('/create_stars_invoice?d=' + d);
-                const j = await res.json();
-                if(j.url) {
-                    tg.openInvoice(j.url, s => { 
-                        if(s==='paid') {
-                            tg.showAlert("🔱 ASCENSION COMPLETE\nYour soul has been recorded.");
-                            setTimeout(() => tg.close(), 1000);
-                        }
-                    });
-                } else if(j.free) {
-                    tg.showAlert("🔱 DIVINE ACCESS GRANTED\nYour soul has been recorded.");
-                    setTimeout(() => tg.close(), 1000);
-                }
-            } catch(e) { tg.showAlert("Connection to Void lost."); }
+            const d = btoa(JSON.stringify({ u: tg.initDataUnsafe.user?.id, b: b, p: pData, prof: document.getElementById('prof-check').checked }));
+            const res = await fetch('/create_stars_invoice?d=' + d);
+            const j = await res.json();
+            if(j.url) tg.openInvoice(j.url, s => { if(s==='paid') tg.close(); });
+            else if(j.free) { tg.showAlert("DIVINE ACCESS GRANTED"); tg.close(); }
             tg.MainButton.hideProgress();
         }
     </script>
