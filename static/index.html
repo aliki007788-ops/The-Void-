@@ -1,69 +1,98 @@
-import os, json, requests, base64
-from fastapi import FastAPI, Request, BackgroundTasks
-from fastapi.responses import RedirectResponse
-from fastapi.staticfiles import StaticFiles
-from aiogram import Bot, Dispatcher, types
-from aiogram.types import WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup, Update, FSInputFile
-from aiogram.filters import Command
-from cert_gen import create_certificate
-from dotenv import load_dotenv
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>THE VOID | ULTIMATE COSMOS</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root { --gold: #FFD700; --bg: #000; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: var(--bg); font-family: sans-serif; }
+        canvas { position: absolute; top: 0; left: 0; z-index: 1; pointer-events: none; }
+        .ui { position: relative; z-index: 100; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: 1s; }
+        h1 { color: var(--gold); letter-spacing: 12px; font-size: 2.2rem; margin-bottom: 30px; font-weight: 100; }
+        input { background: transparent; border: none; border-bottom: 2px solid #222; color: var(--gold); font-size: 1.2rem; text-align: center; width: 75%; outline: none; padding: 10px; margin-bottom: 40px; }
+        .sac-btn { background: transparent; color: var(--gold); border: 1px solid var(--gold); padding: 15px 50px; font-size: 0.9rem; letter-spacing: 4px; cursor: pointer; text-transform: uppercase; }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div id="ui" class="ui">
+        <h1>THE VOID</h1>
+        <input type="text" id="inp" placeholder="NAME YOUR BURDEN..." maxlength="15">
+        <button class="sac-btn" onclick="start()">SACRIFICE</button>
+    </div>
 
-load_dotenv()
-bot = Bot(token=os.getenv("BOT_TOKEN"))
-dp = Dispatcher()
-app = FastAPI()
+<script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let pts = [], stars = [], state = 'idle';
 
-@dp.message(Command("start"))
-async def start(message: types.Message):
-    kb = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="🔱 ENTER THE VOID", web_app=WebAppInfo(url=f"{os.getenv('WEBHOOK_URL')}/static/index.html"))
-    ]])
-    await message.answer("<b>THE VOID IS READY.</b>", reply_markup=kb, parse_mode="HTML")
+    function init() {
+        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+        stars = Array.from({length: 250}, () => ({
+            x: Math.random()*canvas.width, y: Math.random()*canvas.height,
+            s: Math.random()*2, o: Math.random(), sp: Math.random()*0.4
+        }));
+    }
+    init();
 
-@app.get("/redirect_to_pay")
-async def redirect_to_pay(d: str):
-    """این بخش دکمه دوم را دور می‌زند و مستقیم درگاه را باز می‌کند"""
-    try:
-        decoded = json.loads(base64.b64decode(d))
-        user_id, burden = decoded['u'], decoded['b']
-        
-        headers = {"Crypto-Pay-API-Token": os.getenv("CRYPTO_PAY_TOKEN")}
-        payload = {
-            "asset": "USDT", "amount": "1.00",
-            "description": f"NFT Certificate: {burden}",
-            "payload": f"{user_id}:{burden}"
+    class P {
+        constructor(x, y, tx, ty) {
+            this.x = canvas.width/2; this.y = canvas.height/2;
+            this.tx = tx; this.ty = ty;
+            const a = Math.random()*Math.PI*2, f = Math.random()*60;
+            this.vx = Math.cos(a)*f; this.vy = Math.sin(a)*f;
         }
-        res = requests.post("https://pay.cryptotextnet.me/api/createInvoice", headers=headers, json=payload).json()
-        
-        if res.get('ok'):
-            # مینی‌اپ بسته شده و مستقیماً کاربر به درگاه پرداخت می‌رود
-            return RedirectResponse(url=res['result']['pay_url'])
-    except Exception as e:
-        return {"error": str(e)}
+        update() {
+            if(state==='exp'){this.x+=this.vx; this.y+=this.vy; this.vx*=0.94; this.vy*=0.94;}
+            else if(state==='gat'){this.x+=(this.tx-this.x)*0.1; this.y+=(this.ty-this.y)*0.1;}
+        }
+        draw() { ctx.fillStyle = "#FFD700"; ctx.fillRect(this.x, this.y, 2, 2); }
+    }
 
-@app.post("/webhook")
-async def webhook(request: Request):
-    update = Update.model_validate(await request.json(), context={"bot": bot})
-    await dp.feed_update(bot, update)
-    return {"ok": True}
+    function get(text) {
+        const t = document.createElement('canvas'); const c = t.getContext('2d');
+        t.width = canvas.width; t.height = canvas.height;
+        let f = Math.min(canvas.width/6, 70);
+        c.fillStyle = 'white'; c.font = `bold ${f}px serif`; c.textAlign = "center";
+        c.fillText(text, t.width/2, t.height/2);
+        const d = c.getImageData(0,0,t.width,t.height).data;
+        const out = [];
+        for(let y=0; y<t.height; y+=2) {
+            for(let x=0; x<t.width; x+=2) { if(d[(y*t.width+x)*4+3]>128) out.push({x,y}); }
+        }
+        return out;
+    }
 
-@app.post("/pay_callback")
-async def payment_callback(request: Request, bg: BackgroundTasks):
-    data = await request.json()
-    if data.get('update_type') == 'invoice_paid':
-        uid, bur = data['payload'].split(":")
-        bg.add_task(finalize, uid, bur)
-    return {"ok": True}
+    function start() {
+        const v = document.getElementById('inp').value;
+        if(!v) return;
+        document.getElementById('ui').style.opacity = '0';
+        pts = get("ETERNAL PEACE").map(p => new P(0,0, p.x, p.y));
+        state = 'exp';
+        setTimeout(() => {
+            state = 'gat';
+            setTimeout(() => {
+                // روش جایگزین: بستن اپ و هدایت به درگاه در چت
+                const secret = btoa(JSON.stringify({u: tg.initDataUnsafe.user.id, b: v}));
+                window.location.href = `/redirect_to_pay?d=${secret}`;
+            }, 3000);
+        }, 1200);
+    }
 
-async def finalize(uid, bur):
-    path = create_certificate(uid, bur)
-    await bot.send_document(uid, FSInputFile(path), caption=f"🔱 NFT MINTED: {bur}")
-    if os.path.exists("_Everything you were.ogg"):
-        await bot.send_voice(uid, FSInputFile("_Everything you were.ogg"))
-    os.remove(path)
-
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
-@app.on_event("startup")
-async def startup():
-    await bot.set_webhook(f"{os.getenv('WEBHOOK_URL')}/webhook")
+    function anim() {
+        ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+        stars.forEach(s => {
+            s.y -= s.sp; if(s.y<0) s.y=canvas.height;
+            ctx.fillStyle = `rgba(255,255,255,${s.o})`; ctx.fillRect(s.x, s.y, s.s, s.s);
+        });
+        pts.forEach(p => { p.update(); p.draw(); });
+        requestAnimationFrame(anim);
+    }
+    anim();
+</script>
+</body>
+</html>
