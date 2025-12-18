@@ -3,165 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>THE VOID | ASCENSION</title>
+    <title>VOID</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root { --gold: #FFD700; --bg: #000; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: var(--bg); font-family: 'Courier New', Courier, monospace; color: var(--gold); }
-        canvas { position: absolute; top: 0; left: 0; z-index: 1; pointer-events: none; }
-        
-        .ui-layer { 
-            position: relative; z-index: 100; height: 100%; width: 100%;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            transition: opacity 1s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        h1 { letter-spacing: 15px; font-size: 2.8rem; margin-bottom: 20px; font-weight: 100; text-shadow: 0 0 20px rgba(255, 215, 0, 0.3); }
-        input { 
-            background: transparent; border: none; border-bottom: 2px solid #222; 
-            color: var(--gold); font-size: 1.4rem; text-align: center; width: 80%; 
-            outline: none; padding: 10px; margin-bottom: 40px; letter-spacing: 2px;
-        }
-        .btn {
-            background: transparent; color: var(--gold); border: 1px solid var(--gold);
-            padding: 18px 60px; font-size: 1rem; letter-spacing: 5px; cursor: pointer;
-            text-transform: uppercase; transition: 0.3s;
-        }
-        .btn:active { background: var(--gold); color: #000; }
-
-        #loading-text { 
-            position: absolute; bottom: 15%; font-size: 0.8rem; letter-spacing: 3px; 
-            opacity: 0; transition: 0.5s; 
-        }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: monospace; }
+        canvas { position: absolute; top: 0; left: 0; z-index: 1; }
+        .ui { position: relative; z-index: 10; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: 1s; }
+        h1 { color: #FFD700; letter-spacing: 12px; font-size: 2.5rem; }
+        input { background: transparent; border: none; border-bottom: 2px solid #333; color: #FFD700; font-size: 1.2rem; text-align: center; width: 80%; outline: none; margin: 30px 0; }
+        .btn { background: transparent; color: #FFD700; border: 1px solid #FFD700; padding: 15px 50px; cursor: pointer; letter-spacing: 3px; }
+        #loading { position: absolute; bottom: 15%; color: #FFD700; opacity: 0; transition: 0.5s; font-size: 0.7rem; }
     </style>
 </head>
 <body>
     <canvas id="canvas"></canvas>
-    
-    <div id="ui" class="ui-layer">
+    <div id="ui" class="ui">
         <h1>THE VOID</h1>
-        <input type="text" id="burden-input" placeholder="WHAT DO YOU SACRIFICE?" maxlength="18" spellcheck="false">
+        <input type="text" id="inp" placeholder="WHAT BURDEN?" maxlength="18">
         <button class="btn" onclick="ignite()">SACRIFICE</button>
-        <div id="loading-text">COMMUNING WITH THE VOID...</div>
+        <div id="loading">CONNECTING TO COSMOS...</div>
     </div>
-
 <script>
     const tg = window.Telegram.WebApp;
     tg.expand();
-    tg.enableClosingConfirmation();
-
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
-    let particles = [], stars = [], state = 'idle';
+    let pts = [], stars = [], state = 'idle';
 
-    function init() {
-        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-        stars = Array.from({length: 200}, () => ({
-            x: Math.random()*canvas.width, y: Math.random()*canvas.height,
-            s: Math.random()*2, o: Math.random(), sp: Math.random()*0.5
-        }));
-    }
-    window.addEventListener('resize', init);
-    init();
+    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    window.addEventListener('resize', resize); resize();
 
-    class Particle {
+    stars = Array.from({length: 150}, () => ({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, s: Math.random()*2, sp: Math.random()*0.4 }));
+
+    class P {
         constructor(x, y, tx, ty) {
-            this.x = canvas.width/2; this.y = canvas.height/2;
-            this.tx = tx; this.ty = ty;
-            const ang = Math.random() * Math.PI * 2;
-            const force = Math.random() * 70;
-            this.vx = Math.cos(ang) * force; this.vy = Math.sin(ang) * force;
+            this.x = canvas.width/2; this.y = canvas.height/2; this.tx = tx; this.ty = ty;
+            const a = Math.random()*Math.PI*2, f = Math.random()*60;
+            this.vx = Math.cos(a)*f; this.vy = Math.sin(a)*f;
         }
         update() {
-            if(state === 'exploding') {
-                this.x += this.vx; this.y += this.vy;
-                this.vx *= 0.94; this.vy *= 0.94;
-            } else if(state === 'gathering') {
-                this.x += (this.tx - this.x) * 0.08;
-                this.y += (this.ty - this.y) * 0.08;
-            }
+            if(state==='exp'){ this.x+=this.vx; this.y+=this.vy; this.vx*=0.94; this.vy*=0.94; }
+            else if(state==='gat'){ this.x+=(this.tx-this.x)*0.08; this.y+=(this.ty-this.y)*0.08; }
         }
-        draw() {
-            ctx.fillStyle = "#FFD700";
-            ctx.shadowBlur = 4; ctx.shadowColor = "#FFD700";
-            ctx.fillRect(this.x, this.y, 2, 2);
-            ctx.shadowBlur = 0;
-        }
+        draw() { ctx.fillStyle = "#FFD700"; ctx.fillRect(this.x, this.y, 2, 2); }
     }
 
-    function generateTextParticles(text) {
-        const tCanvas = document.createElement('canvas');
-        const tCtx = tCanvas.getContext('2d');
-        tCanvas.width = canvas.width; tCanvas.height = canvas.height;
-        tCtx.fillStyle = 'white';
-        let size = Math.min(canvas.width / 6, 80);
-        tCtx.font = `bold ${size}px serif`;
-        tCtx.textAlign = "center"; tCtx.textBaseline = "middle";
-        tCtx.fillText(text, tCanvas.width/2, tCanvas.height/2);
-        
-        const data = tCtx.getImageData(0,0,tCanvas.width,tCanvas.height).data;
-        const pts = [];
-        for(let y=0; y<tCanvas.height; y+=3) {
-            for(let x=0; x<tCanvas.width; x+=3) {
-                if(data[(y*tCanvas.width+x)*4+3] > 128) pts.push({x,y});
-            }
-        }
-        return pts;
-    }
-
-    async def ignite() {
-        const val = document.getElementById('burden-input').value.trim();
-        if(!val) { tg.HapticFeedback.notificationOccurred('error'); return; }
-
-        tg.HapticFeedback.impactOccurred('heavy');
+    async function ignite() {
+        const val = document.getElementById('inp').value.trim();
+        if(!val) return;
         document.getElementById('ui').style.opacity = '0';
         
-        particles = generateTextParticles("ETERNAL PEACE").map(p => new Particle(0,0, p.x, p.y));
-        state = 'exploding';
+        const tCanvas = document.createElement('canvas'); const tCtx = tCanvas.getContext('2d');
+        tCanvas.width = canvas.width; tCanvas.height = canvas.height;
+        tCtx.fillStyle = 'white'; tCtx.font = `bold ${Math.min(canvas.width/6, 70)}px serif`;
+        tCtx.textAlign = "center"; tCtx.fillText("ETERNAL PEACE", tCanvas.width/2, tCanvas.height/2);
+        const data = tCtx.getImageData(0,0,tCanvas.width,tCanvas.height).data;
+        for(let y=0; y<tCanvas.height; y+=3) {
+            for(let x=0; x<tCanvas.width; x+=3) { if(data[(y*tCanvas.width+x)*4+3]>128) pts.push(new P(0,0,x,y)); }
+        }
 
+        state = 'exp';
         setTimeout(() => {
-            state = 'gathering';
-            document.getElementById('loading-text').style.opacity = '1';
-            
+            state = 'gat';
+            document.getElementById('loading').style.opacity = '1';
             setTimeout(async () => {
-                // مرحله نهایی: فراخوانی لینک فاکتور Stars از بک‌اِند (main.py)
                 const payload = btoa(JSON.stringify({u: tg.initDataUnsafe.user.id, b: val}));
                 try {
-                    const response = await fetch(`/create_stars_invoice?d=${payload}`);
-                    const result = await response.json();
-                    
-                    if (result.url) {
-                        tg.openInvoice(result.url, (status) => {
-                            if (status === 'paid') {
-                                tg.HapticFeedback.notificationOccurred('success');
-                                // پس از پرداخت، اپ بسته می‌شود و ربات NFT را در چت می‌فرستد
-                                setTimeout(() => tg.close(), 1000);
-                            } else {
-                                // اگر کنسل کرد، رابط کاربری برگردد
-                                document.getElementById('ui').style.opacity = '1';
-                                document.getElementById('loading-text').style.opacity = '0';
-                                state = 'idle'; particles = [];
-                            }
-                        });
-                    }
-                } catch (err) {
-                    alert("Cosmos Connection Lost. Try again.");
-                    document.getElementById('ui').style.opacity = '1';
-                }
+                    const res = await fetch(`/create_stars_invoice?d=${payload}`);
+                    const json = await res.json();
+                    if(json.url) tg.openInvoice(json.url, (status) => { if(status==='paid') tg.close(); else location.reload(); });
+                } catch(e) { tg.showAlert("Connection lost."); location.reload(); }
             }, 3500);
         }, 1500);
     }
 
-    function animate() {
+    function anim() {
         ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.fillRect(0,0,canvas.width,canvas.height);
-        stars.forEach(s => {
-            s.y -= s.sp; if(s.y < 0) s.y = canvas.height;
-            ctx.fillStyle = `rgba(255,255,255,${s.o})`; ctx.fillRect(s.x, s.y, s.s, s.s);
-        });
-        particles.forEach(p => { p.update(); p.draw(); });
-        requestAnimationFrame(animate);
+        stars.forEach(s => { s.y-=s.sp; if(s.y<0) s.y=canvas.height; ctx.fillStyle="#fff"; ctx.fillRect(s.x,s.y,s.s,s.s); });
+        pts.forEach(p => { p.update(); p.draw(); });
+        requestAnimationFrame(anim);
     }
-    animate();
+    anim();
 </script>
 </body>
 </html>
