@@ -3,55 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>THE VOID | FINAL ASCENSION</title>
+    <title>THE VOID 2040 | ULTIMATE</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root { --gold: #FFD700; --bg: #010103; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: var(--bg); font-family: 'Segoe UI', serif; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: var(--bg); font-family: 'Inter', -apple-system, sans-serif; }
         
+        /* لایه کهکشان و ذرات */
         canvas { position: absolute; top: 0; left: 0; z-index: 1; pointer-events: none; }
 
+        /* لایه رابط کاربری اولیه */
         #ui-wrapper { 
             position: absolute; width: 100%; height: 100%; display: flex; 
             flex-direction: column; align-items: center; justify-content: center; 
-            z-index: 20; transition: opacity 2s ease;
+            z-index: 100; transition: opacity 1s ease;
         }
 
         h1 { 
-            color: var(--gold); letter-spacing: 20px; font-weight: 100; font-size: 2.8rem; 
-            margin-bottom: 20px; text-shadow: 0 0 30px rgba(255, 215, 0, 0.4);
-            animation: breathe 4s infinite alternate;
+            color: var(--gold); letter-spacing: 15px; font-weight: 100; font-size: 2.5rem; 
+            margin-bottom: 30px; text-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+            text-indent: 15px;
         }
-        @keyframes breathe { from { opacity: 0.5; } to { opacity: 1; } }
 
         input { 
-            background: transparent; border: none; border-bottom: 1px solid rgba(255,215,0,0.2); 
-            color: var(--gold); font-size: 1.5rem; text-align: center; width: 80%; 
-            outline: none; padding: 15px; margin-bottom: 50px; letter-spacing: 2px;
+            background: transparent; border: none; border-bottom: 1px solid rgba(255,215,0,0.3); 
+            color: var(--gold); font-size: 1.4rem; text-align: center; width: 75%; 
+            outline: none; padding: 15px; margin-bottom: 40px; letter-spacing: 2px;
+            transition: 0.3s;
         }
+        input:focus { border-bottom-color: var(--gold); }
 
-        .btn-glow {
+        .sacrifice-btn {
             background: transparent; color: var(--gold); border: 1px solid var(--gold);
-            padding: 20px 60px; font-size: 1rem; letter-spacing: 8px; cursor: pointer;
-            position: relative; overflow: hidden; transition: 0.5s;
-            box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
+            padding: 18px 50px; font-size: 0.9rem; letter-spacing: 6px; cursor: pointer;
+            transition: 0.4s; text-transform: uppercase;
         }
-        .btn-glow:hover { background: var(--gold); color: black; box-shadow: 0 0 50px var(--gold); }
+        .sacrifice-btn:active { background: var(--gold); color: black; }
 
-        /* دکمه نهایی سینمایی */
-        #final-stage { 
-            position: absolute; bottom: 15%; width: 100%; display: none; 
-            flex-direction: column; align-items: center; z-index: 100; opacity: 0;
-            transition: all 3s cubic-bezier(0.19, 1, 0.22, 1);
+        /* لایه دکمه نهایی (جدا شده برای امنیت کلیک) */
+        #final-layer { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            display: none; flex-direction: column; align-items: center; 
+            justify-content: flex-end; padding-bottom: 12vh;
+            z-index: 9999; /* بالاتر از همه چیز */
+            pointer-events: none; /* در حالت عادی کلیک را عبور می‌دهد */
         }
+
         .claim-btn {
-            background: linear-gradient(90deg, #BF953F, #FCF6BA, #B38728);
-            border: none; padding: 25px 50px; font-weight: 900; font-size: 0.9rem;
-            letter-spacing: 4px; border-radius: 50px; cursor: pointer;
-            box-shadow: 0 0 40px rgba(255, 215, 0, 0.5);
-            animation: pulse-gold 2s infinite;
+            background: linear-gradient(135deg, #FFD700 0%, #B8860B 100%);
+            color: black; border: none; padding: 22px 45px; font-weight: 900; 
+            font-size: 1rem; letter-spacing: 2px; border-radius: 50px; 
+            cursor: pointer; opacity: 0; transform: translateY(30px);
+            transition: 2s cubic-bezier(0.19, 1, 0.22, 1);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            pointer-events: auto; /* دکمه همیشه قابل کلیک است */
+            -webkit-tap-highlight-color: transparent;
         }
-        @keyframes pulse-gold { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+
+        .show-btn { opacity: 1 !important; transform: translateY(0) !important; }
+
+        .status-text { 
+            color: rgba(255,255,255,0.4); font-size: 0.6rem; 
+            margin-top: 15px; letter-spacing: 3px; text-transform: uppercase;
+        }
     </style>
 </head>
 <body>
@@ -59,71 +73,74 @@
 
     <div id="ui-wrapper">
         <h1>THE VOID</h1>
-        <input type="text" id="user-input" placeholder="WHISPER TO THE DARKNESS..." autocomplete="off">
-        <button class="btn-glow" onclick="launchRitual()">SACRIFICE</button>
+        <input type="text" id="user-input" placeholder="NAME YOUR BURDEN..." autocomplete="off">
+        <button class="sacrifice-btn" onclick="startCosmicRitual()">SACRIFICE</button>
     </div>
 
-    <div id="final-stage">
-        <button class="claim-btn" onclick="finalPay()">CLAIM ETERNAL PROOF ($1)</button>
+    <div id="final-layer">
+        <button id="main-action-btn" class="claim-btn" onclick="sendPayment()">MINT ETERNAL PROOF ($1)</button>
+        <div class="status-text">Synchronizing with Blockchain...</div>
     </div>
 
 <script>
     const tg = window.Telegram.WebApp;
     tg.expand();
+    tg.enableClosingConfirmation();
 
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
     let particles = [];
-    let backgroundStars = [];
+    let bgStars = [];
     let state = 'idle';
 
-    function init() {
+    function initScene() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
-        // ایجاد کهکشان پس‌زمینه ابدی
-        for(let i=0; i<250; i++) {
-            backgroundStars.push({
+        bgStars = [];
+        for(let i=0; i<200; i++) {
+            bgStars.push({
                 x: Math.random()*canvas.width, y: Math.random()*canvas.height,
-                size: Math.random()*1.5, opacity: Math.random(), speed: Math.random()*0.2
+                s: Math.random()*1.5, o: Math.random(), sp: Math.random()*0.4
             });
         }
     }
-    window.onresize = init;
-    init();
+    window.addEventListener('resize', initScene);
+    initScene();
 
     class Particle {
         constructor(x, y, tx, ty) {
-            this.x = canvas.width/2; this.y = canvas.height/2; // شروع از مرکز (انفجار)
+            this.x = canvas.width/2; this.y = canvas.height/2; // شروع از مرکز (Big Bang)
             this.tx = tx; this.ty = ty;
-            this.vx = (Math.random() - 0.5) * 60;
-            this.vy = (Math.random() - 0.5) * 60;
-            this.friction = 0.95;
-            this.color = `hsl(${Math.random()*40 + 40}, 100%, 70%)`; // طیف طلایی
+            this.vx = (Math.random() - 0.5) * 80;
+            this.vy = (Math.random() - 0.5) * 80;
+            this.friction = 0.94;
+            this.size = Math.random() * 2 + 0.5;
         }
         update() {
             if(state === 'exploding') {
                 this.vx *= this.friction; this.vy *= this.friction;
                 this.x += this.vx; this.y += this.vy;
             } else if(state === 'gathering') {
-                this.x += (this.tx - this.x) * 0.07;
-                this.y += (this.ty - this.y) * 0.07;
+                this.x += (this.tx - this.x) * 0.08;
+                this.y += (this.ty - this.y) * 0.08;
             }
         }
         draw() {
-            ctx.fillStyle = this.color;
-            ctx.beginPath(); ctx.arc(this.x, this.y, 1.2, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = "#FFD700";
+            ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2); ctx.fill();
         }
     }
 
-    function getPoints(text) {
-        const tmp = document.createElement('canvas');
-        const tctx = tmp.getContext('2d');
-        tmp.width = canvas.width; tmp.height = canvas.height;
-        tctx.fillStyle = 'white';
-        tctx.font = "bold 90px Arial";
-        tctx.textAlign = "center";
-        tctx.fillText(text, canvas.width/2, canvas.height/2);
-        const data = tctx.getImageData(0,0,canvas.width,canvas.height).data;
+    function getTextPoints(text) {
+        const tCanvas = document.createElement('canvas');
+        const tCtx = tCanvas.getContext('2d');
+        tCanvas.width = canvas.width; tCanvas.height = canvas.height;
+        tCtx.fillStyle = 'white';
+        tCtx.font = "bold 80px serif";
+        tCtx.textAlign = "center";
+        tCtx.textBaseline = "middle";
+        tCtx.fillText(text, canvas.width/2, canvas.height/2);
+        const data = tCtx.getImageData(0,0,canvas.width,canvas.height).data;
         const pts = [];
         for(let y=0; y<canvas.height; y+=3) {
             for(let x=0; x<canvas.width; x+=3) {
@@ -133,36 +150,41 @@
         return pts;
     }
 
-    function launchRitual() {
+    function startCosmicRitual() {
         const val = document.getElementById('user-input').value;
         if(!val) return;
-        
-        document.getElementById('ui-wrapper').style.opacity = '0';
-        tg.HapticFeedback.notificationOccurred('success');
 
-        const targets = getPoints("ETERNAL PEACE");
-        particles = targets.map(p => new Particle(0,0, p.x, p.y));
+        tg.HapticFeedback.impactOccurred('heavy');
+        document.getElementById('ui-wrapper').style.opacity = '0';
+        document.getElementById('ui-wrapper').style.pointerEvents = 'none';
+
+        const points = getTextPoints("ETERNAL PEACE");
+        particles = points.map(p => new Particle(0,0, p.x, p.y));
         
         state = 'exploding';
+        
         setTimeout(() => {
             state = 'gathering';
+            tg.HapticFeedback.notificationOccurred('success');
+            
             setTimeout(() => {
-                const fs = document.getElementById('final-stage');
-                fs.style.display = 'flex';
-                setTimeout(() => { fs.style.opacity = '1'; }, 100);
-            }, 3000);
-        }, 1200);
+                const finalLayer = document.getElementById('final-layer');
+                const btn = document.getElementById('main-action-btn');
+                finalLayer.style.display = 'flex';
+                finalLayer.style.pointerEvents = 'auto'; // فعال سازی لایه کلیک
+                setTimeout(() => btn.classList.add('show-btn'), 100);
+            }, 2500);
+        }, 1000);
     }
 
     function animate() {
-        ctx.fillStyle = 'rgba(1, 1, 3, 0.2)'; // افکت دنباله‌دار شدن ذرات
+        ctx.fillStyle = 'rgba(1, 1, 3, 0.2)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // ستاره‌های کهکشانی پس‌زمینه (همیشه متحرک)
-        backgroundStars.forEach(s => {
-            s.y -= s.speed; if(s.y < 0) s.y = canvas.height;
-            ctx.fillStyle = `rgba(255,255,255,${s.opacity})`;
-            ctx.fillRect(s.x, s.y, s.size, s.size);
+        bgStars.forEach(s => {
+            s.y -= s.sp; if(s.y < 0) s.y = canvas.height;
+            ctx.fillStyle = `rgba(255,255,255,${s.o})`;
+            ctx.fillRect(s.x, s.y, s.s, s.s);
         });
 
         particles.forEach(p => { p.update(); p.draw(); });
@@ -170,9 +192,17 @@
     }
     animate();
 
-    function finalPay() {
-        const val = document.getElementById('user-input').value;
-        tg.sendData(JSON.stringify({action: "create_invoice", need: val}));
+    function sendPayment() {
+        tg.HapticFeedback.selectionChanged();
+        const burden = document.getElementById('user-input').value;
+        const data = JSON.stringify({ action: "create_invoice", need: burden });
+        
+        // ارسال داده به تلگرام
+        tg.sendData(data);
+        
+        // بازخورد بصری دکمه هنگام کلیک
+        document.getElementById('main-action-btn').innerText = "PROCEEDING...";
+        document.getElementById('main-action-btn').style.filter = "grayscale(1)";
     }
 </script>
 </body>
