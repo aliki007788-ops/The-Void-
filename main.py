@@ -8,8 +8,6 @@ from cert_gen import create_certificate
 from dotenv import load_dotenv
 
 load_dotenv()
-logging.basicConfig(level=logging.INFO)
-
 bot = Bot(token=os.getenv("BOT_TOKEN"))
 dp = Dispatcher()
 app = FastAPI()
@@ -17,23 +15,20 @@ app = FastAPI()
 @dp.message(Command("start"))
 async def start(message: types.Message):
     kb = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="🔱 ASCEND TO THE VOID", web_app=WebAppInfo(url=f"{os.getenv('WEBHOOK_URL')}/static/index.html"))
+        InlineKeyboardButton(text="🔱 ENTER THE VOID", web_app=WebAppInfo(url=f"{os.getenv('WEBHOOK_URL')}/static/index.html"))
     ]])
-    await message.answer("<b>THE VOID IS READY.</b>", reply_markup=kb, parse_mode="HTML")
+    await message.answer("<b>WELCOME TO THE ETERNITY.</b>", reply_markup=kb, parse_mode="HTML")
 
 @dp.message(lambda m: m.web_app_data is not None)
-async def handle_webapp_data(message: types.Message):
-    """دریافت داده از Main Button مینی اپ"""
-    logging.info(f"DATA RECEIVED: {message.web_app_data.data}")
+async def handle_data(message: types.Message):
     try:
         data = json.loads(message.web_app_data.data)
-        burden = data.get("need", "Unknown")
+        burden = data.get("need", "Sacrifice")
         
-        # ساخت فاکتور در CryptoPay
         headers = {"Crypto-Pay-API-Token": os.getenv("CRYPTO_PAY_TOKEN")}
         payload = {
             "asset": "USDT", "amount": "1.00",
-            "description": f"NFT Certificate: {burden}",
+            "description": f"NFT Certificate for {burden}",
             "payload": f"{message.from_user.id}:{burden}"
         }
         res = requests.post("https://pay.cryptotextnet.me/api/createInvoice", headers=headers, json=payload).json()
@@ -41,20 +36,20 @@ async def handle_webapp_data(message: types.Message):
         if res.get('ok'):
             pay_url = res['result']['pay_url']
             kb = InlineKeyboardMarkup(inline_keyboard=[[
-                InlineKeyboardButton(text="💳 PAY $1.00 & MINT", url=pay_url)
+                InlineKeyboardButton(text="💳 PAY & MINT NFT", url=pay_url)
             ]])
-            await message.answer(f"Ritual for <b>{burden}</b> is complete.\nFinalize the transaction below:", reply_markup=kb, parse_mode="HTML")
+            await message.answer(f"Your sacrifice <b>{burden}</b> is ready to be immortalized.", reply_markup=kb, parse_mode="HTML")
     except Exception as e:
-        logging.error(f"Error: {e}")
+        logging.error(e)
 
 @app.post("/webhook")
-async def webhook_handler(request: Request):
+async def webhook(request: Request):
     update = Update.model_validate(await request.json(), context={"bot": bot})
     await dp.feed_update(bot, update)
     return {"ok": True}
 
 @app.post("/pay_callback")
-async def payment_handler(request: Request, bg: BackgroundTasks):
+async def pay_callback(request: Request, bg: BackgroundTasks):
     data = await request.json()
     if data.get('update_type') == 'invoice_paid':
         uid, bur = data['payload'].split(":")
