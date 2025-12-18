@@ -9,165 +9,141 @@
         @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap');
         body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; color: #FFD700; font-family: 'Cinzel', serif; }
         canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
-        .container { position: relative; z-index: 10; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        .main-title { font-size: 3rem; letter-spacing: 20px; margin-bottom: 100px; white-space: nowrap; text-shadow: 0 0 30px rgba(255,215,0,0.6); animation: pulse 4s infinite alternate; }
-        @keyframes pulse { from { text-shadow: 0 0 20px rgba(255,215,0,0.4); } to { text-shadow: 0 0 50px rgba(255,215,0,0.9); } }
-        input[type="text"] { background: transparent; border: none; border-bottom: 2px solid #444; color: #FFD700; font-size: 1.4rem; text-align: center; width: 80%; padding: 15px 0; outline: none; font-family: monospace; letter-spacing: 2px; }
-        .btn { background: transparent; border: 2px solid #FFD700; color: #FFD700; padding: 18px 70px; font-size: 1.2rem; letter-spacing: 6px; cursor: pointer; margin-top: 60px; transition: 0.4s; }
-        .btn:hover, .btn:active { background: #FFD700; color: #000; box-shadow: 0 0 40px #FFD700; }
-        #step2 { position: absolute; width: 100%; height: 100%; display: none; flex-direction: column; justify-content: center; align-items: center; opacity: 0; transition: opacity 1s; }
-        .option-box { background: rgba(20,20,20,0.8); border: 1px solid #333; padding: 30px; border-radius: 10px; width: 85%; max-width: 400px; backdrop-filter: blur(10px); }
-        .price { font-size: 4rem; margin: 20px 0; display: flex; align-items: center; gap: 15px; }
-        .diamond { font-size: 3.5rem; color: #00ffff; text-shadow: 0 0 30px #00ffff; animation: sparkle 2s infinite; }
-        @keyframes sparkle { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+        
+        .stage { position: relative; z-index: 10; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: 1s ease; }
+        
+        /* تیتر کشیده و سینمایی در یک خط */
+        .main-title { font-size: 2.8rem; letter-spacing: 20px; margin-bottom: 110px; white-space: nowrap; 
+                      text-shadow: 0 0 25px rgba(255,215,0,0.5); animation: titleGlow 3s infinite alternate; }
+        @keyframes titleGlow { from { text-shadow: 0 0 15px rgba(255,215,0,0.3); } to { text-shadow: 0 0 40px rgba(255,215,0,0.8); } }
+        
+        input[type="text"] { background: transparent; border: none; border-bottom: 2px solid #333; color: #FFD700; font-size: 1.3rem; 
+                            text-align: center; width: 80%; padding: 15px 0; outline: none; font-family: monospace; transition: 0.3s; }
+        input[type="text"]:focus { border-bottom: 2px solid #FFD700; }
+
+        .btn { background: transparent; border: 1px solid #FFD700; color: #FFD700; padding: 18px 70px; font-size: 1.1rem; 
+               letter-spacing: 8px; cursor: pointer; margin-top: 60px; transition: 0.4s; backdrop-filter: blur(5px); }
+        .btn:hover { background: #FFD700; color: #000; box-shadow: 0 0 30px #FFD700; }
+
+        #step2 { display: none; opacity: 0; }
+        .option-box { background: rgba(10,10,10,0.9); border: 1px solid #222; padding: 30px; border-radius: 5px; width: 85%; max-width: 400px; }
+        .price { font-size: 3.8rem; margin: 15px 0; display: flex; align-items: center; gap: 15px; font-weight: bold; }
+        .diamond { color: #00d4ff; text-shadow: 0 0 25px #00d4ff; font-size: 3rem; }
     </style>
 </head>
 <body>
     <canvas id="canvas"></canvas>
-    <audio id="boom" src="https://assets.mixkit.co/active_storage/sfx/2895/2895-preview.mp3" preload="auto"></audio>
+    <audio id="snd-trans" src="https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3"></audio>
 
-    <div id="step1" class="container">
+    <div id="step1" class="stage">
         <h1 class="main-title">THE VOID</h1>
-        <input type="text" id="sacrifice" placeholder="WHAT DO YOU SACRIFICE?" maxlength="18">
+        <input type="text" id="sacrifice" placeholder="NAME YOUR SACRIFICE" maxlength="18">
         <button class="btn" onclick="ascend()">ASCEND</button>
     </div>
 
-    <div id="step2">
-        <h2 id="grade" style="letter-spacing: 8px; color: #888;">ETERNAL GRADE</h2>
+    <div id="step2" class="stage">
+        <h2 id="grade" style="letter-spacing: 5px; color: #666;">ETERNAL GRADE</h2>
         <div class="price"><span id="amount">70</span><span class="diamond">💎</span></div>
         <div class="option-box">
-            <label class="upload-btn">
-                UPLOAD SOUL IMAGE
+            <label style="cursor: pointer; border: 1px dashed #444; padding: 20px; display: block; margin-bottom: 20px;">
+                UPLOAD IMAGE
                 <input type="file" id="upload" accept="image/*" style="display:none;" onchange="updatePrice()">
             </label>
-            <label style="display:block; margin:20px 0; font-size:0.9rem;">
-                <input type="checkbox" id="profile" onchange="updatePrice()"> USE PROFILE PHOTO
-            </label>
+            <label><input type="checkbox" id="profile" onchange="updatePrice()"> USE PROFILE PHOTO</label>
         </div>
         <button class="btn" onclick="mint()">MINT NFT</button>
     </div>
 
     <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
-        tg.enableClosingConfirmation();
+        const tg = window.Telegram.WebApp; tg.expand();
+        const canvas = document.getElementById('canvas'); const ctx = canvas.getContext('2d');
+        let stars = [], particles = [], meteors = [], state = 'idle';
 
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        let particles = [];
-
-        function resize() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+        function init() {
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            stars = []; meteors = [];
+            for(let i=0; i<180; i++) stars.push({x:Math.random()*canvas.width, y:Math.random()*canvas.height, s:Math.random()*1.5, o:Math.random(), vx:(Math.random()-0.5)*0.3, vy:(Math.random()-0.5)*0.3});
         }
-        window.addEventListener('resize', resize);
-        resize();
+        window.addEventListener('resize', init); init();
 
         function draw() {
-            ctx.fillStyle = 'rgba(0,0,0,0.05)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            particles.forEach((p, i) => {
-                ctx.fillStyle = '#FFD700';
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                ctx.fill();
-
-                p.x += p.vx;
-                p.y += p.vy;
-                p.size *= 0.98;
-
-                if (p.size < 0.5) particles.splice(i, 1);
+            // حرکت ستاره‌ها
+            stars.forEach(s => {
+                s.x += s.vx; s.y += s.vy;
+                if(s.x<0) s.x=canvas.width; if(s.x>canvas.width) s.x=0;
+                ctx.fillStyle = `rgba(255,255,255,${s.o})`;
+                ctx.beginPath(); ctx.arc(s.x, s.y, s.s, 0, Math.PI*2); ctx.fill();
             });
 
+            // تولید و حرکت شهاب‌سنگ‌ها
+            if(Math.random() < 0.015) meteors.push({x: Math.random()*canvas.width, y: -20, len: Math.random()*80+50, speed: Math.random()*10+5});
+            meteors.forEach((m, i) => {
+                ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1; ctx.beginPath();
+                ctx.moveTo(m.x, m.y); ctx.lineTo(m.x - m.len, m.y + m.len); ctx.stroke();
+                m.x += m.speed; m.y += m.speed;
+                if(m.y > canvas.height) meteors.splice(i, 1);
+            });
+
+            // انیمیشن ذرات انفجار و جمع شدن (Implosion)
+            particles.forEach((p, i) => {
+                ctx.fillStyle = '#FFD700'; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
+                if (state === 'exploding') { p.x += p.vx; p.y += p.vy; p.size *= 0.98; }
+                else if (state === 'imploding') { p.x += (canvas.width/2 - p.x)*0.15; p.y += (canvas.height/2 - p.y)*0.15; p.size *= 0.95; }
+                if (p.size < 0.2) particles.splice(i, 1);
+            });
             requestAnimationFrame(draw);
         }
         draw();
 
         function ascend() {
-            const sacrifice = document.getElementById('sacrifice').value.trim();
-            if (!sacrifice) return tg.showAlert("A sacrifice is required.");
-
-            document.getElementById('boom').play();
+            if (!document.getElementById('sacrifice').value.trim()) return tg.showAlert("SACRIFICE REQUIRED");
+            document.getElementById('snd-trans').play();
             tg.HapticFeedback.impactOccurred('heavy');
-
-            // انفجار ذرات طلایی
-            for (let i = 0; i < 200; i++) {
-                const angle = Math.random() * Math.PI * 2;
-                const speed = Math.random() * 8 + 5;
-                particles.push({
-                    x: canvas.width / 2,
-                    y: canvas.height / 2,
-                    vx: Math.cos(angle) * speed,
-                    vy: Math.sin(angle) * speed,
-                    size: Math.random() * 5 + 3
-                });
+            state = 'exploding';
+            for (let i = 0; i < 150; i++) {
+                const angle = Math.random()*Math.PI*2; const speed = Math.random()*12+5;
+                particles.push({x: canvas.width/2, y: canvas.height/2, vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed, size: Math.random()*4+2});
             }
-
             document.getElementById('step1').style.opacity = 0;
-
             setTimeout(() => {
+                state = 'imploding';
                 document.getElementById('step1').style.display = 'none';
-                document.getElementById('step2').style.display = 'flex';
-                setTimeout(() => {
-                    document.getElementById('step2').style.opacity = 1;
-                }, 100);
-            }, 1000);
+                const s2 = document.getElementById('step2'); s2.style.display = 'flex';
+                setTimeout(() => { s2.style.opacity = 1; state='idle'; }, 50);
+            }, 800);
         }
 
         function updatePrice() {
-            const hasImage = document.getElementById('upload').files.length > 0;
-            const useProfile = document.getElementById('profile').checked;
-            const isPremium = hasImage || useProfile;
-
-            document.getElementById('amount').textContent = isPremium ? "120" : "70";
-            document.getElementById('grade').textContent = isPremium ? "DIVINE GRADE" : "ETERNAL GRADE";
-            document.getElementById('grade').style.color = isPremium ? "#FFD700" : "#888888";
-
+            const isP = document.getElementById('upload').files.length > 0 || document.getElementById('profile').checked;
+            document.getElementById('amount').textContent = isP ? "120" : "70";
+            document.getElementById('grade').textContent = isP ? "DIVINE GRADE" : "ETERNAL GRADE";
+            document.getElementById('grade').style.color = isP ? "#FFD700" : "#666";
             tg.HapticFeedback.selectionChanged();
         }
 
         async function mint() {
+            tg.MainButton.showProgress();
             const sacrifice = document.getElementById('sacrifice').value.trim();
             const file = document.getElementById('upload').files[0];
-            const useProfile = document.getElementById('profile').checked;
-
             let photoData = null;
             if (file) {
-                photoData = await new Promise(resolve => {
-                    const reader = new FileReader();
-                    reader.onload = e => resolve(e.target.result);
-                    reader.readAsDataURL(file);
+                photoData = await new Promise(r => {
+                    const reader = new FileReader(); reader.onload = e => r(e.target.result); reader.readAsDataURL(file);
                 });
             }
-
-            const payload = btoa(JSON.stringify({
-                u: tg.initDataUnsafe.user?.id || 0,
-                b: sacrifice,
-                p: photoData,
-                prof: useProfile
-            }));
-
+            const payload = btoa(JSON.stringify({ u: tg.initDataUnsafe.user?.id || 0, b: sacrifice, p: photoData, prof: document.getElementById('profile').checked }));
             try {
-                const response = await fetch(`/create_stars_invoice?d=${payload}`);
-                const result = await response.json();
-
+                const res = await fetch(`/create_stars_invoice?d=${payload}`);
+                const result = await res.json();
                 if (result.url) {
-                    tg.openInvoice(result.url, status => {
-                        if (status === 'paid') {
-                            tg.showAlert("ASCENSION COMPLETE\nYour NFT has been minted.");
-                            tg.close();
-                        }
-                    });
+                    tg.openInvoice(result.url, status => { if (status === 'paid') { tg.showAlert("ASCENSION COMPLETE"); tg.close(); } });
                 } else if (result.free) {
-                    tg.showAlert("DIVINE GIFT GRANTED");
-                    tg.close();
-                } else {
-                    tg.showAlert("The Void is silent...");
+                    tg.showAlert("DIVINE GIFT GRANTED"); tg.close();
                 }
-            } catch {
-                tg.showAlert("Connection lost to The Void");
-            }
+            } catch { tg.showAlert("The Void is unreachable..."); }
+            tg.MainButton.hideProgress();
         }
     </script>
 </body>
