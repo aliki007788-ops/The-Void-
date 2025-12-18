@@ -1,25 +1,25 @@
 <!DOCTYPE html>
-<html lang="en">
+<html dir="rtl" lang="fa">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>THE VOID | ULTIMATE COSMOS</title>
+    <title>THE VOID</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root { --gold: #FFD700; --bg: #000; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: var(--bg); font-family: sans-serif; }
         canvas { position: absolute; top: 0; left: 0; z-index: 1; pointer-events: none; }
         .ui { position: relative; z-index: 100; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: 1s; }
-        h1 { color: var(--gold); letter-spacing: 12px; font-size: 2.2rem; margin-bottom: 30px; font-weight: 100; }
+        h1 { color: var(--gold); letter-spacing: 12px; font-size: 2.2rem; margin-bottom: 30px; }
         input { background: transparent; border: none; border-bottom: 2px solid #222; color: var(--gold); font-size: 1.2rem; text-align: center; width: 75%; outline: none; padding: 10px; margin-bottom: 40px; }
-        .sac-btn { background: transparent; color: var(--gold); border: 1px solid var(--gold); padding: 15px 50px; font-size: 0.9rem; letter-spacing: 4px; cursor: pointer; text-transform: uppercase; }
+        .sac-btn { background: transparent; color: var(--gold); border: 1px solid var(--gold); padding: 15px 50px; font-size: 0.9rem; letter-spacing: 4px; cursor: pointer; }
     </style>
 </head>
 <body>
     <canvas id="canvas"></canvas>
-    <div id="ui" class="ui">
+    <div id="ui-layer" class="ui">
         <h1>THE VOID</h1>
-        <input type="text" id="inp" placeholder="NAME YOUR BURDEN..." maxlength="15">
+        <input type="text" id="user-input" placeholder="چیزی را فدا کن..." maxlength="15">
         <button class="sac-btn" onclick="start()">SACRIFICE</button>
     </div>
 
@@ -56,7 +56,7 @@
     function get(text) {
         const t = document.createElement('canvas'); const c = t.getContext('2d');
         t.width = canvas.width; t.height = canvas.height;
-        let f = Math.min(canvas.width/6, 70);
+        let f = Math.min(canvas.width/6.5, 70);
         c.fillStyle = 'white'; c.font = `bold ${f}px serif`; c.textAlign = "center";
         c.fillText(text, t.width/2, t.height/2);
         const d = c.getImageData(0,0,t.width,t.height).data;
@@ -68,18 +68,18 @@
     }
 
     function start() {
-        const v = document.getElementById('inp').value;
+        const v = document.getElementById('user-input').value;
         if(!v) return;
-        document.getElementById('ui').style.opacity = '0';
+        document.getElementById('ui-layer').style.opacity = '0';
         pts = get("ETERNAL PEACE").map(p => new P(0,0, p.x, p.y));
         state = 'exp';
         setTimeout(() => {
             state = 'gat';
             setTimeout(() => {
-                // روش جایگزین: بستن اپ و هدایت به درگاه در چت
-                const secret = btoa(JSON.stringify({u: tg.initDataUnsafe.user.id, b: v}));
-                window.location.href = `/redirect_to_pay?d=${secret}`;
-            }, 3000);
+                // انتقال مستقیم و خودکار به مرحله پرداخت
+                const data = btoa(JSON.stringify({u: tg.initDataUnsafe.user.id, b: v}));
+                window.location.href = `/pay_now?d=${data}`;
+            }, 3500); // ۳.۵ ثانیه مکث برای دیدن جمله و بعد انتقال
         }, 1200);
     }
 
