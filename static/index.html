@@ -9,26 +9,26 @@
         :root { --gold: #FFD700; --bg: #000000; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: var(--bg); color: white; font-family: 'serif'; }
         
-        #ui-container { position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; transition: opacity 1s; }
-        h1 { color: var(--gold); letter-spacing: 15px; font-weight: 100; font-size: 2.8rem; margin-bottom: 40px; text-shadow: 0 0 30px rgba(255, 215, 0, 0.5); }
-        input { background: transparent; border: none; border-bottom: 1px solid #444; color: var(--gold); font-size: 1.6rem; text-align: center; width: 80%; outline: none; padding: 15px; margin-bottom: 40px; }
+        #ui-container { position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; transition: opacity 1s; }
+        h1 { color: var(--gold); letter-spacing: 15px; font-weight: 100; font-size: 2.2rem; margin-bottom: 40px; text-shadow: 0 0 20px rgba(255, 215, 0, 0.4); }
+        input { background: transparent; border: none; border-bottom: 1px solid #444; color: var(--gold); font-size: 1.4rem; text-align: center; width: 80%; outline: none; padding: 15px; margin-bottom: 40px; }
 
         .release-btn { 
             background: transparent; color: var(--gold); border: 1px solid var(--gold); 
-            padding: 20px 70px; font-size: 1.1rem; letter-spacing: 5px; cursor: pointer; 
-            transition: 0.4s; text-transform: uppercase; z-index: 110;
+            padding: 18px 60px; font-size: 1rem; letter-spacing: 4px; cursor: pointer; 
+            transition: 0.4s; text-transform: uppercase;
         }
 
-        canvas { position: absolute; top: 0; left: 0; z-index: 5; pointer-events: none; }
+        canvas { position: absolute; top: 0; left: 0; z-index: 5; pointer-events: none; } /* رفع مشکل کلیک نشدن دکمه */
         
         #final-action { 
             position: absolute; bottom: 15%; width: 100%; display: none; 
-            justify-content: center; z-index: 1000; opacity: 0; transition: 2s; 
+            justify-content: center; z-index: 100; opacity: 0; transition: 2s; 
         }
         .buy-btn { 
-            background: var(--gold); color: black; border: none; padding: 25px 50px; 
-            font-weight: bold; font-size: 1rem; letter-spacing: 2px; cursor: pointer; 
-            box-shadow: 0 0 50px rgba(255, 215, 0, 0.6); z-index: 1001; pointer-events: auto;
+            background: var(--gold); color: black; border: none; padding: 22px 45px; 
+            font-weight: bold; font-size: 0.9rem; letter-spacing: 2px; cursor: pointer; 
+            box-shadow: 0 0 40px rgba(255, 215, 0, 0.5);
         }
     </style>
 </head>
@@ -65,11 +65,12 @@
         constructor(x, y, tx, ty) {
             this.x = x; this.y = y;
             this.tx = tx; this.ty = ty;
-            // انفجار بسیار سریع
-            this.vx = (Math.random() - 0.5) * 60; 
-            this.vy = (Math.random() - 0.5) * 60;
-            this.friction = 0.92; // اصطکاک زیاد برای ایجاد حالت اسلوموشن بعد از انفجار
-            this.size = Math.random() * 2.5 + 0.5;
+            // انفجار بسیار سریع اولیه
+            this.vx = (Math.random() - 0.5) * 80; 
+            this.vy = (Math.random() - 0.5) * 80;
+            this.friction = 0.90; // اصطکاک بالا برای اسلوموشن کردن سریع
+            this.size = Math.random() * 2 + 0.5;
+            this.color = Math.random() > 0.1 ? '#FFD700' : '#FFF';
         }
         update() {
             if (state === 'exploding') {
@@ -78,13 +79,13 @@
                 this.x += this.vx;
                 this.y += this.vy;
             } else if (state === 'morphing') {
-                // حرکت نرم و اسلوموشن به سمت هدف
-                this.x += (this.tx - this.x) * 0.04;
-                this.y += (this.ty - this.y) * 0.04;
+                // حرکت بسیار نرم (رویایی) به سمت هدف
+                this.x += (this.tx - this.x) * 0.03;
+                this.y += (this.ty - this.y) * 0.03;
             }
         }
         draw() {
-            ctx.fillStyle = '#FFD700';
+            ctx.fillStyle = this.color;
             ctx.beginPath();
             ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
             ctx.fill();
@@ -98,13 +99,14 @@
         tctx.fillStyle = 'white';
         tctx.font = `bold ${size}px serif`;
         tctx.textAlign = 'center';
-        // وسط‌چین کردن دقیق
+        tctx.textBaseline = 'middle';
         tctx.fillText(text, canvas.width/2, canvas.height/2);
+        
         const data = tctx.getImageData(0,0,canvas.width,canvas.height).data;
         const pts = [];
-        // کاهش فاصله به 3 برای تراکم ذرات بسیار بالا
-        for(let y=0; y<canvas.height; y+=3) {
-            for(let x=0; x<canvas.width; x+=3) {
+        // کاهش فاصله به 2 برای تراکم بی‌نظیر ذرات
+        for(let y=0; y<canvas.height; y+=2) {
+            for(let x=0; x<canvas.width; x+=2) {
                 if(data[(y*canvas.width+x)*4+3] > 128) pts.push({x,y});
             }
         }
@@ -119,8 +121,8 @@
         document.getElementById('ui-container').style.opacity = '0';
         document.getElementById('ui-container').style.pointerEvents = 'none';
         
-        const startPts = getPoints(val.toUpperCase(), 45);
-        const endPts = getPoints("VOID", 120); // کلمه هدف بزرگ و ضخیم
+        const startPts = getPoints(val.toUpperCase(), 40);
+        const endPts = getPoints("VOID", 110); // کلمه هدف ساده‌تر برای وضوح بالاتر
 
         particles = startPts.map((p, i) => {
             const target = endPts[i % endPts.length];
@@ -130,19 +132,19 @@
         state = 'exploding';
         requestAnimationFrame(animate);
 
-        // انتقال به حالت اسلوموشن و مورف
+        // زمان‌بندی برای تغییر حالت از انفجار سریع به بازگشت اسلوموشن
         setTimeout(() => {
             state = 'morphing';
             setTimeout(() => {
                 const fa = document.getElementById('final-action');
                 fa.style.display = 'flex';
                 setTimeout(() => fa.style.opacity = '1', 100);
-            }, 3000);
-        }, 1200);
+            }, 3500);
+        }, 1000);
     }
 
     function animate() {
-        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        ctx.fillStyle = 'rgba(0,0,0,0.25)';
         ctx.fillRect(0,0,canvas.width, canvas.height);
         particles.forEach(p => { p.update(); p.draw(); });
         requestAnimationFrame(animate);
