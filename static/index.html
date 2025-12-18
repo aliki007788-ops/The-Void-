@@ -3,52 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>THE VOID 2040</title>
+    <title>THE VOID | FINAL ASCENSION</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root { --gold: #FFD700; --deep: #050508; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: var(--deep); font-family: 'Inter', sans-serif; }
+        :root { --gold: #FFD700; --bg: #010103; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: var(--bg); font-family: 'Segoe UI', serif; }
         
-        #canvas { position: absolute; top: 0; left: 0; z-index: 1; pointer-events: none; }
+        canvas { position: absolute; top: 0; left: 0; z-index: 1; pointer-events: none; }
 
-        /* UI مرکزی */
-        #ui-layer { position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; transition: 1.5s; }
-        h1 { color: var(--gold); letter-spacing: 1.5rem; font-weight: 100; font-size: 2.5rem; margin-bottom: 2rem; text-shadow: 0 0 50px rgba(255, 215, 0, 0.5); }
-        input { background: transparent; border: none; border-bottom: 1px solid #333; color: var(--gold); font-size: 1.5rem; text-align: center; width: 70%; outline: none; padding: 1rem; margin-bottom: 3rem; letter-spacing: 2px; }
-
-        .ritual-trigger { 
-            background: transparent; color: var(--gold); border: 1px solid var(--gold); 
-            padding: 1.5rem 4rem; font-size: 1rem; letter-spacing: 5px; cursor: pointer; 
-            transition: 0.5s; backdrop-filter: blur(10px);
+        #ui-wrapper { 
+            position: absolute; width: 100%; height: 100%; display: flex; 
+            flex-direction: column; align-items: center; justify-content: center; 
+            z-index: 20; transition: opacity 2s ease;
         }
+
+        h1 { 
+            color: var(--gold); letter-spacing: 20px; font-weight: 100; font-size: 2.8rem; 
+            margin-bottom: 20px; text-shadow: 0 0 30px rgba(255, 215, 0, 0.4);
+            animation: breathe 4s infinite alternate;
+        }
+        @keyframes breathe { from { opacity: 0.5; } to { opacity: 1; } }
+
+        input { 
+            background: transparent; border: none; border-bottom: 1px solid rgba(255,215,0,0.2); 
+            color: var(--gold); font-size: 1.5rem; text-align: center; width: 80%; 
+            outline: none; padding: 15px; margin-bottom: 50px; letter-spacing: 2px;
+        }
+
+        .btn-glow {
+            background: transparent; color: var(--gold); border: 1px solid var(--gold);
+            padding: 20px 60px; font-size: 1rem; letter-spacing: 8px; cursor: pointer;
+            position: relative; overflow: hidden; transition: 0.5s;
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
+        }
+        .btn-glow:hover { background: var(--gold); color: black; box-shadow: 0 0 50px var(--gold); }
 
         /* دکمه نهایی سینمایی */
-        #action-layer { 
+        #final-stage { 
             position: absolute; bottom: 15%; width: 100%; display: none; 
-            justify-content: center; z-index: 100; opacity: 0; 
+            flex-direction: column; align-items: center; z-index: 100; opacity: 0;
+            transition: all 3s cubic-bezier(0.19, 1, 0.22, 1);
         }
-        .mint-btn { 
-            background: linear-gradient(135deg, #FFD700, #B8860B); color: black; 
-            border: none; padding: 1.5rem 3rem; font-weight: 900; font-size: 0.9rem; 
-            letter-spacing: 3px; cursor: pointer; border-radius: 5px;
-            box-shadow: 0 0 50px rgba(255, 215, 0, 0.4); pointer-events: auto;
+        .claim-btn {
+            background: linear-gradient(90deg, #BF953F, #FCF6BA, #B38728);
+            border: none; padding: 25px 50px; font-weight: 900; font-size: 0.9rem;
+            letter-spacing: 4px; border-radius: 50px; cursor: pointer;
+            box-shadow: 0 0 40px rgba(255, 215, 0, 0.5);
+            animation: pulse-gold 2s infinite;
         }
-
-        .shake { animation: bigBang 0.4s cubic-bezier(.36,.07,.19,.97) both; }
-        @keyframes bigBang { 10%, 90% { transform: translate3d(-2px, 0, 0); } 20%, 80% { transform: translate3d(4px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-8px, 0, 0); } 40%, 60% { transform: translate3d(8px, 0, 0); } }
+        @keyframes pulse-gold { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
     </style>
 </head>
 <body>
     <canvas id="canvas"></canvas>
 
-    <div id="ui-layer">
+    <div id="ui-wrapper">
         <h1>THE VOID</h1>
-        <input type="text" id="input-field" placeholder="GIVE IT TO THE STARS" autocomplete="off">
-        <button class="ritual-trigger" onclick="initiateBigBang()">SACRIFICE</button>
+        <input type="text" id="user-input" placeholder="WHISPER TO THE DARKNESS..." autocomplete="off">
+        <button class="btn-glow" onclick="launchRitual()">SACRIFICE</button>
     </div>
 
-    <div id="action-layer">
-        <button class="mint-btn" onclick="executeMint()">MINT ETERNAL PROOF ($1)</button>
+    <div id="final-stage">
+        <button class="claim-btn" onclick="finalPay()">CLAIM ETERNAL PROOF ($1)</button>
     </div>
 
 <script>
@@ -56,114 +72,97 @@
     tg.expand();
 
     const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d', { alpha: false });
+    const ctx = canvas.getContext('2d');
     let particles = [];
-    let nebula = [];
+    let backgroundStars = [];
     let state = 'idle';
 
-    function resize() {
+    function init() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
+        // ایجاد کهکشان پس‌زمینه ابدی
+        for(let i=0; i<250; i++) {
+            backgroundStars.push({
+                x: Math.random()*canvas.width, y: Math.random()*canvas.height,
+                size: Math.random()*1.5, opacity: Math.random(), speed: Math.random()*0.2
+            });
+        }
     }
-    window.addEventListener('resize', resize);
-    resize();
-
-    // ایجاد ابرهای سحابی رنگی متحرک
-    for(let i=0; i<8; i++) {
-        nebula.push({
-            x: Math.random()*canvas.width, y: Math.random()*canvas.height,
-            r: Math.random()*400+200,
-            c: `hsla(${Math.random()*360}, 50%, 15%, 0.1)`,
-            vx: (Math.random()-0.5)*0.5, vy: (Math.random()-0.5)*0.5
-        });
-    }
+    window.onresize = init;
+    init();
 
     class Particle {
         constructor(x, y, tx, ty) {
-            this.x = x; this.y = y;
+            this.x = canvas.width/2; this.y = canvas.height/2; // شروع از مرکز (انفجار)
             this.tx = tx; this.ty = ty;
-            this.originX = canvas.width/2; // انفجار از مرکز
-            this.originY = canvas.height/2;
-            this.vx = (Math.random() - 0.5) * 100;
-            this.vy = (Math.random() - 0.5) * 100;
-            this.friction = 0.92;
-            this.size = Math.random() * 2 + 0.5;
-            this.color = Math.random() > 0.2 ? '#FFD700' : '#FFF';
+            this.vx = (Math.random() - 0.5) * 60;
+            this.vy = (Math.random() - 0.5) * 60;
+            this.friction = 0.95;
+            this.color = `hsl(${Math.random()*40 + 40}, 100%, 70%)`; // طیف طلایی
         }
         update() {
-            if (state === 'exploding') {
+            if(state === 'exploding') {
                 this.vx *= this.friction; this.vy *= this.friction;
                 this.x += this.vx; this.y += this.vy;
-            } else if (state === 'morphing') {
-                this.x += (this.tx - this.x) * 0.06;
-                this.y += (this.ty - this.y) * 0.06;
-                this.size = 1.2; // ذرات در جمله کمی بزرگتر و ثابت می‌شوند
+            } else if(state === 'gathering') {
+                this.x += (this.tx - this.x) * 0.07;
+                this.y += (this.ty - this.y) * 0.07;
             }
         }
         draw() {
             ctx.fillStyle = this.color;
-            ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(this.x, this.y, 1.2, 0, Math.PI*2); ctx.fill();
         }
     }
 
-    function getPoints(text, size) {
-        const tC = document.createElement('canvas');
-        const tX = tC.getContext('2d');
-        tC.width = canvas.width; tC.height = canvas.height;
-        tX.fillStyle = 'white';
-        tX.font = `bold ${size}px serif`;
-        tX.textAlign = 'center'; tX.textBaseline = 'middle';
-        tX.fillText(text, canvas.width/2, canvas.height/2);
-        const data = tX.getImageData(0,0,canvas.width,canvas.height).data;
+    function getPoints(text) {
+        const tmp = document.createElement('canvas');
+        const tctx = tmp.getContext('2d');
+        tmp.width = canvas.width; tmp.height = canvas.height;
+        tctx.fillStyle = 'white';
+        tctx.font = "bold 90px Arial";
+        tctx.textAlign = "center";
+        tctx.fillText(text, canvas.width/2, canvas.height/2);
+        const data = tctx.getImageData(0,0,canvas.width,canvas.height).data;
         const pts = [];
-        // افزایش تراکم برای وضوح فوق‌العاده
-        for(let y=0; y<canvas.height; y+=2) {
-            for(let x=0; x<canvas.width; x+=2) {
-                if(data[(y*canvas.width+x)*4+3] > 128) pts.push({x,y});
+        for(let y=0; y<canvas.height; y+=3) {
+            for(let x=0; x<canvas.width; x+=3) {
+                if(data[(y*canvas.width + x)*4 + 3] > 128) pts.push({x,y});
             }
         }
         return pts;
     }
 
-    function initiateBigBang() {
-        const val = document.getElementById('input-field').value;
+    function launchRitual() {
+        const val = document.getElementById('user-input').value;
         if(!val) return;
-
+        
+        document.getElementById('ui-wrapper').style.opacity = '0';
         tg.HapticFeedback.notificationOccurred('success');
-        document.body.classList.add('shake');
-        document.getElementById('ui-layer').style.opacity = '0';
-        document.getElementById('ui-layer').style.pointerEvents = 'none';
 
-        const endPts = getPoints("ETERNAL PEACE", 80); // جمله نهایی بسیار واضح
+        const targets = getPoints("ETERNAL PEACE");
+        particles = targets.map(p => new Particle(0,0, p.x, p.y));
         
-        // ذرات از مرکز متولد می‌شوند
-        particles = endPts.map(p => {
-            return new Particle(canvas.width/2, canvas.height/2, p.x, p.y);
-        });
-
         state = 'exploding';
-        
         setTimeout(() => {
-            document.body.classList.remove('shake');
-            state = 'morphing';
+            state = 'gathering';
             setTimeout(() => {
-                const al = document.getElementById('action-layer');
-                al.style.display = 'flex';
-                setTimeout(() => al.style.opacity = '1', 100);
+                const fs = document.getElementById('final-stage');
+                fs.style.display = 'flex';
+                setTimeout(() => { fs.style.opacity = '1'; }, 100);
             }, 3000);
-        }, 800);
+        }, 1200);
     }
 
     function animate() {
-        ctx.fillStyle = '#050508';
-        ctx.fillRect(0,0,canvas.width, canvas.height);
+        ctx.fillStyle = 'rgba(1, 1, 3, 0.2)'; // افکت دنباله‌دار شدن ذرات
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // رسم سحابی متحرک
-        nebula.forEach(n => {
-            n.x += n.vx; n.y += n.vy;
-            const g = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r);
-            g.addColorStop(0, n.c); g.addColorStop(1, 'transparent');
-            ctx.fillStyle = g; ctx.fillRect(0,0,canvas.width, canvas.height);
+        // ستاره‌های کهکشانی پس‌زمینه (همیشه متحرک)
+        backgroundStars.forEach(s => {
+            s.y -= s.speed; if(s.y < 0) s.y = canvas.height;
+            ctx.fillStyle = `rgba(255,255,255,${s.opacity})`;
+            ctx.fillRect(s.x, s.y, s.size, s.size);
         });
 
         particles.forEach(p => { p.update(); p.draw(); });
@@ -171,8 +170,8 @@
     }
     animate();
 
-    function executeMint() {
-        const val = document.getElementById('input-field').value;
+    function finalPay() {
+        const val = document.getElementById('user-input').value;
         tg.sendData(JSON.stringify({action: "create_invoice", need: val}));
     }
 </script>
