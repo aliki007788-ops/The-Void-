@@ -3,91 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>THE VOID | ULTIMATE FIX</title>
+    <title>THE VOID | ULTIMATE REPAIR</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root { --gold: #FFD700; --bg: #000; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: var(--bg); font-family: 'Segoe UI', sans-serif; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: var(--bg); font-family: sans-serif; color: var(--gold); }
         canvas { position: absolute; top: 0; left: 0; z-index: 1; pointer-events: none; }
 
-        #ui-wrapper { 
-            position: absolute; width: 100%; height: 100%; display: flex; 
-            flex-direction: column; align-items: center; justify-content: center; 
-            z-index: 100; transition: 0.8s;
+        /* کانتینر اصلی برای جلوگیری از بیرون زدن متن */
+        .container { 
+            position: relative; z-index: 100; height: 100%; width: 100%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 20px; box-sizing: border-box; text-align: center;
         }
 
-        h1 { color: var(--gold); letter-spacing: 15px; font-weight: 100; font-size: 2.2rem; margin-bottom: 40px; }
+        h1 { letter-spacing: 10px; font-size: 8vw; margin-bottom: 20px; }
         input { 
-            background: transparent; border: none; border-bottom: 1px solid #333; 
-            color: var(--gold); font-size: 1.2rem; text-align: center; width: 70%; 
-            outline: none; padding: 10px; letter-spacing: 2px;
+            background: transparent; border: none; border-bottom: 2px solid #333; 
+            color: var(--gold); font-size: 5vw; text-align: center; width: 80%; 
+            outline: none; padding: 10px; margin-bottom: 30px;
         }
 
         .sac-btn {
-            background: transparent; color: var(--gold); border: 1px solid var(--gold);
-            padding: 15px 40px; margin-top: 30px; font-size: 0.8rem; letter-spacing: 4px; 
-            cursor: pointer; text-transform: uppercase; transition: 0.3s;
+            background: transparent; color: var(--gold); border: 2px solid var(--gold);
+            padding: 15px 40px; font-size: 1rem; letter-spacing: 3px; 
+            cursor: pointer; text-transform: uppercase; width: 70%; max-width: 300px;
         }
 
+        /* لایه نهایی اصلاح شده */
         #final-stage { 
-            position: absolute; bottom: 12%; width: 100%; display: none; 
-            flex-direction: column; align-items: center; z-index: 1000;
+            position: absolute; bottom: 10%; left: 0; width: 100%;
+            display: none; flex-direction: column; align-items: center; z-index: 200;
         }
 
         .mint-btn {
-            background: transparent; color: var(--gold); border: 1px solid var(--gold);
-            padding: 20px 50px; font-size: 0.9rem; letter-spacing: 3px;
-            border-radius: 2px; cursor: pointer; text-transform: uppercase;
-            box-shadow: 0 0 15px rgba(255,215,0,0.1);
-            transition: 0.5s cubic-bezier(0.19, 1, 0.22, 1);
-            opacity: 0; transform: translateY(20px);
+            background: var(--gold); color: #000; border: none;
+            padding: 18px 0; width: 85%; max-width: 350px;
+            font-size: 1.1rem; font-weight: bold; letter-spacing: 2px;
+            border-radius: 8px; cursor: pointer; text-transform: uppercase;
+            box-shadow: 0 0 20px rgba(255,215,0,0.4);
+            transition: 0.3s;
         }
-        .mint-btn.active { opacity: 1; transform: translateY(0); }
-        .mint-btn:active { background: var(--gold); color: #000; }
     </style>
 </head>
 <body>
     <canvas id="canvas"></canvas>
-    <div id="ui-wrapper">
+    
+    <div id="ui-wrapper" class="container">
         <h1>THE VOID</h1>
-        <input type="text" id="user-input" placeholder="WHISPER TO THE VOID..." autocomplete="off">
+        <input type="text" id="user-input" placeholder="NAME YOUR BURDEN..." maxlength="20">
         <button class="sac-btn" onclick="startRitual()">SACRIFICE</button>
     </div>
+
     <div id="final-stage">
-        <button id="mint-btn" class="mint-btn">MINT ETERNAL PROOF</button>
+        <button id="mint-btn" class="mint-btn">MINT NFT PROOF ($1)</button>
     </div>
 
 <script>
     const tg = window.Telegram.WebApp;
     tg.expand();
+    
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
     let particles = [], stars = [], state = 'idle';
 
     function init() {
         canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-        stars = Array.from({length: 150}, () => ({
+        stars = Array.from({length: 100}, () => ({
             x: Math.random()*canvas.width, y: Math.random()*canvas.height,
-            s: Math.random()*1.2, sp: Math.random()*0.3
+            s: Math.random()*1.5, sp: Math.random()*0.4
         }));
     }
-    init();
+    init(); window.onresize = init;
 
     class Particle {
         constructor(x, y, tx, ty) {
             this.x = canvas.width/2; this.y = canvas.height/2;
             this.tx = tx; this.ty = ty;
-            this.vx = (Math.random()-0.5)*60; this.vy = (Math.random()-0.5)*60;
-            this.f = 0.95;
+            this.vx = (Math.random()-0.5)*50; this.vy = (Math.random()-0.5)*50;
         }
         update() {
-            if(state === 'exploding') { this.vx*=this.f; this.vy*=this.f; this.x+=this.vx; this.y+=this.vy; }
+            if(state === 'exploding') { this.x+=this.vx; this.y+=this.vy; this.vx*=0.96; this.vy*=0.96; }
             else if(state === 'gathering') {
-                this.x += (this.tx - this.x) * 0.08;
-                this.y += (this.ty - this.y) * 0.08;
+                this.x += (this.tx - this.x) * 0.1;
+                this.y += (this.ty - this.y) * 0.1;
             }
         }
-        draw() { ctx.fillStyle = "#FFD700"; ctx.fillRect(this.x, this.y, 1.5, 1.5); }
+        draw() { ctx.fillStyle = "#FFD700"; ctx.fillRect(this.x, this.y, 2, 2); }
     }
 
     function getPoints(text) {
@@ -95,13 +97,15 @@
         const tctx = tmp.getContext('2d');
         tmp.width = canvas.width; tmp.height = canvas.height;
         tctx.fillStyle = 'white';
-        tctx.font = "bold 80px serif"; // فونت بزرگ و با شکوه
+        // اندازه فونت پویا بر اساس عرض صفحه برای جلوگیری از بیرون زدن
+        let fontSize = Math.min(canvas.width / 6, 70);
+        tctx.font = `bold ${fontSize}px serif`;
         tctx.textAlign = "center";
         tctx.fillText(text, canvas.width/2, canvas.height/2);
         const data = tctx.getImageData(0,0,canvas.width,canvas.height).data;
         const pts = [];
-        for(let y=0; y<canvas.height; y+=1) { // اسکن دقیق 1 پیکسلی برای پر شدن کامل حروف
-            for(let x=0; x<canvas.width; x+=1) {
+        for(let y=0; y<canvas.height; y+=2) {
+            for(let x=0; x<canvas.width; x+=2) {
                 if(data[(y*canvas.width+x)*4+3] > 128) pts.push({x,y});
             }
         }
@@ -111,22 +115,21 @@
     function startRitual() {
         const val = document.getElementById('user-input').value;
         if(!val) return;
-        tg.HapticFeedback.impactOccurred('medium');
-        document.getElementById('ui-wrapper').style.opacity = '0';
+        
+        document.getElementById('ui-wrapper').style.display = 'none';
         particles = getPoints("ETERNAL PEACE").map(p => new Particle(0,0, p.x, p.y));
         state = 'exploding';
+        
         setTimeout(() => {
             state = 'gathering';
             setTimeout(() => {
                 const stage = document.getElementById('final-stage');
-                const btn = document.getElementById('mint-btn');
                 stage.style.display = 'flex';
-                setTimeout(() => {
-                    btn.classList.add('active');
-                    btn.onclick = () => {
-                        tg.sendData(JSON.stringify({action: "mint", need: val}));
-                    };
-                }, 100);
+                document.getElementById('mint-btn').onclick = () => {
+                    // روش جدید ارسال داده برای پایداری بیشتر
+                    tg.sendData(JSON.stringify({action: "mint", need: val}));
+                    tg.close();
+                };
             }, 2500);
         }, 1000);
     }
