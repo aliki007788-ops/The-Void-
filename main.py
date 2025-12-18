@@ -1,9 +1,8 @@
-import os, json, requests, base64
-from fastapi import FastAPI, Request, BackgroundTasks
-from fastapi.responses import RedirectResponse
+import os, json, base64
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
-from aiogram import Bot, Dispatcher, types
-from aiogram.types import WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup, Update, FSInputFile
+from aiogram import Bot, Dispatcher, types, F
+from aiogram.types import WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup, Update, FSInputFile, LabeledPrice
 from aiogram.filters import Command
 from cert_gen import create_certificate
 from dotenv import load_dotenv
@@ -15,32 +14,48 @@ app = FastAPI()
 
 @dp.message(Command("start"))
 async def start(message: types.Message):
-    # اطمینان از HTTPS بودن URL
     kb = InlineKeyboardMarkup(inline_keyboard=[[
         InlineKeyboardButton(text="🔱 ASCEND TO THE VOID", web_app=WebAppInfo(url=f"{os.getenv('WEBHOOK_URL')}/static/index.html"))
     ]])
-    await message.answer("<b>THE VOID IS READY.</b>", reply_markup=kb, parse_mode="HTML")
+    await message.answer("<b>THE VOID AWAITS.</b>", reply_markup=kb, parse_mode="HTML")
 
-@app.get("/pay_now")
-async def pay_now(d: str):
-    """هدایت مستقیم کاربر به درگاه جهت جلوگیری از فریز شدن در تلگرام وب"""
+@app.get("/create_invoice")
+async def create_inv(d: str):
+    """ایجاد لینک فاکتور Stars برای پرداخت داخلی"""
     try:
         decoded = json.loads(base64.b64decode(d).decode('utf-8'))
         uid, burden = decoded['u'], decoded['b']
         
-        headers = {"Crypto-Pay-API-Token": os.getenv("CRYPTO_PAY_TOKEN")}
-        payload = {
-            "asset": "USDT", "amount": "1.00", # اینجا می‌توانید به TON تغییر دهید
-            "description": f"VOID NFT: {burden}",
-            "payload": f"{uid}:{burden}"
-        }
-        res = requests.post("https://pay.cryptotextnet.me/api/createInvoice", headers=headers, json=payload).json()
+        # تعیین قیمت (مثلاً ۵۰ استارز)
+        prices = [LabeledPrice(label="Ascension Proof", amount=50)]
         
-        if res.get('ok'):
-            return RedirectResponse(url=res['result']['pay_url'])
-        return {"error": "Payment gateway unreachable"}
+        link = await bot.create_invoice_link(
+            title="THE VOID | PRESTIGE",
+            description=f"Immortalize: {burden}",
+            payload=f"{uid}:{burden}",
+            currency="XTR", # واحد پول Stars
+            prices=prices
+        )
+        return {"invoice_url": link}
     except Exception as e:
-        return {"error": f"Internal Connection Error: {str(e)}"}
+        return {"error": str(e)}
+
+@dp.pre_checkout_query()
+async def pre_checkout(query: types.PreCheckoutQuery):
+    """تأیید نهایی قبل از کسر وجه (اجباری تلگرام)"""
+    await query.answer(ok=True)
+
+@dp.message(F.successful_payment)
+async def on_payment(message: types.Message):
+    """هندل کردن پرداخت موفق و ارسال ان‌اف‌تی"""
+    payload = message.successful_payment.invoice_payload
+    uid, burden = payload.split(":")
+    
+    path = create_certificate(uid, burden)
+    await bot.send_document(uid, FSInputFile(path), caption=f"🔱 <b>ASCENSION COMPLETE</b>\nBurden '{burden}' is now eternal.")
+    if os.path.exists("_Everything you were.ogg"):
+        await bot.send_voice(uid, FSInputFile("_Everything you were.ogg"))
+    os.remove(path)
 
 @app.post("/webhook")
 async def webhook(request: Request):
@@ -48,23 +63,8 @@ async def webhook(request: Request):
     await dp.feed_update(bot, update)
     return {"ok": True}
 
-@app.post("/pay_callback")
-async def callback(request: Request, bg: BackgroundTasks):
-    data = await request.json()
-    if data.get('update_type') == 'invoice_paid':
-        uid, bur = data['payload'].split(":")
-        bg.add_task(send_nft_result, uid, bur)
-    return {"ok": True}
-
-async def send_nft_result(uid, bur):
-    path = create_certificate(uid, bur)
-    await bot.send_document(uid, FSInputFile(path), caption=f"🔱 <b>SUCCESSFUL ASCENSION</b>\nYour burden '{bur}' is immortalized.")
-    if os.path.exists("_Everything you were.ogg"):
-        await bot.send_voice(uid, FSInputFile("_Everything you were.ogg"))
-    os.remove(path)
-
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.on_event("startup")
-async def startup():
+async def on_startup():
     await bot.set_webhook(f"{os.getenv('WEBHOOK_URL')}/webhook")
