@@ -3,7 +3,7 @@ import json
 import base64
 import tempfile
 import secrets
-import math  # برای برخی افکت‌ها در آینده اگر نیاز شد
+import math
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from aiogram import Bot, Dispatcher, types, F
@@ -47,7 +47,7 @@ VIP_CODES = load_vip_codes()
 class PartnerState(StatesGroup):
     waiting_for_name = State()
 
-# تابع ارسال NFT با کپشن بهبود یافته و نمایش سبک مثبت
+# تابع ارسال NFT
 async def send_nft(uid: int, burden: str, photo_path: str = None, is_gift: bool = False):
     nft_path, style_name = create_certificate(uid, burden, photo_path)
     
@@ -74,7 +74,6 @@ async def send_nft(uid: int, burden: str, photo_path: str = None, is_gift: bool 
     
     await bot.send_document(uid, FSInputFile(nft_path), caption=caption, parse_mode="HTML")
     
-    # پاکسازی فایل‌ها
     for p in [nft_path, photo_path]:
         if p and os.path.exists(p):
             try:
@@ -82,7 +81,7 @@ async def send_nft(uid: int, burden: str, photo_path: str = None, is_gift: bool 
             except:
                 pass
 
-# /start – نسخه حرفه‌ای و immersive
+# /start – متن خوش‌آمدگویی به‌روزشده با مدل جدید (رایگان + Divine 120 ⭐)
 @dp.message(F.text == "/start")
 async def start(message: types.Message):
     welcome_text = """
@@ -94,26 +93,32 @@ In the year <b>2025.VO-ID</b>, the ancient gates have parted once more — revea
 
 <b>VOID ASCENSION CERTIFICATE</b>
 
-To claim your place in the infinite archive:
+Two sacred paths await your offering:
 
-• Offer your <i>Burden Title</i> — the heaviest crown you carry
-• Optionally crown yourself with a photo to receive the royal golden glow
-• Choose between <b>Basic</b> (70 ⭐) or <b>Premium</b> (120 ⭐) ascension
+<b>1. Free Eternal Ascension</b>
+• Simply send your <i>Burden Title</i> directly in this chat
+• Receive a magnificent certificate forged in cosmic gold instantly
+• One of 30 sacred styles, eternal Holder ID, celestial seals — all yours forever
 
-Each certificate is forged from cosmic gold upon a canvas of absolute darkness, adorned with one of <b>30 sacred and unrepeatable styles</b>:
+<b>2. Divine Ascension (120 ⭐)</b>
+• Tap "ENTER THE VOID" below
+• Crown yourself with your soul image (photo)
+• Receive the ultimate royal glow, imperial halo, and divine imprint
 
-Classic Ornate • Cosmic Nebula • Gothic Seal • Sacred Geometry • Imperial Throne • Crown Eclipse • Sovereign Flame • and many more forbidden patterns...
+Each certificate is adorned upon absolute darkness with one of <b>30 sacred and unrepeatable styles</b>:
 
-No two souls ever receive the same imprint.
+Classic Ornate • Cosmic Nebula • Gothic Seal • Sacred Geometry • Imperial Throne ⚜️ • Crown Eclipse 🌑 • Sovereign Flame 🔥 • and many more forbidden patterns...
+
+No two souls ever receive the same masterpiece.
 
 Once your burden is spoken, it is <b>consumed forever</b> by the Void.
-Your essence becomes part of the eternal record.
+Your essence becomes part of the infinite archive.
 There is no undoing.
 Only ascension.
 
-<i>The archive awaits your sacrifice.</i>
+<i>The archive hungers for your sacrifice.</i>
 
-Are you prepared to surrender?
+Are you ready to surrender?
     """.strip()
 
     kb = InlineKeyboardMarkup(inline_keyboard=[[
@@ -122,7 +127,7 @@ Are you prepared to surrender?
 
     await message.answer(welcome_text, reply_markup=kb, parse_mode="HTML")
 
-# /help – راهنمای کامل استفاده
+# /help
 @dp.message(F.text == "/help")
 async def help_command(message: types.Message):
     help_text = """
@@ -130,27 +135,22 @@ async def help_command(message: types.Message):
 
 Two paths lead to eternal recording:
 
-<b>1. Through the Sacred Portal (Recommended)</b>
-• Tap the button "<b>ENTER THE VOID</b>" below
-• Offer your Burden Title
-• Upload a photo for royal crowning (Premium)
-• Complete the sacrifice with ⭐ Stars
+<b>1. Free Eternal Ascension</b>
+• Just send any text as your Burden Title here
+• Receive a beautiful eternal certificate instantly (no photo)
 
-<b>2. Direct Offering (Text only)</b>
-• Simply send any text as your Burden
-• You will receive a free classic ascension (no photo, basic style)
+<b>2. Divine Ascension (120 ⭐)</b>
+• Tap "ENTER THE VOID" below
+• Upload or use profile photo for royal crowning
+• Receive the ultimate divine imprint
 
-<b>Features of your Certificate:</b>
-• Unique random style out of <b>30 cosmic-imperial designs</b>
-• Golden seals and celestial effects
-• Your photo with divine glow (if provided)
-• Eternal Holder ID and 2025.VO-ID timestamp
+<b>Features:</b>
+• 30 unique cosmic-imperial styles
+• Golden seals and divine effects
+• Eternal Holder ID
 
-You may ascend multiple times.
-Each offering creates a new, unrepeatable artifact.
-
-The Void hungers.
-Feed it wisely.
+Ascend as many times as you wish.
+The Void welcomes all offerings.
     """.strip()
 
     kb = InlineKeyboardMarkup(inline_keyboard=[[
@@ -159,7 +159,7 @@ Feed it wisely.
 
     await message.answer(help_text, reply_markup=kb, parse_mode="HTML")
 
-# /about – لور عمیق Void
+# /about
 @dp.message(F.text == "/about")
 async def about_command(message: types.Message):
     about_text = """
@@ -192,6 +192,40 @@ There is only <b>becoming</b>.
 
     await message.answer(about_text, parse_mode="HTML")
 
+# Ascension رایگان مستقیم
+@dp.message(F.text, ~F.text.startswith("/"))
+async def free_ascension(message: types.Message):
+    burden = message.text.strip()
+    if len(burden) < 3:
+        await message.answer("🔥 Burden شما خیلی کوتاهه. حداقل ۳ کاراکتر وارد کنید.\nمثال: Emperor of Silence")
+        return
+    
+    if len(burden) > 50:
+        burden = burden[:47] + "..."
+    
+    await message.answer("🌌 <b>THE VOID ACCEPTS YOUR OFFERING</b>\n\nدر حال forging گواهی ابدی شما...\nلحظه‌ای صبر کنید.", parse_mode="HTML")
+    
+    await send_nft(message.from_user.id, burden, None, is_gift=False)
+    
+    premium_text = """
+🎁 <b>گواهی ابدی شما با موفقیت forged شد!</b>
+
+این فقط آغاز راهه.
+
+برای ascension کامل‌تر با:
+• عکس شخصی با هاله سلطنتی
+• افکت‌های لوکس‌تر
+• حس واقعی تاج‌گذاری
+
+روی دکمه زیر ضربه بزن 👇
+    """.strip()
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="🔱 PREMIUM ASCENSION WITH PHOTO", web_app=WebAppInfo(url=f"{os.getenv('WEBHOOK_URL')}/static/index.html"))
+    ]])
+    
+    await message.answer(premium_text, reply_markup=kb, parse_mode="HTML")
+
 # تولید کد VIP رندم
 @dp.message(F.from_user.id == ADMIN_ID, F.text.startswith("/vip"))
 async def generate_vip(message: types.Message):
@@ -222,7 +256,7 @@ async def list_vip(message: types.Message):
     else:
         await message.answer("هیچ کد VIP فعالی وجود ندارد.")
 
-# /partner – تولید کد با نام کسب‌وکار
+# /partner
 @dp.message(F.from_user.id == ADMIN_ID, F.text == "/partner")
 async def start_partner(message: types.Message, state: FSMContext):
     await message.answer("🔱 نام کسب‌وکار یا متن دلخواه برای NFT رو وارد کن:\nمثال: Nike Official Partner")
@@ -244,7 +278,7 @@ async def receive_partner_name(message: types.Message, state: FSMContext):
     await message.answer(response, parse_mode="HTML")
     await state.clear()
 
-# ایجاد اینویس – پشتیبانی از GET و POST
+# اینویس و پرداخت
 @app.get("/create_stars_invoice")
 async def create_invoice_get(d: str):
     try:
@@ -263,7 +297,6 @@ async def create_invoice_logic(data):
         uid = data['u']
         burden_raw = data.get('b', '').strip()
         burden_upper = burden_raw.upper()
-        # چک VIP
         if burden_raw in VIP_CODES or burden_upper in VIP_CODES:
             VIP_CODES.discard(burden_raw)
             VIP_CODES.discard(burden_upper)
@@ -292,7 +325,6 @@ async def create_invoice_logic(data):
         print("Invoice error:", e)
         return {"error": "The Void is unreachable"}
 
-# پرداخت
 @dp.pre_checkout_query()
 async def pre_checkout(q: types.PreCheckoutQuery):
     await q.answer(ok=True)
@@ -306,7 +338,7 @@ async def successful_payment(message: types.Message):
     use_prof = parts[3] == "1"
     await send_nft(uid, burden, temp_path)
 
-# استاتیک فایل‌ها و وب‌هوک
+# وب‌هوک
 app.mount("/static", StaticFiles(directory="static"))
 
 @app.post("/webhook")
