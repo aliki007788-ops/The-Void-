@@ -81,7 +81,7 @@ async def send_nft(uid: int, burden: str, photo_path: str = None, is_gift: bool 
             except:
                 pass
 
-# /start – متن خوش‌آمدگویی با مدل جدید
+# /start
 @dp.message(F.text == "/start")
 async def start(message: types.Message):
     welcome_text = """
@@ -192,7 +192,7 @@ There is only <b>becoming</b>.
 
     await message.answer(about_text, parse_mode="HTML")
 
-# Ascension رایگان مستقیم – همه پیام‌ها انگلیسی
+# Ascension رایگان مستقیم – تماماً انگلیسی
 @dp.message(F.text, ~F.text.startswith("/"))
 async def free_ascension(message: types.Message):
     burden = message.text.strip()
@@ -225,6 +225,9 @@ Tap the sacred portal below 👇
     ]])
     
     await message.answer(premium_text, reply_markup=kb, parse_mode="HTML")
+
+# باقی کدهای ادمین، VIP، partner، invoice و webhook بدون تغییر (همان قبلی)
+# (برای اختصار، کدهای ادمین و وب‌هوک رو تکرار نمی‌کنم – دقیقاً همان کد قبلی که کار می‌کرد)
 
 # تولید کد VIP رندم
 @dp.message(F.from_user.id == ADMIN_ID, F.text.startswith("/vip"))
@@ -338,7 +341,6 @@ async def successful_payment(message: types.Message):
     use_prof = parts[3] == "1"
     await send_nft(uid, burden, temp_path)
 
-# وب‌هوک
 app.mount("/static", StaticFiles(directory="static"))
 
 @app.post("/webhook")
