@@ -17,21 +17,12 @@
         .btn:active { background: #FFD700; color: #000; }
         #step2 { display: none; opacity: 0; pointer-events: none; }
         .option-box { background: rgba(15,15,15,0.9); border: 1px solid #333; padding: 30px; border-radius: 10px; width: 85%; max-width: 400px; backdrop-filter: blur(10px); }
-        .price { font-size: 4rem; margin: 20px 0; display: flex; align-items: center; gap: 15px; font-weight: bold; }
-        
-        .diamond { 
-            color: #00ffff; 
-            text-shadow: 0 0 20px #00ffff, 0 0 40px #00ffff;
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0% { opacity: 0.8; transform: scale(1); }
-            50% { opacity: 1; transform: scale(1.1); }
-            100% { opacity: 0.8; transform: scale(1); }
-        }
-
+        .price { font-size: 4rem; margin: 20px 0; display: flex; align-items: center; gap: 15px; }
+        .diamond { color: #00ffff; text-shadow: 0 0 30px #00ffff; }
         .free-note { font-size: 1rem; color: #888; margin-top: 20px; text-align: center; }
         #grade { letter-spacing: 8px; color: #FFD700; font-size: 2.2rem; opacity: 0; transition: opacity 1.5s ease; }
+        #photo-preview-container { margin: 30px 0; text-align: center; display: none; }
+        #photo-preview { width: 200px; height: 200px; object-fit: cover; border-radius: 50%; border: 6px solid #FFD700; box-shadow: 0 0 50px rgba(255,215,0,0.7); }
     </style>
 </head>
 <body>
@@ -43,7 +34,11 @@
     </div>
     <div id="step2" class="stage">
         <h2 id="grade">DIVINE GRADE</h2>
-        <div class="price"><span id="amount">120</span><span class="diamond">💎</span></div>
+        <div id="photo-preview-container">
+            <img id="photo-preview" />
+            <p>Your soul image, crowned in eternal glory</p>
+        </div>
+        <div class="price"><span id="amount">120</span><span class="diamond">⭐</span></div>
         <p class="free-note">Classic ascension is free in direct chat.<br>This divine version crowns you with your soul image.</p>
         <div class="option-box">
             <label style="display:block; border:1px dashed #555; padding:15px; cursor:pointer; margin-bottom:20px;">
@@ -77,46 +72,8 @@
         }
         window.onresize = init; init();
 
-        class Particle {
-            constructor(x, y, tx, ty, color) {
-                this.x = x; this.y = y;
-                this.tx = tx; this.ty = ty;
-                this.color = color;
-                this.size = Math.random() * 4 + 2;
-                const angle = Math.random() * Math.PI * 2;
-                const speed = Math.random() * 15 + 5;
-                this.vx = Math.cos(angle) * speed;
-                this.vy = Math.sin(angle) * speed;
-                this.gravity = 0.15;
-                this.friction = 0.95;
-                this.alpha = 1;
-            }
-
-            update() {
-                if (state === 'exploding' || state === 'raining') {
-                    this.vx *= this.friction;
-                    this.vy *= this.friction;
-                    this.vy += this.gravity;
-                    this.x += this.vx;
-                    this.y += this.vy;
-                } else if (state === 'imploding') {
-                    this.x += (this.tx - this.x) * 0.12;
-                    this.y += (this.ty - this.y) * 0.12;
-                    this.size *= 0.99;
-                }
-            }
-
-            draw() {
-                ctx.globalAlpha = this.alpha;
-                ctx.fillStyle = this.color;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-
         function draw() {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            ctx.fillStyle = '#000';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             stars.forEach(s => {
@@ -136,53 +93,44 @@
             });
 
             particles.forEach((p, i) => {
-                p.update();
-                p.draw();
+                ctx.fillStyle = '#FFD700';
+                ctx.globalAlpha = p.alpha || 1;
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
+                ctx.globalAlpha = 1;
+
+                if(state === 'exploding') {
+                    p.x += p.vx; p.y += p.vy; p.size *= 0.98;
+                } else if(state === 'imploding') {
+                    p.x += (p.tx - p.x) * 0.15;
+                    p.y += (p.ty - p.y) * 0.15;
+                    p.size *= 0.96;
+                }
+                if(p.size < 0.5) particles.splice(i,1);
             });
 
             requestAnimationFrame(draw);
         }
         draw();
 
-        function getTitlePoints() {
-            const text = "DIVINE GRADE";
-            const tempCanvas = document.createElement('canvas');
-            const tctx = tempCanvas.getContext('2d');
-            tempCanvas.width = canvas.width;
-            tempCanvas.height = canvas.height;
-            const fontSize = Math.min(canvas.width * 0.08, 60);
-            tctx.font = `bold ${fontSize}px Cinzel`;
-            tctx.textAlign = 'center';
-            tctx.textBaseline = 'middle';
-            tctx.fillText(text, canvas.width / 2, canvas.height * 0.25);
-            
-            const imageData = tctx.getImageData(0, 0, canvas.width, canvas.height).data;
-            const pts = [];
-            for(let y = 0; y < canvas.height; y += 4) {
-                for(let x = 0; x < canvas.width; x += 4) {
-                    if(imageData[(y * canvas.width + x) * 4 + 3] > 128) pts.push({x, y});
-                }
-            }
-            return pts;
-        }
-
         function ascend() {
             if(!document.getElementById('sacrifice').value.trim()) return tg.showAlert("Your burden must be named.");
             tg.HapticFeedback.impactOccurred('heavy');
-            
-            const titlePts = getTitlePoints();
-            particles = [];
             state = 'exploding';
+            particles = [];
 
-            for(let i = 0; i < 550; i++) {
-                const target = titlePts[i % titlePts.length];
-                const color = Math.random() > 0.3 ? '#FFD700' : '#FFFFFF';
-                particles.push(new Particle(canvas.width/2, canvas.height/2, target.x, target.y, color));
+            for(let i = 0; i < 250; i++) {
+                const a = Math.random() * Math.PI * 2;
+                const s = Math.random() * 14 + 8;
+                particles.push({
+                    x: canvas.width / 2,
+                    y: canvas.height / 2,
+                    vx: Math.cos(a) * s,
+                    vy: Math.sin(a) * s,
+                    size: Math.random() * 6 + 3
+                });
             }
 
             document.getElementById('step1').style.opacity = 0;
-
-            setTimeout(() => { state = 'raining'; }, 500);
 
             setTimeout(() => {
                 state = 'imploding';
@@ -190,23 +138,86 @@
                 const s2 = document.getElementById('step2');
                 s2.style.display = 'flex';
 
+                createTitleParticles();
+
                 setTimeout(() => {
                     s2.style.opacity = 1;
                     s2.style.pointerEvents = 'auto';
                     document.getElementById('grade').style.opacity = 1;
-                }, 800);
-            }, 1500);
+                    state = 'idle';
+                }, 1200);
+            }, 800);
+        }
+
+        function createTitleParticles() {
+            const text = "DIVINE GRADE";
+            const fontSize = Math.min(canvas.width * 0.08, 80);
+            ctx.font = `bold ${fontSize}px Cinzel`;
+            const metrics = ctx.measureText(text);
+            const textWidth = metrics.width;
+            const textX = canvas.width / 2 - textWidth / 2;
+            const textY = canvas.height / 2 - fontSize / 2;
+
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            const tctx = tempCanvas.getContext('2d');
+            tctx.font = ctx.font;
+            tctx.fillStyle = '#FFD700';
+            tctx.textAlign = 'center';
+            tctx.textBaseline = 'middle';
+            tctx.fillText(text, canvas.width / 2, canvas.height / 2);
+
+            const imageData = tctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+
+            particles = [];
+
+            for(let y = 0; y < canvas.height; y += 6) {
+                for(let x = 0; x < canvas.width; x += 6) {
+                    const i = (y * canvas.width + x) * 4;
+                    if(data[i+3] > 128) {
+                        particles.push({
+                            x: Math.random() * canvas.width,
+                            y: Math.random() * canvas.height,
+                            tx: x,
+                            ty: y,
+                            size: Math.random() * 4 + 2,
+                            alpha: 0.8
+                        });
+                    }
+                }
+            }
         }
 
         function checkPremium() {
-            const hasPhoto = document.getElementById('upload').files.length > 0 || document.getElementById('profile').checked;
+            const uploadInput = document.getElementById('upload');
+            const profileChecked = document.getElementById('profile').checked;
+            const previewContainer = document.getElementById('photo-preview-container');
+            const previewImg = document.getElementById('photo-preview');
+
+            if (uploadInput.files.length > 0) {
+                const file = uploadInput.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImg.src = e.target.result;
+                    previewContainer.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            } else if (profileChecked && tg.initDataUnsafe.user?.photo_url) {
+                previewImg.src = tg.initDataUnsafe.user.photo_url + "?size=big";
+                previewContainer.style.display = 'block';
+            } else {
+                previewContainer.style.display = 'none';
+            }
+
             tg.HapticFeedback.selectionChanged();
         }
 
         async function mint() {
             const hasPhoto = document.getElementById('upload').files.length > 0 || document.getElementById('profile').checked;
             if(!hasPhoto) {
-                tg.showAlert("Divine ascension requires your soul image.");
+                tg.showAlert("Divine ascension requires your soul image.\nChoose photo or profile to continue.");
                 return;
             }
 
@@ -239,16 +250,19 @@
                 if(data.url) {
                     tg.openInvoice(data.url, s => {
                         if(s === 'paid') {
-                            tg.showAlert("🔱 DIVINE ASCENSION COMPLETE");
+                            tg.showAlert("🔱 DIVINE ASCENSION COMPLETE\nYour crowned soul is eternal.");
                             tg.close();
                         }
                     });
                 } else if(data.free) {
                     tg.showAlert("🔱 DIVINE GIFT GRANTED");
                     tg.close();
+                } else {
+                    tg.showAlert(data.error || "The Void rejects this offering.");
                 }
             } catch(e) {
-                tg.showAlert("Connection lost.");
+                tg.showAlert("The connection to the Void was severed.");
+                console.error(e);
             }
             tg.MainButton.hideProgress();
         }
