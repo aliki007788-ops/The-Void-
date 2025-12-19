@@ -65,28 +65,50 @@
             });
             particles.forEach((p, i) => {
                 ctx.fillStyle = '#FFD700'; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
-                if(state==='exploding') { p.x+=p.vx; p.y+=p.vy; p.size*=0.98; }
-                else if(state==='imploding') { p.x+=(canvas.width/2-p.x)*0.15; p.y+=(canvas.height/2-p.y)*0.15; p.size*=0.94; }
-                if(p.size<0.2) particles.splice(i,1);
+                if(state==='exploding') { 
+                    p.x += p.vx; p.y += p.vy; p.size *= 0.98; 
+                } else if(state==='imploding') { 
+                    p.x += (canvas.width/2 - p.x) * 0.2; 
+                    p.y += (canvas.height/2 - p.y) * 0.2; 
+                    p.size *= 0.95; 
+                }
+                if(p.size < 0.5) particles.splice(i,1);
             });
             requestAnimationFrame(draw);
         }
         draw();
+
         function ascend() {
             if(!document.getElementById('sacrifice').value.trim()) return tg.showAlert("Sacrifice required.");
-            tg.HapticFeedback.impactOccurred('heavy');  // فقط haptic (صدای انفجار حذف شد)
+            tg.HapticFeedback.impactOccurred('heavy');
             state = 'exploding';
-            for(let i=0; i<150; i++) {
-                const a = Math.random()*Math.PI*2; const s = Math.random()*10+4;
-                particles.push({x:canvas.width/2, y:canvas.height/2, vx:Math.cos(a)*s, vy:Math.sin(a)*s, size:Math.random()*4+2});
+            // حجم انفجار خیلی زیاد (۳۰۰ ذره به جای ۱۵۰)
+            for(let i=0; i<300; i++) {
+                const a = Math.random()*Math.PI*2; 
+                const speed = Math.random()*15 + 8; // سرعت بیشتر برای انفجار قوی‌تر
+                particles.push({
+                    x: canvas.width/2, 
+                    y: canvas.height/2, 
+                    vx: Math.cos(a)*speed, 
+                    vy: Math.sin(a)*speed, 
+                    size: Math.random()*6 + 3
+                });
             }
             document.getElementById('step1').style.opacity = 0;
+
             setTimeout(() => {
-                state = 'imploding'; document.getElementById('step1').style.display = 'none';
-                const s2 = document.getElementById('step2'); s2.style.display = 'flex';
-                setTimeout(() => { s2.style.opacity = 1; s2.style.pointerEvents = 'auto'; state='idle'; }, 50);
-            }, 800);
+                state = 'imploding'; // ذرات با قدرت به مرکز برمی‌گردن و صفحه دوم رو تشکیل می‌دن
+                document.getElementById('step1').style.display = 'none';
+                const s2 = document.getElementById('step2'); 
+                s2.style.display = 'flex';
+                setTimeout(() => { 
+                    s2.style.opacity = 1; 
+                    s2.style.pointerEvents = 'auto'; 
+                    state = 'idle'; 
+                }, 100);
+            }, 900); // کمی طولانی‌تر برای لذت بردن از انفجار بزرگ
         }
+
         function updatePrice() {
             const prem = document.getElementById('upload').files.length > 0 || document.getElementById('profile').checked;
             document.getElementById('amount').innerText = prem ? "120" : "70";
@@ -94,6 +116,7 @@
             document.getElementById('grade').style.color = prem ? "#FFD700" : "#888";
             tg.HapticFeedback.selectionChanged();
         }
+
         async function mint() {
             tg.MainButton.showProgress(true);
             const sacrifice = document.getElementById('sacrifice').value.trim();
