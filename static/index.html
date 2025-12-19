@@ -9,21 +9,21 @@
         @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap');
         body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; color: #FFD700; font-family: 'Cinzel', serif; }
         canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
-        .stage { position: relative; z-index: 10; height: 100vh; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; padding-top: 60px; transition: 0.8s ease; box-sizing: border-box; }
+        .stage { position: relative; z-index: 10; height: 100vh; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; padding-top: 40px; transition: opacity 1s ease; box-sizing: border-box; overflow-y: auto; }
       
         .main-title { font-size: 2.8rem; letter-spacing: 18px; margin-bottom: 80px; white-space: nowrap; text-shadow: 0 0 30px rgba(255,215,0,0.6); }
         input[type="text"] { background: transparent; border: none; border-bottom: 2px solid #333; color: #FFD700; font-size: 1.4rem; text-align: center; width: 80%; padding: 15px 0; outline: none; font-family: monospace; }
-        .btn { background: transparent; border: 2px solid #FFD700; color: #FFD700; padding: 18px 70px; font-size: 1.2rem; letter-spacing: 6px; cursor: pointer; margin-top: 50px; transition: 0.4s; z-index: 20; }
+        .btn { background: transparent; border: 2px solid #FFD700; color: #FFD700; padding: 18px 70px; font-size: 1.2rem; letter-spacing: 6px; cursor: pointer; margin: 40px 0; transition: 0.4s; z-index: 20; }
         .btn:active { background: #FFD700; color: #000; }
         #step2 { display: none; opacity: 0; pointer-events: none; }
-        .option-box { background: rgba(15,15,15,0.9); border: 1px solid #333; padding: 30px; border-radius: 10px; width: 85%; max-width: 400px; backdrop-filter: blur(10px); margin-top: 20px; }
+        .option-box { background: rgba(15,15,15,0.9); border: 1px solid #333; padding: 30px; border-radius: 10px; width: 85%; max-width: 400px; backdrop-filter: blur(10px); margin: 20px 0; }
         .price { font-size: 4rem; margin: 20px 0; display: flex; align-items: center; gap: 15px; justify-content: center; }
         .diamond { color: #00ffff; text-shadow: 0 0 30px #00ffff; font-size: 1.2em; }
-        .free-note { font-size: 1rem; color: #888; margin: 20px 0; text-align: center; }
-        #grade { letter-spacing: 8px; color: #FFD700; font-size: 2.2rem; opacity: 0; transition: opacity 1.5s ease; margin: 0; }
+        .free-note { font-size: 1rem; color: #888; margin: 20px 0; text-align: center; line-height: 1.5; }
+        #grade { letter-spacing: 8px; color: #FFD700; font-size: 2.2rem; opacity: 0; transition: opacity 2s ease 1s; margin: 20px 0; }
         #photo-preview-container { margin: 30px 0; text-align: center; display: none; }
         #photo-preview { width: 200px; height: 200px; object-fit: cover; border-radius: 50%; border: 6px solid #FFD700; box-shadow: 0 0 50px rgba(255,215,0,0.7); }
-        #photo-preview-text { margin-top: 10px; color: #FFD700; font-size: 1.1rem; }
+        #photo-preview-text { margin-top: 15px; color: #FFD700; font-size: 1.1rem; }
     </style>
 </head>
 <body>
@@ -74,7 +74,7 @@
         window.onresize = init; init();
 
         function draw() {
-            ctx.fillStyle = '#000';
+            ctx.fillStyle = 'rgba(0,0,0,0.1)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             // ستاره‌ها
@@ -103,11 +103,16 @@
                 ctx.globalAlpha = 1;
 
                 if(state === 'exploding') {
-                    p.x += p.vx; p.y += p.vy; p.size *= 0.98;
+                    p.x += p.vx; p.y += p.vy; p.size *= 0.985; // کندتر کوچک شدن
                 } else if(state === 'imploding') {
-                    p.x += (p.tx - p.x) * 0.15;
-                    p.y += (p.ty - p.y) * 0.15;
-                    p.size *= 0.96;
+                    const dx = p.tx - p.x;
+                    const dy = p.ty - p.y;
+                    p.x += dx * 0.08;  // خیلی آرام‌تر (0.08 به جای 0.15)
+                    p.y += dy * 0.08;
+                    p.size = Math.max(p.size * 1.01, p.finalSize || 4); // کمی بزرگ‌تر شدن هنگام رسیدن
+                    if (Math.abs(dx) < 2 && Math.abs(dy) < 2) {
+                        p.size *= 0.98; // فقط بعد از رسیدن کوچک بشه
+                    }
                 }
                 if(p.size < 0.5) particles.splice(i,1);
             });
@@ -122,7 +127,7 @@
             state = 'exploding';
             particles = [];
 
-            // تعداد ذرات انفجار به ۴۵۰ افزایش یافت
+            // ۴۵۰ ذره انفجار
             for(let i = 0; i < 450; i++) {
                 const a = Math.random() * Math.PI * 2;
                 const s = Math.random() * 16 + 10;
@@ -143,27 +148,24 @@
                 const s2 = document.getElementById('step2');
                 s2.style.display = 'flex';
 
-                // تشکیل عنوان DIVINE GRADE دقیقاً روی موقعیت <h2 id="grade">
                 createTitleParticles();
 
                 setTimeout(() => {
                     s2.style.opacity = 1;
                     s2.style.pointerEvents = 'auto';
-                    document.getElementById('grade').style.opacity = 1;
+                    document.getElementById('grade').style.opacity = 1; // fade-in آرام عنوان
                     state = 'idle';
-                }, 1200);
+                }, 1500); // زمان بیشتر برای لذت بردن از تشکیل عنوان
             }, 800);
         }
 
         function createTitleParticles() {
             const titleElement = document.getElementById('grade');
-            const text = titleElement.innerText; // "DIVINE GRADE"
+            const text = titleElement.innerText;
             const rect = titleElement.getBoundingClientRect();
             const fontSize = parseFloat(getComputedStyle(titleElement).fontSize);
-            const letterSpacing = parseFloat(getComputedStyle(titleElement).letterSpacing);
 
             ctx.font = `bold ${fontSize}px Cinzel`;
-            ctx.letterSpacing = `${letterSpacing}px`;
             const textWidth = ctx.measureText(text).width;
             const textX = rect.left + (rect.width - textWidth) / 2;
             const textY = rect.top + rect.height / 2;
@@ -183,17 +185,18 @@
 
             particles = [];
 
-            for(let y = 0; y < canvas.height; y += 5) {
-                for(let x = 0; x < canvas.width; x += 5) {
+            for(let y = 0; y < canvas.height; y += 4) { // نمونه‌برداری دقیق‌تر
+                for(let x = 0; x < canvas.width; x += 4) {
                     const i = (y * canvas.width + x) * 4;
                     if(data[i+3] > 128) {
                         particles.push({
-                            x: Math.random() * canvas.width,
-                            y: Math.random() * canvas.height,
+                            x: canvas.width / 2 + (Math.random() - 0.5) * canvas.width * 1.5, // شروع از دورتر
+                            y: canvas.height / 2 + (Math.random() - 0.5) * canvas.height * 1.5,
                             tx: x,
                             ty: y,
-                            size: Math.random() * 5 + 3,
-                            alpha: 0.9
+                            size: Math.random() * 6 + 3,
+                            finalSize: Math.random() * 5 + 3,
+                            alpha: 1
                         });
                     }
                 }
