@@ -54,14 +54,12 @@ class PartnerState(StatesGroup):
 # تابع ارسال NFT
 async def send_nft(uid: int, burden: str, photo_path: str = None, is_gift: bool = False):
     nft_path = create_certificate(uid, burden, photo_path)
-    
+   
     if is_gift:
         caption = "🔱 <b>DIVINE PARTNERSHIP GRANTED</b>\nYour brand has ascended to eternity."
     else:
         caption = "🔱 <b>ASCENSION COMPLETE</b>\nYour sacrifice has been eternally consumed."
-
     await bot.send_document(uid, FSInputFile(nft_path), caption=caption, parse_mode="HTML")
-
     # پاکسازی
     for p in [nft_path, photo_path]:
         if p and os.path.exists(p):
@@ -88,19 +86,15 @@ async def generate_vip(message: types.Message):
             return
     except:
         count = 1
-
     new_codes = []
     for _ in range(count):
         code = f"VOID-{secrets.token_hex(4).upper()}"
         VIP_CODES.add(code)
         new_codes.append(code)
-
     save_vip_codes(VIP_CODES)
-
     response = f"✅ <b>{count} کد VIP جدید تولید شد:</b>\n\n"
     response += "\n".join(f"<code>{c}</code>" for c in new_codes)
     response += f"\n\nکل کدهای فعال: {len(VIP_CODES)}"
-
     await message.answer(response, parse_mode="HTML")
 
 # لیست کدهای VIP
@@ -124,33 +118,42 @@ async def receive_partner_name(message: types.Message, state: FSMContext):
     if not partner_name:
         await message.answer("نام نمی‌تونه خالی باشه. دوباره امتحان کن.")
         return
-
     safe_name = "".join(c for c in partner_name.upper() if c.isalnum())[:20]
     vip_code = f"PARTNER-{secrets.token_hex(3).upper()}-{safe_name}"
-
     VIP_CODES.add(vip_code)
     save_vip_codes(VIP_CODES)
-
     response = f"✅ کد VIP سفارشی برای <b>{partner_name}</b> تولید شد:\n\n"
     response += f"<code>{vip_code}</code>\n\n"
     response += "این کد رو به صاحب کسب‌وکار بده.\nوقتی در فیلد sacrifice وارد کرد، NFT با همین نام دریافت می‌کنه."
-
     await message.answer(response, parse_mode="HTML")
     await state.clear()
 
-# ایجاد اینویس
+# ایجاد اینویس – پشتیبانی از GET و POST (برای سازگاری کامل با وب‌اپ)
 @app.get("/create_stars_invoice")
-async def create_invoice(d: str):
+async def create_invoice_get(d: str):
     try:
         data = json.loads(base64.b64decode(d).decode("utf-8"))
-        uid = data['u']
-        burden_upper = data.get('b', '').upper().strip()
+    except:
+        return {"error": "Invalid data"}
+    return await create_invoice_logic(data)
 
-        # چک VIP
-        if burden_upper in VIP_CODES:
-            VIP_CODES.remove(burden_upper)
+@app.post("/create_stars_invoice")
+async def create_invoice_post(request: Request):
+    data = await request.json()
+    return await create_invoice_logic(data)
+
+async def create_invoice_logic(data):
+    try:
+        uid = data['u']
+        burden_raw = data.get('b', '').strip()
+        burden_upper = burden_raw.upper()
+
+        # چک VIP قوی (حمایت از فارسی و حروف کوچک/بزرگ)
+        if burden_raw in VIP_CODES or burden_upper in VIP_CODES:
+            VIP_CODES.discard(burden_raw)
+            VIP_CODES.discard(burden_upper)
             save_vip_codes(VIP_CODES)
-            await send_nft(uid, data['b'], None, is_gift=True)
+            await send_nft(uid, burden_raw, None, is_gift=True)
             return {"free": True}
 
         is_premium = bool(data.get('p') or data.get('prof'))
@@ -190,7 +193,6 @@ async def successful_payment(message: types.Message):
     burden = parts[1]
     temp_path = parts[2] if parts[2] != "none" else None
     use_prof = parts[3] == "1"
-
     await send_nft(uid, burden, temp_path)
 
 # استاتیک فایل‌ها و وب‌هوک
