@@ -1,5 +1,3 @@
-# فایل: cert_gen.py (نسخه کامل به‌روزشده)
-
 import os
 import random
 import math
@@ -298,3 +296,4 @@ def create_certificate(user_id, burden, photo_path=None):
     
     style_name = get_style_display_name(style)
     return path, style_name
+
