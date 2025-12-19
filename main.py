@@ -81,7 +81,7 @@ async def send_nft(uid: int, burden: str, photo_path: str = None, is_gift: bool 
             except:
                 pass
 
-# /start – متن خوش‌آمدگویی به‌روزشده با مدل جدید (رایگان + Divine 120 ⭐)
+# /start – متن خوش‌آمدگویی با مدل جدید
 @dp.message(F.text == "/start")
 async def start(message: types.Message):
     welcome_text = """
@@ -192,36 +192,36 @@ There is only <b>becoming</b>.
 
     await message.answer(about_text, parse_mode="HTML")
 
-# Ascension رایگان مستقیم
+# Ascension رایگان مستقیم – همه پیام‌ها انگلیسی
 @dp.message(F.text, ~F.text.startswith("/"))
 async def free_ascension(message: types.Message):
     burden = message.text.strip()
     if len(burden) < 3:
-        await message.answer("🔥 Burden شما خیلی کوتاهه. حداقل ۳ کاراکتر وارد کنید.\nمثال: Emperor of Silence")
+        await message.answer("🔥 Your burden is too light. Enter at least 3 characters.\nExample: Emperor of Silence")
         return
     
     if len(burden) > 50:
         burden = burden[:47] + "..."
     
-    await message.answer("🌌 <b>THE VOID ACCEPTS YOUR OFFERING</b>\n\nدر حال forging گواهی ابدی شما...\nلحظه‌ای صبر کنید.", parse_mode="HTML")
+    await message.answer("🌌 <b>THE VOID ACCEPTS YOUR OFFERING</b>\n\nForging your eternal certificate...\nOne moment, wanderer.", parse_mode="HTML")
     
     await send_nft(message.from_user.id, burden, None, is_gift=False)
     
     premium_text = """
-🎁 <b>گواهی ابدی شما با موفقیت forged شد!</b>
+🎁 <b>YOUR ETERNAL CERTIFICATE HAS BEEN FORGED</b>
 
-این فقط آغاز راهه.
+This is merely the beginning.
 
-برای ascension کامل‌تر با:
-• عکس شخصی با هاله سلطنتی
-• افکت‌های لوکس‌تر
-• حس واقعی تاج‌گذاری
+For the ultimate <b>Divine Ascension</b> with:
+• Your soul image crowned in royal golden glow
+• Imperial halo and luxurious celestial effects
+• The true feeling of eternal coronation
 
-روی دکمه زیر ضربه بزن 👇
+Tap the sacred portal below 👇
     """.strip()
     
     kb = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="🔱 PREMIUM ASCENSION WITH PHOTO", web_app=WebAppInfo(url=f"{os.getenv('WEBHOOK_URL')}/static/index.html"))
+        InlineKeyboardButton(text="🔱 DIVINE ASCENSION WITH PHOTO", web_app=WebAppInfo(url=f"{os.getenv('WEBHOOK_URL')}/static/index.html"))
     ]])
     
     await message.answer(premium_text, reply_markup=kb, parse_mode="HTML")
