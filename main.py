@@ -47,30 +47,34 @@ VIP_CODES = load_vip_codes()
 class PartnerState(StatesGroup):
     waiting_for_name = State()
 
-# تابع ارسال NFT با کپشن بهبود یافته
+# تابع ارسال NFT با کپشن بهبود یافته و نمایش سبک مثبت
 async def send_nft(uid: int, burden: str, photo_path: str = None, is_gift: bool = False):
-    nft_path = create_certificate(uid, burden, photo_path)
+    nft_path, style_name = create_certificate(uid, burden, photo_path)
     
     if is_gift:
         caption = (
             "🔱 <b>DIVINE PARTNERSHIP GRANTED</b>\n\n"
             f"\"<i>{burden.upper()}</i>\"\n\n"
-            "Your essence has been eternally enshrined in the Void's sacred archive.\n\n"
-            "Forever allied with the darkness."
+            f"<b>{style_name}</b>\n\n"
+            "Your noble essence has been eternally enshrined\n"
+            "in the sacred archive of the Void.\n\n"
+            "A masterpiece forged for eternity."
         )
     else:
         caption = (
             "🔱 <b>ASCENSION COMPLETE</b>\n\n"
             f"\"<i>{burden.upper()}</i>\"\n\n"
             "HAS BEEN CONSUMED BY THE ETERNAL VOID\n\n"
-            "Your soul now rests in infinite glory.\n"
+            f"<b>{style_name}</b>\n\n"
+            "Your soul has received its eternal crown of glory.\n"
+            "A unique masterpiece, forever preserved.\n"
             f"Holder ID: <code>{uid}</code>\n"
             "Timestamp: <code>2025.VO-ID</code>"
         )
     
     await bot.send_document(uid, FSInputFile(nft_path), caption=caption, parse_mode="HTML")
     
-    # پاکسازی
+    # پاکسازی فایل‌ها
     for p in [nft_path, photo_path]:
         if p and os.path.exists(p):
             try:
