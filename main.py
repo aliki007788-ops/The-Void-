@@ -3,11 +3,9 @@ import json
 import base64
 import tempfile
 import secrets
-import math  # برای برخی افکت‌ها در آینده اگر نیاز شد
-
+import math # برای برخی افکت‌ها در آینده اگر نیاز شد
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
-
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -16,45 +14,35 @@ from aiogram.types import (
     WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup,
     Update, FSInputFile, LabeledPrice
 )
-
 from cert_gen import create_certificate
 from dotenv import load_dotenv
-
 load_dotenv()
-
 # تنظیمات
 bot = Bot(token=os.getenv("BOT_TOKEN"))
 storage = MemoryStorage()
 dp = Dispatcher(storage=storage)
 app = FastAPI()
-
 ADMIN_ID = int(os.getenv("ADMIN_ID", "0"))
 PRICE_BASIC = 70
 PRICE_PREMIUM = 120
-
 # فایل ذخیره VIP
 VIP_FILE = "vip_codes.txt"
-
 def load_vip_codes():
     if os.path.exists(VIP_FILE):
         with open(VIP_FILE, "r", encoding="utf-8") as f:
             return set(line.strip().upper() for line in f if line.strip())
     return set()
-
 def save_vip_codes(codes):
     with open(VIP_FILE, "w", encoding="utf-8") as f:
         f.write("\n".join(sorted(codes)))
-
 VIP_CODES = load_vip_codes()
-
 # حالت FSM برای /partner
 class PartnerState(StatesGroup):
     waiting_for_name = State()
-
 # تابع ارسال NFT
 async def send_nft(uid: int, burden: str, photo_path: str = None, is_gift: bool = False):
     nft_path = create_certificate(uid, burden, photo_path)
-   
+  
     if is_gift:
         caption = "🔱 <b>DIVINE PARTNERSHIP GRANTED</b>\nYour brand has ascended to eternity."
     else:
@@ -67,15 +55,45 @@ async def send_nft(uid: int, burden: str, photo_path: str = None, is_gift: bool 
                 os.remove(p)
             except:
                 pass
-
-# /start
+# /start – نسخه حرفه‌ای، پیچیده و immersive (بدون تغییر منطق بات)
 @dp.message(F.text == "/start")
 async def start(message: types.Message):
+    welcome_text = """
+🌌 <b>WELCOME, WANDERER OF THE COSMOS</b> 🌌
+
+The Eternal Void has sensed your presence.
+
+In the year <b>2025.VO-ID</b>, the ancient gates have parted once more — revealing a realm where burdens are transformed into eternal glory.
+
+<b>VOID ASCENSION CERTIFICATE</b>
+
+To claim your place in the infinite archive:
+
+• Offer your <i>Burden Title</i> — the heaviest crown you carry
+• Optionally crown yourself with a photo to receive the royal golden glow
+• Choose between <b>Basic</b> (70 ⭐) or <b>Premium</b> (120 ⭐) ascension
+
+Each certificate is forged from cosmic gold upon a canvas of absolute darkness, adorned with one of <b>30 sacred and unrepeatable styles</b>:
+
+Classic Ornate • Cosmic Nebula • Gothic Seal • Sacred Geometry • Imperial Throne • Crown Eclipse • Sovereign Flame • and many more forbidden patterns...
+
+No two souls ever receive the same imprint.
+
+Once your burden is spoken, it is <b>consumed forever</b> by the Void.
+Your essence becomes part of the eternal record.
+There is no undoing.
+Only ascension.
+
+<i>The archive awaits your sacrifice.</i>
+
+Are you prepared to surrender?
+    """.strip()
+
     kb = InlineKeyboardMarkup(inline_keyboard=[[
         InlineKeyboardButton(text="🔱 ENTER THE VOID", web_app=WebAppInfo(url=f"{os.getenv('WEBHOOK_URL')}/static/index.html"))
     ]])
-    await message.answer("<b>WELCOME TO THE ETERNAL VOID.</b>\nSacrifice to ascend.", reply_markup=kb, parse_mode="HTML")
 
+    await message.answer(welcome_text, reply_markup=kb, parse_mode="HTML")
 # تولید کد VIP رندم
 @dp.message(F.from_user.id == ADMIN_ID, F.text.startswith("/vip"))
 async def generate_vip(message: types.Message):
@@ -96,7 +114,6 @@ async def generate_vip(message: types.Message):
     response += "\n".join(f"<code>{c}</code>" for c in new_codes)
     response += f"\n\nکل کدهای فعال: {len(VIP_CODES)}"
     await message.answer(response, parse_mode="HTML")
-
 # لیست کدهای VIP
 @dp.message(F.from_user.id == ADMIN_ID, F.text == "/list_vip")
 async def list_vip(message: types.Message):
@@ -105,13 +122,11 @@ async def list_vip(message: types.Message):
         await message.answer(f"<b>کدهای VIP فعال ({len(VIP_CODES)}):</b>\n\n{codes_text}", parse_mode="HTML")
     else:
         await message.answer("هیچ کد VIP فعالی وجود ندارد.")
-
 # /partner – تولید کد با نام کسب‌وکار
 @dp.message(F.from_user.id == ADMIN_ID, F.text == "/partner")
 async def start_partner(message: types.Message, state: FSMContext):
     await message.answer("🔱 نام کسب‌وکار یا متن دلخواه برای NFT رو وارد کن:\nمثال: Nike Official Partner")
     await state.set_state(PartnerState.waiting_for_name)
-
 @dp.message(PartnerState.waiting_for_name)
 async def receive_partner_name(message: types.Message, state: FSMContext):
     partner_name = message.text.strip()
@@ -127,7 +142,6 @@ async def receive_partner_name(message: types.Message, state: FSMContext):
     response += "این کد رو به صاحب کسب‌وکار بده.\nوقتی در فیلد sacrifice وارد کرد، NFT با همین نام دریافت می‌کنه."
     await message.answer(response, parse_mode="HTML")
     await state.clear()
-
 # ایجاد اینویس – پشتیبانی از GET و POST (برای سازگاری کامل با وب‌اپ)
 @app.get("/create_stars_invoice")
 async def create_invoice_get(d: str):
@@ -136,18 +150,15 @@ async def create_invoice_get(d: str):
     except:
         return {"error": "Invalid data"}
     return await create_invoice_logic(data)
-
 @app.post("/create_stars_invoice")
 async def create_invoice_post(request: Request):
     data = await request.json()
     return await create_invoice_logic(data)
-
 async def create_invoice_logic(data):
     try:
         uid = data['u']
         burden_raw = data.get('b', '').strip()
         burden_upper = burden_raw.upper()
-
         # چک VIP قوی (حمایت از فارسی و حروف کوچک/بزرگ)
         if burden_raw in VIP_CODES or burden_upper in VIP_CODES:
             VIP_CODES.discard(burden_raw)
@@ -155,10 +166,8 @@ async def create_invoice_logic(data):
             save_vip_codes(VIP_CODES)
             await send_nft(uid, burden_raw, None, is_gift=True)
             return {"free": True}
-
         is_premium = bool(data.get('p') or data.get('prof'))
         amount = PRICE_PREMIUM if is_premium else PRICE_BASIC
-
         temp_path = "none"
         if data.get('p'):
             img_data = base64.b64decode(data['p'].split(',')[1])
@@ -166,9 +175,7 @@ async def create_invoice_logic(data):
             tmp.write(img_data)
             tmp.close()
             temp_path = tmp.name
-
         payload = f"{uid}:{data['b']}:{temp_path}:{1 if data.get('prof') else 0}"
-
         link = await bot.create_invoice_link(
             title="VOID ASCENSION",
             description="Divine Soul Imprint" if is_premium else "Eternal Sacrifice",
@@ -180,12 +187,10 @@ async def create_invoice_logic(data):
     except Exception as e:
         print("Invoice error:", e)
         return {"error": "The Void is unreachable"}
-
 # پرداخت
 @dp.pre_checkout_query()
 async def pre_checkout(q: types.PreCheckoutQuery):
     await q.answer(ok=True)
-
 @dp.message(F.successful_payment)
 async def successful_payment(message: types.Message):
     parts = message.successful_payment.invoice_payload.split(":")
@@ -194,17 +199,13 @@ async def successful_payment(message: types.Message):
     temp_path = parts[2] if parts[2] != "none" else None
     use_prof = parts[3] == "1"
     await send_nft(uid, burden, temp_path)
-
 # استاتیک فایل‌ها و وب‌هوک
 app.mount("/static", StaticFiles(directory="static"))
-
 @app.post("/webhook")
 async def webhook(request: Request):
     update = Update.model_validate(await request.json(), context={"bot": bot})
     await dp.feed_update(bot, update)
     return {"ok": True}
-
 @app.on_event("startup")
 async def startup():
     await bot.set_webhook(f"{os.getenv('WEBHOOK_URL')}/webhook")
-
