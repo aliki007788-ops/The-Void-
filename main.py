@@ -1,27 +1,38 @@
-import os, json, base64, tempfile, secrets
+import os
+import json
+import base64
+import tempfile
+import secrets
+import math  # برای برخی افکت‌ها در آینده اگر نیاز شد
+
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
+
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.types import WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup, Update, FSInputFile, LabeledPrice
+from aiogram.types import (
+    WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup,
+    Update, FSInputFile, LabeledPrice
+)
+
 from cert_gen import create_certificate
 from dotenv import load_dotenv
 
 load_dotenv()
 
+# تنظیمات
 bot = Bot(token=os.getenv("BOT_TOKEN"))
 storage = MemoryStorage()
 dp = Dispatcher(storage=storage)
 app = FastAPI()
 
-# تنظیمات ادمین و قیمت
 ADMIN_ID = int(os.getenv("ADMIN_ID", "0"))
 PRICE_BASIC = 70
 PRICE_PREMIUM = 120
 
-# فایل ذخیره کدهای VIP
+# فایل ذخیره VIP
 VIP_FILE = "vip_codes.txt"
 
 def load_vip_codes():
@@ -40,11 +51,18 @@ VIP_CODES = load_vip_codes()
 class PartnerState(StatesGroup):
     waiting_for_name = State()
 
+# تابع ارسال NFT
 async def send_nft(uid: int, burden: str, photo_path: str = None, is_gift: bool = False):
     nft_path = create_certificate(uid, burden, photo_path)
-    caption = "🔱 <b>DIVINE PARTNERSHIP GRANTED</b>\nYour brand has ascended to eternity." if is_gift else "🔱 <b>ASCENSION COMPLETE</b>"
+    
+    if is_gift:
+        caption = "🔱 <b>DIVINE PARTNERSHIP GRANTED</b>\nYour brand has ascended to eternity."
+    else:
+        caption = "🔱 <b>ASCENSION COMPLETE</b>\nYour sacrifice has been eternally consumed."
+
     await bot.send_document(uid, FSInputFile(nft_path), caption=caption, parse_mode="HTML")
 
+    # پاکسازی
     for p in [nft_path, photo_path]:
         if p and os.path.exists(p):
             try:
@@ -52,7 +70,7 @@ async def send_nft(uid: int, burden: str, photo_path: str = None, is_gift: bool 
             except:
                 pass
 
-# دستور /start
+# /start
 @dp.message(F.text == "/start")
 async def start(message: types.Message):
     kb = InlineKeyboardMarkup(inline_keyboard=[[
@@ -65,7 +83,7 @@ async def start(message: types.Message):
 async def generate_vip(message: types.Message):
     try:
         count = int(message.text.split()[1]) if len(message.text.split()) > 1 else 1
-        if count < 1 or count > 50:
+        if not (1 <= count <= 50):
             await message.answer("تعداد باید بین ۱ تا ۵۰ باشد.")
             return
     except:
@@ -94,7 +112,7 @@ async def list_vip(message: types.Message):
     else:
         await message.answer("هیچ کد VIP فعالی وجود ندارد.")
 
-# دستور جدید /partner – تولید کد با نام کسب‌وکار
+# /partner – تولید کد با نام کسب‌وکار
 @dp.message(F.from_user.id == ADMIN_ID, F.text == "/partner")
 async def start_partner(message: types.Message, state: FSMContext):
     await message.answer("🔱 نام کسب‌وکار یا متن دلخواه برای NFT رو وارد کن:\nمثال: Nike Official Partner")
@@ -107,7 +125,6 @@ async def receive_partner_name(message: types.Message, state: FSMContext):
         await message.answer("نام نمی‌تونه خالی باشه. دوباره امتحان کن.")
         return
 
-    # تولید کد VIP سفارشی با نام دلخواه (امن و منحصر به فرد)
     safe_name = "".join(c for c in partner_name.upper() if c.isalnum())[:20]
     vip_code = f"PARTNER-{secrets.token_hex(3).upper()}-{safe_name}"
 
@@ -129,6 +146,7 @@ async def create_invoice(d: str):
         uid = data['u']
         burden_upper = data.get('b', '').upper().strip()
 
+        # چک VIP
         if burden_upper in VIP_CODES:
             VIP_CODES.remove(burden_upper)
             save_vip_codes(VIP_CODES)
@@ -150,7 +168,7 @@ async def create_invoice(d: str):
 
         link = await bot.create_invoice_link(
             title="VOID ASCENSION",
-            description="Divine Imprint" if is_premium else "Eternal Sacrifice",
+            description="Divine Soul Imprint" if is_premium else "Eternal Sacrifice",
             payload=payload,
             currency="XTR",
             prices=[LabeledPrice(label="Ascension Fee", amount=amount)]
@@ -158,8 +176,9 @@ async def create_invoice(d: str):
         return {"url": link}
     except Exception as e:
         print("Invoice error:", e)
-        return {"error": "Void unreachable"}
+        return {"error": "The Void is unreachable"}
 
+# پرداخت
 @dp.pre_checkout_query()
 async def pre_checkout(q: types.PreCheckoutQuery):
     await q.answer(ok=True)
@@ -174,6 +193,7 @@ async def successful_payment(message: types.Message):
 
     await send_nft(uid, burden, temp_path)
 
+# استاتیک فایل‌ها و وب‌هوک
 app.mount("/static", StaticFiles(directory="static"))
 
 @app.post("/webhook")
