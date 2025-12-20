@@ -71,7 +71,7 @@ async def send_nft(uid: int, burden: str, photo_path: str = None, is_gift: bool 
             except:
                 pass
 
-# /start – متن کامل انگلیسی
+# /start – متن کامل خوش‌آمدگویی انگلیسی
 @dp.message(F.text == "/start")
 async def start(message: types.Message):
     welcome_text = """
@@ -88,27 +88,20 @@ Two sacred paths await your offering:
 <b>1. Free Eternal Ascension</b>
 • Simply send your <i>Burden Title</i> directly in this chat
 • Receive a magnificent certificate forged in cosmic gold instantly
-• One of 30 sacred styles, eternal Holder ID, celestial seals — all yours forever
 
 <b>2. Divine Ascension (120 ⭐)</b>
 • Tap "ENTER THE VOID" below
 • Crown yourself with your soul image (photo)
-• Receive the ultimate royal glow, imperial halo, and divine imprint
+• Receive the ultimate royal glow and divine imprint
 
-Each certificate is adorned upon absolute darkness with one of <b>30 sacred and unrepeatable styles</b>:
+Each certificate is adorned with one of <b>30 sacred styles</b>.
 
-Classic Ornate • Cosmic Nebula • Gothic Seal • Sacred Geometry • Imperial Throne ⚜️ • Crown Eclipse 🌑 • Sovereign Flame 🔥 • and many more forbidden patterns...
+Once consumed, your burden is eternal.
 
-No two souls ever receive the same masterpiece.
+Your referral link:
+<code>https://t.me/livevoidbot?start=ref_{message.from_user.id}</code>
 
-Once your burden is spoken, it is <b>consumed forever</b> by the Void.
-Your essence becomes part of the infinite archive.
-There is no undoing.
-Only ascension.
-
-<i>The archive hungers for your sacrifice.</i>
-
-Are you ready to surrender?
+Share it and grow the Void.
     """.strip()
 
     kb = InlineKeyboardMarkup(inline_keyboard=[[
@@ -140,20 +133,31 @@ async def admin_divine_photo(message: types.Message):
 async def free_ascension(message: types.Message):
     burden = message.text.strip()
     if len(burden) < 3:
-        await message.answer("🔥 Your burden is too light. Enter at least 3 characters.")
+        await message.answer("🔥 Your burden is too light. Enter at least 3 characters.\nExample: Emperor of Silence")
         return
     if len(burden) > 50:
         burden = burden[:47] + "..."
     
-    await message.answer("🌌 <b>THE VOID ACCEPTS YOUR OFFERING</b>\n\nForging your eternal certificate...", parse_mode="HTML")
+    await message.answer("🌌 <b>THE VOID ACCEPTS YOUR OFFERING</b>\n\nForging your eternal certificate...\nOne moment, wanderer.", parse_mode="HTML")
     await send_nft(message.from_user.id, burden)
+    
+    premium_text = """
+🎁 <b>YOUR ETERNAL CERTIFICATE HAS BEEN FORGED</b>
+
+This is merely the beginning.
+
+For the ultimate <b>Divine Ascension</b> with your soul image and royal glow:
+
+Tap the sacred portal below 👇
+    """.strip()
     
     kb = InlineKeyboardMarkup(inline_keyboard=[[
         InlineKeyboardButton(text="🔱 DIVINE ASCENSION WITH PHOTO", web_app=WebAppInfo(url=f"{os.getenv('WEBHOOK_URL')}/static/index.html"))
     ]])
-    await message.answer("🎁 <b>YOUR ETERNAL CERTIFICATE HAS BEEN FORGED</b>\n\nFor the ultimate Divine Ascension with your soul image:\nTap below 👇", reply_markup=kb, parse_mode="HTML")
+    
+    await message.answer(premium_text, reply_markup=kb, parse_mode="HTML")
 
-# --- پرداخت و وب‌هوک (بدون تغییر) ---
+# --- پرداخت Divine از وب‌اپ ---
 async def create_invoice_logic(data):
     uid = data['u']
     burden_raw = data.get('b', '').strip()
@@ -164,6 +168,7 @@ async def create_invoice_logic(data):
         save_vip_codes(VIP_CODES)
         await send_nft(uid, burden_raw, None, is_gift=True)
         return {"free": True}
+    
     temp_path = "none"
     if data.get('p'):
         img_data = base64.b64decode(data['p'].split(',')[1])
@@ -171,12 +176,13 @@ async def create_invoice_logic(data):
         tmp.write(img_data)
         tmp.close()
         temp_path = tmp.name
+    
     link = await bot.create_invoice_link(
-        title="VOID ASCENSION",
-        description="Divine Soul Imprint",
-        payload=f"{uid}:{data['b']}:{temp_path}",
+        title="DIVINE ASCENSION",
+        description="Luxurious Soul Crown",
+        payload=f"{uid}:{burden_raw}:{temp_path}",
         currency="XTR",
-        prices=[LabeledPrice(label="Ascension Fee", amount=PRICE_PREMIUM)]
+        prices=[LabeledPrice(label="Crown Fee", amount=PRICE_PREMIUM)]
     )
     return {"url": link}
 
@@ -197,6 +203,7 @@ async def successful_payment(message: types.Message):
     temp_path = parts[2] if parts[2] != "none" else None
     await send_nft(uid, burden, temp_path)
 
+# --- وب‌هوک و استاتیک ---
 app.mount("/static", StaticFiles(directory="static"))
 
 @app.post("/webhook")
