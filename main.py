@@ -7,6 +7,7 @@ import random
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from aiogram import Bot, Dispatcher, types, F
+from aiogram.filters import Command
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import (
     WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup,
@@ -18,8 +19,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 bot = Bot(token=os.getenv("BOT_TOKEN"))
-storage = MemoryStorage()
-dp = Dispatcher(storage=storage)
+dp = Dispatcher(storage=MemoryStorage())
 app = FastAPI()
 ADMIN_ID = int(os.getenv("ADMIN_ID", "0"))
 PRICE_PREMIUM = 120
@@ -71,7 +71,7 @@ async def send_nft(uid: int, burden: str, photo_path: str = None, is_gift: bool 
             except:
                 pass
 
-# /start – متن خوش‌آمدگویی کامل انگلیسی (دقیقاً همون قبلی)
+# /start – متن کامل انگلیسی
 @dp.message(F.text == "/start")
 async def start(message: types.Message):
     welcome_text = """
@@ -117,92 +117,68 @@ Are you ready to surrender?
 
     await message.answer(welcome_text, reply_markup=kb, parse_mode="HTML")
 
-# --- دستور ویژه ادمین برای Divine رایگان ---
-@dp.message(F.from_user.id == ADMIN_ID, F.photo)
-async def admin_divine_photo(message: types.Message):
-    burden = message.caption.strip()[:50] if message.caption else "Divine Admin Creation"
-    photo = message.photo[-1]
-    file = await bot.get_file(photo.file_id)
-    photo_path = f"admin_{message.from_user.id}.jpg"
-    await bot.download_file(file.file_path, photo_path)
-    await message.answer("👑 <b>Admin Divine Certificate Forging...</b>", parse_mode="HTML")
-    await send_nft(message.from_user.id, burden, photo_path)
-
-@dp.message(F.from_user.id == ADMIN_ID, F.text.startswith("/divine "))
+# --- دستورات ویژه ادمین (اولویت بالا) ---
+@dp.message(Command("divine"), F.from_user.id == ADMIN_ID)
 async def admin_divine_text(message: types.Message):
-    burden = message.text[8:].strip()[:50]
-    if not burden:
-        await message.answer("متن رو بعد از /divine بنویس.\nمثال: /divine King of Void")
-        return
+    args = message.text.split(maxsplit=1)
+    burden = args[1].strip()[:50] if len(args) > 1 else "Divine Admin Creation"
     await message.answer("👑 <b>Admin Divine Forging...</b>", parse_mode="HTML")
     await send_nft(message.from_user.id, burden)
+
+@dp.message(F.photo, F.from_user.id == ADMIN_ID)
+async def admin_divine_photo(message: types.Message):
+    burden = message.caption.strip()[:50] if message.caption else "Divine Gift from the Void"
+    photo = message.photo[-1]
+    file = await bot.get_file(photo.file_id)
+    photo_path = f"admin_divine_{message.from_user.id}.jpg"
+    await bot.download_file(file.file_path, photo_path)
+    await message.answer("👑 <b>Admin Divine Forging...</b>", parse_mode="HTML")
+    await send_nft(message.from_user.id, burden, photo_path)
 
 # --- حالت رایگان عادی ---
 @dp.message(F.text, ~F.text.startswith("/"))
 async def free_ascension(message: types.Message):
     burden = message.text.strip()
     if len(burden) < 3:
-        await message.answer("🔥 Your burden is too light. Enter at least 3 characters.\nExample: Emperor of Silence")
+        await message.answer("🔥 Your burden is too light. Enter at least 3 characters.")
         return
-    
     if len(burden) > 50:
         burden = burden[:47] + "..."
     
-    await message.answer("🌌 <b>THE VOID ACCEPTS YOUR OFFERING</b>\n\nForging your eternal certificate...\nOne moment, wanderer.", parse_mode="HTML")
-    
-    await send_nft(message.from_user.id, burden, None)
-    
-    premium_text = """
-🎁 <b>YOUR ETERNAL CERTIFICATE HAS BEEN FORGED</b>
-
-This is merely the beginning.
-
-For the ultimate <b>Divine Ascension</b> with:
-• Your soul image crowned in royal golden glow
-• Imperial halo and luxurious celestial effects
-• The true feeling of eternal coronation
-
-Tap the sacred portal below 👇
-    """.strip()
+    await message.answer("🌌 <b>THE VOID ACCEPTS YOUR OFFERING</b>\n\nForging your eternal certificate...", parse_mode="HTML")
+    await send_nft(message.from_user.id, burden)
     
     kb = InlineKeyboardMarkup(inline_keyboard=[[
         InlineKeyboardButton(text="🔱 DIVINE ASCENSION WITH PHOTO", web_app=WebAppInfo(url=f"{os.getenv('WEBHOOK_URL')}/static/index.html"))
     ]])
-    
-    await message.answer(premium_text, reply_markup=kb, parse_mode="HTML")
+    await message.answer("🎁 <b>YOUR ETERNAL CERTIFICATE HAS BEEN FORGED</b>\n\nFor the ultimate Divine Ascension with your soul image:\nTap below 👇", reply_markup=kb, parse_mode="HTML")
 
-# --- اینویس و پرداخت (بدون تغییر) ---
+# --- پرداخت و وب‌هوک (بدون تغییر) ---
 async def create_invoice_logic(data):
-    try:
-        uid = data['u']
-        burden_raw = data.get('b', '').strip()
-        burden_upper = burden_raw.upper()
-        if burden_raw in VIP_CODES or burden_upper in VIP_CODES:
-            VIP_CODES.discard(burden_raw)
-            VIP_CODES.discard(burden_upper)
-            save_vip_codes(VIP_CODES)
-            await send_nft(uid, burden_raw, None, is_gift=True)
-            return {"free": True}
-        is_premium = bool(data.get('p') or data.get('prof'))
-        temp_path = "none"
-        if data.get('p'):
-            img_data = base64.b64decode(data['p'].split(',')[1])
-            tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".jpg")
-            tmp.write(img_data)
-            tmp.close()
-            temp_path = tmp.name
-        payload = f"{uid}:{data['b']}:{temp_path}:{1 if data.get('prof') else 0}"
-        link = await bot.create_invoice_link(
-            title="VOID ASCENSION",
-            description="Divine Soul Imprint" if is_premium else "Eternal Sacrifice",
-            payload=payload,
-            currency="XTR",
-            prices=[LabeledPrice(label="Ascension Fee", amount=PRICE_PREMIUM)]
-        )
-        return {"url": link}
-    except Exception as e:
-        print("Invoice error:", e)
-        return {"error": "The Void is unreachable"}
+    uid = data['u']
+    burden_raw = data.get('b', '').strip()
+    burden_upper = burden_raw.upper()
+    if burden_raw in VIP_CODES or burden_upper in VIP_CODES:
+        VIP_CODES.discard(burden_raw)
+        VIP_CODES.discard(burden_upper)
+        save_vip_codes(VIP_CODES)
+        await send_nft(uid, burden_raw, None, is_gift=True)
+        return {"free": True}
+    temp_path = "none"
+    if data.get('p'):
+        img_data = base64.b64decode(data['p'].split(',')[1])
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".jpg")
+        tmp.write(img_data)
+        tmp.close()
+        temp_path = tmp.name
+    link = await bot.create_invoice_link(
+        title="VOID ASCENSION",
+        description="Divine Soul Imprint",
+        payload=f"{uid}:{data['b']}:{temp_path}",
+        currency="XTR",
+        prices=[LabeledPrice(label="Ascension Fee", amount=PRICE_PREMIUM)]
+    )
+    return {"url": link}
 
 @app.post("/create_stars_invoice")
 async def create_invoice_post(request: Request):
@@ -221,7 +197,6 @@ async def successful_payment(message: types.Message):
     temp_path = parts[2] if parts[2] != "none" else None
     await send_nft(uid, burden, temp_path)
 
-# --- وب‌هوک ---
 app.mount("/static", StaticFiles(directory="static"))
 
 @app.post("/webhook")
