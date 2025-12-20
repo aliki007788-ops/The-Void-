@@ -1,79 +1,131 @@
 import os
 import random
 import math
-from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageOps
+from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance, ImageOps
 
+# ۳۰ سبک کامل جهانی (با رنگ و نام)
 styles_config = {
-    'classic_ornate': {'color': '#CDA434', 'name': 'Classic Ornate'},
-    'cosmic_nebula': {'color': '#7B66FF', 'name': 'Cosmic Nebula'},
-    'gothic_seal': {'color': '#E5E4E2', 'name': 'Gothic Seal'},
-    'imperial_throne': {'color': '#FFD700', 'name': 'Imperial Throne ⚜️'},
-    'crown_eclipse': {'color': '#FF4500', 'name': 'Crown Eclipse 🌑'},
-    'sovereign_flame': {'color': '#FF8C00', 'name': 'Sovereign Flame 🔥'},
-    'emerald_dynasty': {'color': '#50C878', 'name': 'Emerald Dynasty'},
-    'obsidian_void': {'color': '#FFFFFF', 'name': 'Obsidian Void'},
+    1: {'color': '#CDA434', 'name': 'Classic Ornate'},
+    2: {'color': '#7B66FF', 'name': 'Cosmic Nebula'},
+    3: {'color': '#E5E4E2', 'name': 'Gothic Seal'},
+    4: {'color': '#FFD700', 'name': 'Imperial Throne'},
+    5: {'color': '#FF4500', 'name': 'Crown Eclipse'},
+    6: {'color': '#FF8C00', 'name': 'Sovereign Flame'},
+    7: {'color': '#50C878', 'name': 'Emerald Dynasty'},
+    8: {'color': '#FFFFFF', 'name': 'Obsidian Void'},
+    9: {'color': '#00B7EB', 'name': 'Sapphire Eternity'},
+    10: {'color': '#E0115F', 'name': 'Ruby Dominion'},
+    11: {'color': '#9966CC', 'name': 'Amethyst Mystery'},
+    12: {'color': '#E5E4E2', 'name': 'Platinum Reign'},
+    13: {'color': '#B9F2FF', 'name': 'Diamond Ascendancy'},
+    14: {'color': '#353839', 'name': 'Onyx Shadow'},
+    15: {'color': '#00FFEF', 'name': 'Aurora Crown'},
+    16: {'color': '#FFA500', 'name': 'Solar Empire'},
+    17: {'color': '#C0C0C0', 'name': 'Lunar Sovereign'},
+    18: {'color': '#8A2BE2', 'name': 'Nebula Throne'},
+    19: {'color': '#000000', 'name': 'Void Emperor'},
+    20: {'color': '#00CED1', 'name': 'Celestial Guardian'},
+    21: {'color': '#FF4500', 'name': 'Eternal Phoenix'},
+    22: {'color': '#FFD700', 'name': 'Divine Oracle'},
+    23: {'color': '#FF69B4', 'name': 'Sacred Mandala'},
+    24: {'color': '#4B0082', 'name': 'Royal Eclipse'},
+    25: {'color': '#D4AF37', 'name': 'Imperial Dragon'},
+    26: {'color': '#FFC0CB', 'name': 'Cosmic Lotus'},
+    27: {'color': '#FFD700', 'name': 'Golden Pharaoh'},
+    28: {'color': '#DC143C', 'name': 'Eternal Samurai'},
+    29: {'color': '#8B0000', 'name': 'Void Spartan'},
+    30: {'color': '#4682B4', 'name': 'Celestial Knight'},
 }
 
-def apply_royal_filter(user_img, accent_color):
-    user_img = ImageOps.autocontrast(user_img, cutoff=2)
-    overlay = Image.new('RGBA', user_img.size, accent_color)
-    return Image.blend(user_img, overlay, alpha=0.15)
+def draw_sacred_geometry(draw, w, h, gold):
+    # sacred geometry mandala در پس‌زمینه
+    center_x, center_y = w // 2, h // 2
+    for i in range(6):
+        radius = 100 + i * 60
+        draw.ellipse((center_x - radius, center_y - radius, center_x + radius, center_y + radius), outline=gold, width=2)
+        for j in range(12):
+            angle = math.radians(j * 30)
+            x1 = center_x + radius * math.cos(angle)
+            y1 = center_y + radius * math.sin(angle)
+            x2 = center_x + (radius + 40) * math.cos(angle)
+            y2 = center_y + (radius + 40) * math.sin(angle)
+            draw.line((x1, y1, x2, y2), fill=gold, width=1)
 
 def create_certificate(user_id, burden, photo_path=None):
     w, h = 1000, 1414
-    style_key = random.choice(list(styles_config.keys()))
-    conf = styles_config.get(style_key, {'color': '#CDA434', 'name': 'Divine Void'})
-    gold = conf['color']
+    style_id = random.randint(1, 30)
+    style = styles_config[style_id]
+    gold = style['color']
 
-    img = Image.new('RGB', (w, h), color='#00050A')
+    img = Image.new('RGB', (w, h), '#000000')
     draw = ImageDraw.Draw(img)
 
-    for _ in range(600):
-        x, y = random.randint(0, w), random.randint(0, h)
-        draw.point((x, y), fill=random.choice(['#FFFFFF', gold, '#444444']))
+    # پس‌زمینه کیهانی با گرادیان و ستاره
+    for _ in range(1000):
+        x = random.randint(0, w)
+        y = random.randint(0, h)
+        size = random.randint(1, 3)
+        draw.ellipse((x-size, y-size, x+size, y+size), fill=random.choice(['#FFFFFF', '#FFD700', '#AAAAFF', '#FF69B4']))
 
-    draw.rectangle([20, 20, w-20, h-20], outline=gold, width=2)
-    draw.rectangle([40, 40, w-40, h-40], outline=gold, width=8)
-    
-    if photo_path:
+    # sacred geometry
+    draw_sacred_geometry(draw, w, h, gold)
+
+    # قاب‌های چندلایه لوکس
+    for i in range(5):
+        offset = 30 + i * 20
+        width = 6 - i
+        draw.rectangle([offset, offset, w-offset, h-offset], outline=gold, width=width)
+
+    y_text = 200
+
+    if photo_path and os.path.exists(photo_path):
         try:
-            p = Image.open(photo_path).convert("RGBA")
-            p = apply_royal_filter(p, gold)
-            p = ImageOps.fit(p, (400, 400), centering=(0.5, 0.5))
-            
-            mask = Image.new('L', (400, 400), 0)
-            ImageDraw.Draw(mask).ellipse((0, 0, 400, 400), fill=255)
-            p.putalpha(mask)
+            photo = Image.open(photo_path).convert('RGBA')
+            photo = ImageEnhance.Contrast(photo).enhance(1.2)
+            photo = ImageEnhance.Brightness(photo).enhance(1.1)
+            photo = ImageOps.fit(photo, (450, 450))
 
-            glow = Image.new('RGBA', (460, 460), (0,0,0,0))
-            ImageDraw.Draw(glow).ellipse((0, 0, 460, 460), outline=gold, width=20)
-            glow = glow.filter(ImageFilter.GaussianBlur(15))
-            
-            img.paste(glow, (w//2 - 230, 320), glow)
-            img.paste(p, (w//2 - 200, 350), p)
-            draw.ellipse((w//2 - 205, 345, w//2 + 205, 755), outline=gold, width=5)
-            y_text_start = 850
-        except:
-            y_text_start = 700
+            # ماسک دایره‌ای
+            mask = Image.new('L', (450, 450), 0)
+            mask_draw = ImageDraw.Draw(mask)
+            mask_draw.ellipse((0, 0, 450, 450), fill=255)
+            photo.putalpha(mask)
+
+            # glow قوی دور عکس
+            glow = Image.new('RGBA', (550, 550), (0,0,0,0))
+            glow_draw = ImageDraw.Draw(glow)
+            for r in range(50, 0, -10):
+                glow_draw.ellipse((r, r, 550-r, 550-r), outline=gold, width=5)
+            glow = glow.filter(ImageFilter.GaussianBlur(30))
+
+            img.paste(glow, (w//2 - 275, 350), glow)
+            img.paste(photo, (w//2 - 225, 400), photo)
+
+            # حاشیه جواهرنشان دور عکس
+            draw.ellipse((w//2 - 230, 395, w//2 + 230, 905), outline=gold, width=10)
+            y_text = 950
+        except Exception as e:
+            print(e)
+            y_text = 800
     else:
-        y_text_start = 700
+        y_text = 800
 
+    # فونت‌ها
     try:
-        f_title = ImageFont.truetype("fonts/Cinzel-Bold.ttf", 70)
-        f_burden = ImageFont.truetype("fonts/Cinzel-Regular.ttf", 60)
-        f_footer = ImageFont.truetype("fonts/Cinzel-Regular.ttf", 30)
+        title_font = ImageFont.truetype("arial.ttf", 80)
+        burden_font = ImageFont.truetype("arial.ttf", 60)
+        info_font = ImageFont.truetype("arial.ttf", 35)
     except:
-        f_title = f_burden = f_footer = ImageFont.load_default()
+        title_font = burden_font = info_font = ImageFont.load_default()
 
-    draw.text((w//2, 200), "VOID ASCENSION", fill=gold, font=f_title, anchor="mm")
-    draw.text((w//2, y_text_start), f"“{burden.upper()}”", fill="#FFFFFF", font=f_burden, anchor="mm")
-    
-    draw.line((300, y_text_start + 80, 700, y_text_start + 80), fill=gold, width=2)
-    
-    draw.text((w//2, y_text_start + 150), "ETERNALLY ENSHRINED IN THE VOID", fill=gold, font=f_footer, anchor="mm")
-    draw.text((w//2, h - 150), f"STYLE: {conf['name']} | HOLDER: {user_id}", fill=gold, font=f_footer, anchor="mm")
-    draw.text((w//2, h - 100), "ERA: 2025.VO-ID", fill="#555555", font=f_footer, anchor="mm")
+    # متون اصلی
+    draw.text((w//2, y_text - 200), "VOID ASCENSION CERTIFICATE", fill=gold, font=title_font, anchor="mm")
+    draw.text((w//2, y_text), f"“{burden.upper()}”", fill="#FFFFFF", font=burden_font, anchor="mm")
+    draw.text((w//2, y_text + 100), "HAS BEEN CONSUMED BY THE ETERNAL VOID", fill=gold, font=info_font, anchor="mm")
+    draw.text((w//2, h - 200), f"Style: {style['name']}", fill=gold, font=info_font, anchor="mm")
+    draw.text((w//2, h - 140), f"Holder ID: {user_id}", fill=gold, font=info_font, anchor="mm")
+    draw.text((w//2, h - 80), "Timestamp: 2025.VO-ID", fill="#888888", font=info_font, anchor="mm")
 
-    path = f"nft_{user_id}_{random.randint(1000,9999)}.png"
+    path = f"void_cert_{user_id}_{random.randint(10000,99999)}.png"
     img.save(path, "PNG", quality=95)
-    return path, conf['name']
+    return path, style['name']
