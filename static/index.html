@@ -3,133 +3,120 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>THE VOID - Divine Ascension</title>
+    <title>THE VOID - Genesis</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Noto+Sans+JP&family=Amiri&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Orbitron:wght@400;900&display=swap');
         
-        :root { --gold: #FFD700; --gold-glow: rgba(255, 215, 0, 0.4); --glass: rgba(255, 255, 255, 0.03); }
+        :root { 
+            --gold: #FFD700; 
+            --cyan: #00f2ff; 
+            --glass: rgba(255, 255, 255, 0.05);
+        }
         
-        body, html { margin: 0; padding: 0; height: 100%; background: #000; color: var(--gold); font-family: 'Cinzel', serif; overflow-x: hidden; }
-        canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+        body, html { margin: 0; padding: 0; background: #000; color: #fff; font-family: 'Cinzel', serif; overflow-x: hidden; scroll-behavior: smooth; }
+        canvas { position: fixed; top: 0; left: 0; z-index: 1; pointer-events: none; }
         
-        .stage { position: relative; z-index: 10; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; transition: 1s; }
+        .stage { position: relative; z-index: 10; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; transition: 1.5s; }
         
-        /* Language Selector Bottom Left Dropdown */
-        .lang-container { position: fixed; bottom: 20px; left: 20px; z-index: 100; }
-        #langSelect { background: rgba(0,0,0,0.7); border: 1px solid var(--gold); color: var(--gold); padding: 5px; border-radius: 5px; cursor: pointer; font-family: inherit; outline: none; }
+        /* 3D Rotating Star */
+        .star-3d {
+            display: inline-block; width: 20px; height: 20px;
+            background: var(--cyan); clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+            box-shadow: 0 0 15px var(--cyan);
+            animation: rotateY 3s linear infinite;
+            transform-style: preserve-3d; vertical-align: middle; margin: 0 5px;
+        }
+        @keyframes rotateY { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
 
-        .main-title { font-size: 3rem; letter-spacing: 15px; margin-top: 20vh; text-shadow: 0 0 20px var(--gold-glow); transition: 1s; }
-        input[type="text"] { background: transparent; border: none; border-bottom: 2px solid #333; color: var(--gold); font-size: 1.2rem; text-align: center; width: 80%; padding: 15px; margin: 40px 0; outline: none; transition: 0.3s; }
-        input[type="text"]:focus { border-bottom-color: var(--gold); box-shadow: 0 5px 15px -5px var(--gold-glow); }
-
-        /* Buttons Style */
-        .btn { background: transparent; border: 1px solid var(--gold); color: var(--gold); padding: 15px 40px; font-size: 1rem; cursor: pointer; transition: 0.4s; text-transform: uppercase; letter-spacing: 3px; position: relative; overflow: hidden; box-shadow: 0 0 5px rgba(255,215,0,0.1); }
-        .btn:hover { background: var(--gold); color: #000; box-shadow: 0 0 20px var(--gold); transform: translateY(-2px); }
+        /* Buttons & Hover Effects */
+        .btn { 
+            background: transparent; border: 1px solid var(--gold); color: var(--gold); 
+            padding: 15px 30px; cursor: pointer; transition: 0.4s; text-transform: uppercase; 
+            letter-spacing: 2px; position: relative; box-shadow: 0 0 10px rgba(255,215,0,0.2);
+            font-family: 'Orbitron', sans-serif;
+        }
+        .btn:hover { box-shadow: 0 0 25px var(--gold); transform: scale(1.05); background: rgba(255,215,0,0.1); }
         
-        /* King's Luck Special Button */
-        .btn-luck { border: 2px solid var(--gold); animation: pulse-gold 2s infinite; font-weight: bold; background: rgba(255,215,0,0.05); }
+        .btn-luck { 
+            border: 2px solid var(--gold); color: #fff; background: linear-gradient(45deg, #000, #222);
+            animation: pulse-gold 1.5s infinite; font-weight: 900;
+        }
         @keyframes pulse-gold { 
-            0% { box-shadow: 0 0 5px var(--gold); } 
-            50% { box-shadow: 0 0 25px var(--gold); } 
-            100% { box-shadow: 0 0 5px var(--gold); } 
+            0%, 100% { box-shadow: 0 0 5px var(--gold); border-color: var(--gold); } 
+            50% { box-shadow: 0 0 30px var(--gold); border-color: #fff; } 
         }
 
-        /* Glass Tabs System */
-        .plans-container { display: flex; flex-direction: column; gap: 15px; width: 100%; max-width: 400px; margin-top: 30px; }
-        .plan-card { background: var(--glass); backdrop-filter: blur(10px); border: 1px solid transparent; padding: 20px; border-radius: 15px; cursor: pointer; transition: 0.4s; }
+        /* Glass Tabs */
+        .plan-card { 
+            background: var(--glass); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.1);
+            padding: 25px; border-radius: 20px; width: 90%; max-width: 400px; margin: 15px 0;
+            transition: 0.5s; cursor: pointer;
+        }
         .plan-card.active { border-color: var(--gold); background: rgba(255,215,0,0.05); }
-        .plan-content { display: none; margin-top: 15px; flex-direction: column; align-items: center; }
-        .plan-card.active .plan-content { display: flex; }
+        .preview-circle { width: 150px; height: 150px; border-radius: 50%; border: 3px solid var(--gold); margin: 15px auto; display: none; object-fit: cover; }
 
-        /* Image Preview */
-        .preview-circle { width: 120px; height: 120px; border-radius: 50%; border: 3px solid var(--gold); object-fit: cover; margin: 15px 0; display: none; box-shadow: 0 0 20px var(--gold-glow); }
+        /* Hall of Fame Grid */
+        .fame-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; margin-top: 20px; }
+        .fame-item { aspect-ratio: 1; border-radius: 10px; overflow: hidden; border: 1px solid #333; cursor: pointer; transition: 0.3s; }
+        .fame-item:hover { transform: scale(1.1); border-color: var(--gold); z-index: 20; }
+        .fame-item img { width: 100%; height: 100%; object-fit: cover; }
 
-        #step2, .features-scroll { display: none; opacity: 0; width: 100%; }
-        .features-scroll { margin-top: 100px; padding-bottom: 50px; }
-        .feature-box { background: var(--glass); padding: 30px; margin: 20px 0; border-radius: 15px; border-left: 4px solid var(--gold); }
+        /* Lang Dropdown */
+        .lang-box { position: fixed; bottom: 20px; left: 20px; z-index: 100; }
+        #langSelect { background: #000; color: var(--gold); border: 1px solid var(--gold); padding: 8px; border-radius: 5px; cursor: pointer; }
+
+        #step2, #hall-of-fame-page, #user-panel { display: none; opacity: 0; }
     </style>
 </head>
 <body>
-    <div class="lang-container">
+    <div class="lang-box">
         <select id="langSelect" onchange="changeLang(this.value)">
             <option value="en">English</option>
             <option value="fa">فارسی</option>
             <option value="ru">Русский</option>
-            <option value="ar">العربية</option>
-            <option value="es">Español</option>
-            <option value="fr">Français</option>
             <option value="zh">中文</option>
         </select>
     </div>
-    <canvas id="canvas"></canvas>
+    <canvas id="mainCanvas"></canvas>
 
     <div id="step1" class="stage">
-        <h1 class="main-title" id="t-title">THE VOID</h1>
-        <input type="text" id="sacrifice" placeholder="WHAT DO YOU SACRIFICE?" maxlength="50">
-        <button class="btn" onclick="triggerExplosion()" id="t-btn-ascend">ASCEND</button>
+        <h1 class="main-title" id="t-title" style="font-size: 3.5rem; letter-spacing: 20px; margin-top: 20vh;">THE VOID</h1>
+        <input type="text" id="sacrifice" placeholder="WHAT DO YOU SACRIFICE?" 
+               style="background:transparent; border:none; border-bottom:2px solid #333; color:var(--gold); font-size:1.5rem; text-align:center; width:80%; margin:50px 0; outline:none;">
+        <button class="btn" onclick="triggerSequence()" id="t-btn-ascend">ASCEND</button>
     </div>
 
     <div id="step2" class="stage">
-        <h2 id="t-title2" style="letter-spacing: 8px;">DIVINE SELECTION</h2>
+        <h2 id="reform-target" style="opacity:0; height: 100px;">DIVINE SELECTION</h2>
         
-        <div class="plans-container">
-            <div class="plan-card active" onclick="selectPlan('free', this)">
-                <div style="display:flex; justify-content:space-between;">
-                    <span id="t-p1-name">VAGABOND</span>
-                    <span id="t-free">FREE (3 LEFT)</span>
-                </div>
-                <div class="plan-content">
-                    <p id="t-p1-desc" style="font-size:0.8rem; opacity:0.7;">Basic digital soul imprint.</p>
-                </div>
-            </div>
-
-            <div class="plan-card" onclick="selectPlan('rare', this)">
-                <div style="display:flex; justify-content:space-between;">
-                    <span id="t-p2-name">IMPERIAL</span>
-                    <span>120 ⭐</span>
-                </div>
-                <div class="plan-content">
-                    <label class="btn" style="font-size: 0.7rem;">
-                        <span id="t-upload">UPLOAD SOUL IMAGE</span>
-                        <input type="file" hidden onchange="handleFile(this)">
-                    </label>
-                    <img class="preview-circle" id="prev-rare">
-                </div>
-            </div>
-
-            <div class="plan-card" onclick="selectPlan('legendary', this)">
-                <div style="display:flex; justify-content:space-between;">
-                    <span id="t-p3-name">ETERNAL</span>
-                    <span>299 ⭐</span>
-                </div>
-                <div class="plan-content">
-                    <label class="btn" style="font-size: 0.7rem;">
-                        <span id="t-upload2">UPLOAD SOUL IMAGE</span>
-                        <input type="file" hidden onchange="handleFile(this)">
-                    </label>
-                    <img class="preview-circle" id="prev-legend">
-                </div>
-            </div>
+        <div class="plan-card active" onclick="setPlan('free', this)">
+            <h3>VAGABOND <span style="float:right">FREE</span></h3>
+            <p id="t-limit">Limit: 3 Souls</p>
         </div>
 
-        <button class="btn btn-luck" style="margin-top: 30px; width: 100%; max-width: 400px;" onclick="tryLuck()" id="t-btn-luck">KING'S LUCK (30 ⭐)</button>
-        <button class="btn" style="margin-top: 20px; width: 100%; max-width: 400px;" id="payBtn" onclick="mint()">MINT CERTIFICATE</button>
+        <div class="plan-card" onclick="setPlan('rare', this)">
+            <h3>IMPERIAL <span style="float:right">120 <div class="star-3d"></div></span></h3>
+            <input type="file" onchange="preview(this)" hidden id="file-rare">
+            <button class="btn" onclick="document.getElementById('file-rare').click()" style="font-size:0.7rem">UPLOAD IMAGE</button>
+            <img class="preview-circle" id="pre-rare">
+        </div>
 
-        <div class="features-scroll" id="features">
-            <div class="feature-box">
-                <h3 id="t-f1-t">REFERRAL PROGRAM</h3>
-                <p id="t-f1-d">Invite 3 lost souls to get 50% discount on all Divine Plans.</p>
-                <button class="btn" style="font-size: 0.6rem;" onclick="copyRef()">COPY LINK</button>
-            </div>
-            <div class="feature-box">
-                <h3 id="t-f2-t">HALL OF FAME</h3>
-                <p id="t-f2-d">The most expensive sacrifices are etched in the Void's history forever.</p>
-            </div>
-            <div class="feature-box">
-                <h3 id="t-f3-t">NFT GENESIS</h3>
-                <p id="t-f3-d">All certificates are unique assets ready for the TON ecosystem.</p>
-            </div>
+        <div class="plan-card" onclick="setPlan('legendary', this)">
+            <h3>ETERNAL <span style="float:right">299 <div class="star-3d"></div></span></h3>
+            <input type="file" onchange="preview(this)" hidden id="file-legend">
+            <button class="btn" onclick="document.getElementById('file-legend').click()" style="font-size:0.7rem">UPLOAD IMAGE</button>
+            <img class="preview-circle" id="pre-legend">
+        </div>
+
+        <button class="btn btn-luck" onclick="tryLuck()">KING'S LUCK (30 <div class="star-3d"></div>)</button>
+        <button class="btn" style="margin-top:20px; width:100%" onclick="mint()">MINT SOUL</button>
+
+        <div style="margin-top: 50px; width: 100%; text-align: center;">
+            <button class="btn" onclick="showPanel()">USER PANEL / REFERRALS</button>
+            <div id="hall-mini" class="fame-grid">
+                </div>
+            <button class="btn" onclick="showHallOfFame()" style="margin-top:15px; border:none">VIEW FULL HALL OF FAME</button>
         </div>
     </div>
 
@@ -137,92 +124,110 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        const i18n = {
-            en: { title: "THE VOID", sacrifice: "WHAT DO YOU SACRIFICE?", ascend: "ASCEND", title2: "DIVINE SELECTION", free: "FREE", luck: "KING'S LUCK (30 ⭐)", upload: "UPLOAD IMAGE" },
-            fa: { title: "خلأ ابدی", sacrifice: "چه چیزی را فدا می‌کنی؟", ascend: "صعود روح", title2: "انتخاب الهی", free: "رایگان", luck: "شانس پادشاه (۳۰ ⭐)", upload: "بارگذاری تصویر" }
-            // سایر زبان‌ها در فایل نهایی اعمال شده‌اند...
-        };
+        let canvas = document.getElementById('mainCanvas'), ctx = canvas.getContext('2d');
+        let particles = [], state = 'idle', targetPoints = [];
+        let currentPlan = 'free', userImgBase64 = null;
 
-        let currentPlan = 'free';
-        let userPhoto = null;
-
-        // --- Explosion & Particle System ---
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        let particles = [], stars = [];
-        
         function init() {
             canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-            for(let i=0; i<100; i++) stars.push({x:Math.random()*canvas.width, y:Math.random()*canvas.height, s:Math.random()});
         }
         window.onresize = init; init();
 
-        function draw() {
-            ctx.fillStyle = 'black'; ctx.fillRect(0,0,canvas.width,canvas.height);
-            stars.forEach(s => { ctx.fillStyle='white'; ctx.beginPath(); ctx.arc(s.x,s.y,s.s,0,Math.PI*2); ctx.fill(); });
-            
-            particles.forEach((p, i) => {
-                p.x += p.vx; p.y += p.vy; p.alpha -= 0.01;
-                ctx.globalAlpha = p.alpha;
-                ctx.fillStyle = varColor();
-                ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
-                if(p.alpha <= 0) particles.splice(i, 1);
-            });
-            ctx.globalAlpha = 1;
-            requestAnimationFrame(draw);
-        }
-        function varColor() { return Math.random() > 0.5 ? '#FFD700' : '#FFF'; }
-        draw();
-
-        function triggerExplosion() {
-            if(!document.getElementById('sacrifice').value) return tg.showAlert("The Void requires a name.");
-            
-            const rect = document.getElementById('t-btn-ascend').getBoundingClientRect();
-            for(let i=0; i<150; i++) {
-                particles.push({
-                    x: rect.left + rect.width/2, y: rect.top + rect.height/2,
-                    vx: (Math.random()-0.5)*20, vy: (Math.random()-0.5)*20,
-                    size: Math.random()*4, alpha: 1
-                });
+        // --- Particle Engine ---
+        class Particle {
+            constructor(x, y) {
+                this.x = x; this.y = y;
+                this.originX = x; this.originY = y;
+                this.vx = (Math.random()-0.5)*25; this.vy = (Math.random()-0.5)*25;
+                this.targetX = null; this.targetY = null;
+                this.size = Math.random()*3; this.color = Math.random() > 0.5 ? '#FFD700' : '#00f2ff';
+                this.friction = 0.95; this.ease = 0.1;
             }
+            update() {
+                if(state === 'exploding') {
+                    this.x += this.vx; this.y += this.vy;
+                    this.vx *= this.friction; this.vy *= this.friction;
+                } else if(state === 'reforming' && this.targetX) {
+                    this.x += (this.targetX - this.x) * this.ease;
+                    this.y += (this.targetY - this.y) * this.ease;
+                }
+            }
+            draw() {
+                ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2); ctx.fill();
+            }
+        }
+
+        function getTextPoints(text) {
+            const tempCtx = document.createElement('canvas').getContext('2d');
+            tempCtx.canvas.width = canvas.width; tempCtx.canvas.height = 200;
+            tempCtx.font = "900 40px Orbitron";
+            tempCtx.fillStyle = "white";
+            tempCtx.textAlign = "center";
+            tempCtx.fillText(text, canvas.width/2, 100);
+            const data = tempCtx.getImageData(0,0, canvas.width, 200).data;
+            let points = [];
+            for(let y=0; y<200; y+=4) {
+                for(let x=0; x<canvas.width; x+=4) {
+                    if(data[(y*canvas.width + x)*4 + 3] > 128) points.push({x, y: y + 50});
+                }
+            }
+            return points;
+        }
+
+        function triggerSequence() {
+            if(!document.getElementById('sacrifice').value) return tg.showAlert("Offer a sacrifice!");
+            state = 'exploding';
+            for(let i=0; i<600; i++) particles.push(new Particle(canvas.width/2, canvas.height/2));
             
-            tg.HapticFeedback.impactOccurred('heavy');
             document.getElementById('step1').style.opacity = 0;
-            
             setTimeout(() => {
                 document.getElementById('step1').style.display = 'none';
-                const s2 = document.getElementById('step2');
-                s2.style.display = 'flex';
-                document.getElementById('features').style.display = 'block';
-                setTimeout(() => { s2.style.opacity = 1; document.getElementById('features').style.opacity = 1; }, 50);
+                document.getElementById('step2').style.display = 'flex';
+                const pts = getTextPoints("DIVINE SELECTION");
+                particles.forEach((p, i) => {
+                    const target = pts[i % pts.length];
+                    p.targetX = target.x; p.targetY = target.y;
+                });
+                state = 'reforming';
+                setTimeout(() => { document.getElementById('step2').style.opacity = 1; }, 500);
             }, 1000);
         }
 
-        function selectPlan(plan, el) {
-            currentPlan = plan;
+        function animate() {
+            ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        // --- Logic Functions ---
+        function setPlan(p, el) {
+            currentPlan = p;
             document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('active'));
             el.classList.add('active');
             tg.HapticFeedback.selectionChanged();
         }
 
-        function handleFile(input) {
+        function preview(input) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
                 reader.onload = e => {
-                    userPhoto = e.target.result;
+                    userImgBase64 = e.target.result;
                     const previews = document.querySelectorAll('.preview-circle');
-                    previews.forEach(p => { p.src = userPhoto; p.style.display = 'block'; });
+                    previews.forEach(p => { p.src = userImgBase64; p.style.display = 'block'; });
                 };
                 reader.readAsDataURL(input.files[0]);
             }
         }
 
-        function changeLang(l) {
-            if(i18n[l]) {
-                document.getElementById('t-title').innerText = i18n[l].title;
-                document.getElementById('sacrifice').placeholder = i18n[l].sacrifice;
-                // سایر متون به همین ترتیب...
-            }
+        async function tryLuck() {
+            const res = await fetch('/create_stars_invoice', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ u: tg.initDataUnsafe.user?.id, b: "KING'S LUCK", type: 'luck' })
+            });
+            const data = await res.json();
+            if(data.url) tg.openInvoice(data.url, s => { if(s==='paid') tg.showAlert("Fortune favors you!"); });
         }
 
         async function mint() {
@@ -232,11 +237,18 @@
                 body: JSON.stringify({ 
                     u: tg.initDataUnsafe.user?.id, 
                     b: document.getElementById('sacrifice').value,
-                    p: userPhoto, rank: currentPlan 
+                    p: userImgBase64, rank: currentPlan 
                 })
             });
             const data = await res.json();
             if(data.url) tg.openInvoice(data.url, s => { if(s==='paid') tg.close(); });
+            else if(data.free) tg.showAlert("Ascended!");
+        }
+
+        function copyRef() {
+            const link = `https://t.me/livevoidbot?start=ref_${tg.initDataUnsafe.user?.id}`;
+            navigator.clipboard.writeText(link);
+            tg.showAlert("Referral link copied! Invite 3 for 50% off.");
         }
     </script>
 </body>
