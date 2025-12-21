@@ -9,52 +9,47 @@ app = FastAPI()
 bot = Bot(token=os.getenv("BOT_TOKEN"))
 dp = Dispatcher()
 
-# دیتابیس ساده برای ذخیره رفرال‌ها و تعداد استفاده
-DB_FILE = "database.json"
-def get_db():
-    if not os.path.exists(DB_FILE): return {"users": {}, "hall": []}
-    return json.load(open(DB_FILE))
-
-def save_db(db): json.dump(db, open(DB_FILE, 'w'))
+# قیمت‌ها بر اساس ستاره تلگرام
+PRICES = {
+    "vagabond": 0,
+    "divine": 99,
+    "celestial": 299,
+    "legendary": 499,
+    "luck": 30
+}
 
 @app.post("/create_stars_invoice")
 async def create_invoice(request: Request):
     data = await request.json()
-    uid, burden, rank = str(data['u']), data['b'], data.get('rank', 'free')
-    
-    if rank == 'free':
-        db = get_db()
-        user_data = db['users'].get(uid, {"mints": 0})
-        if user_data['mints'] >= 3: return {"error": "Limit Reached"}
-        
-        path = create_certificate(uid, burden, None, 'free')
-        user_data['mints'] += 1
-        db['users'][uid] = user_data
-        db['hall'].insert(0, path)
-        save_db(db)
-        await bot.send_document(uid, FSInputFile(path), caption="Your free soul certificate.")
+    uid, rank, burden = str(data['u']), data['rank'], data['b']
+    price = PRICES.get(rank, 0)
+
+    if price == 0:
+        path = create_certificate(uid, burden, None, 'vagabond')
+        await bot.send_document(uid, FSInputFile(path), caption=f"Void Identity: {burden}")
         return {"free": True}
 
-    # قیمت‌گذاری پلن‌ها
-    price = 30 if data.get('type') == 'luck' else (120 if rank == 'rare' else 299)
-    
+    # ایجاد فاکتور پرداخت ستاره
     link = await bot.create_invoice_link(
-        title=f"THE VOID: {rank.upper()}",
-        description=f"AI-Generated img2img Soul Certificate",
-        payload=f"{uid}:{burden}:{rank}:{data.get('p', 'none')[:100]}", # نمونه اولیه
+        title=f"ASCENSION: {rank.upper()}",
+        description=f"AI-Generated {rank} rank NFT Certificate.",
+        payload=f"{uid}:{burden}:{rank}:{data.get('p', 'none')[:50]}",
         currency="XTR",
         prices=[LabeledPrice(label="Stars", amount=price)]
     )
     return {"url": link}
 
-@dp.message(F.successful_payment)
-async def success_pay(message: types.Message):
-    # توجه: در اینجا عکس کامل باید از دیتابیس موقت بازیابی شود
-    payload = message.successful_payment.invoice_payload.split(":")
-    uid, burden, rank = payload[0], payload[1], payload[2]
-    
-    # تولید تصویر با هوش مصنوعی Stable Diffusion
-    path = create_certificate(uid, burden, None, rank) # در نسخه نهایی عکس از کش خوانده شود
-    await bot.send_document(uid, FSInputFile(path), caption="🔱 Ascension Successful.")
+# بخش ۱۵: تالار افتخارات و مزایده
+@app.post("/list_for_auction")
+async def list_auction(request: Request):
+    data = await request.json()
+    # در اینجا تصویر به دیتابیس مزایده اضافه می‌شود
+    return {"status": "Listed on Auction House"}
+
+@app.get("/get_hall_of_fame")
+async def get_hall():
+    # بازگرداندن ۱۰ تصویر آخر ساخته شده
+    files = os.listdir("static/outputs")[-10:]
+    return {"images": [f"/static/outputs/{f}" for f in files]}
 
 app.mount("/static", StaticFiles(directory="static"))
