@@ -7,186 +7,151 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Orbitron:wght@400;900&display=swap');
-        
-        :root { 
-            --gold: #FFD700; 
-            --cyan: #00f2ff; 
-            --glass: rgba(255, 255, 255, 0.05);
-        }
-        
+        :root { --gold: #FFD700; --cyan: #00f2ff; --glass: rgba(255, 255, 255, 0.05); }
         body, html { margin: 0; padding: 0; background: #000; color: #fff; font-family: 'Cinzel', serif; overflow-x: hidden; scroll-behavior: smooth; }
         canvas { position: fixed; top: 0; left: 0; z-index: 1; pointer-events: none; }
-        
         .stage { position: relative; z-index: 10; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; transition: 1.5s; }
-        
-        /* 3D Rotating Star */
+
+        /* 3D Rotating Star - Cyan & Glowing */
         .star-3d {
-            display: inline-block; width: 20px; height: 20px;
+            display: inline-block; width: 18px; height: 18px;
             background: var(--cyan); clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-            box-shadow: 0 0 15px var(--cyan);
-            animation: rotateY 3s linear infinite;
-            transform-style: preserve-3d; vertical-align: middle; margin: 0 5px;
+            box-shadow: 0 0 15px var(--cyan); animation: rotateY 3s linear infinite; transform-style: preserve-3d; vertical-align: middle; margin: 0 8px;
         }
         @keyframes rotateY { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
 
-        /* Buttons & Hover Effects */
+        /* Buttons with Gold Hover & Shadows */
         .btn { 
-            background: transparent; border: 1px solid var(--gold); color: var(--gold); 
-            padding: 15px 30px; cursor: pointer; transition: 0.4s; text-transform: uppercase; 
-            letter-spacing: 2px; position: relative; box-shadow: 0 0 10px rgba(255,215,0,0.2);
-            font-family: 'Orbitron', sans-serif;
+            background: transparent; border: 1px solid var(--gold); color: var(--gold); padding: 15px 30px; cursor: pointer; transition: 0.4s; 
+            text-transform: uppercase; letter-spacing: 2px; font-family: 'Orbitron', sans-serif; box-shadow: 0 0 10px rgba(255,215,0,0.2);
         }
-        .btn:hover { box-shadow: 0 0 25px var(--gold); transform: scale(1.05); background: rgba(255,215,0,0.1); }
+        .btn:hover { box-shadow: 0 0 30px var(--gold); transform: scale(1.05); background: rgba(255,215,0,0.1); }
         
         .btn-luck { 
-            border: 2px solid var(--gold); color: #fff; background: linear-gradient(45deg, #000, #222);
-            animation: pulse-gold 1.5s infinite; font-weight: 900;
+            border: 2px solid var(--gold); animation: pulse-gold 1.5s infinite; font-weight: 900; background: linear-gradient(45deg, #000, #1a1a1a);
         }
-        @keyframes pulse-gold { 
-            0%, 100% { box-shadow: 0 0 5px var(--gold); border-color: var(--gold); } 
-            50% { box-shadow: 0 0 30px var(--gold); border-color: #fff; } 
-        }
+        @keyframes pulse-gold { 0%, 100% { box-shadow: 0 0 5px var(--gold); } 50% { box-shadow: 0 0 35px var(--gold); } }
 
-        /* Glass Tabs */
+        /* Glass Tabs - Invisible until content is shown */
         .plan-card { 
-            background: var(--glass); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.1);
-            padding: 25px; border-radius: 20px; width: 90%; max-width: 400px; margin: 15px 0;
-            transition: 0.5s; cursor: pointer;
+            background: var(--glass); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.05); padding: 25px; border-radius: 20px; width: 90%; max-width: 400px; margin: 12px 0; transition: 0.5s; cursor: pointer;
         }
         .plan-card.active { border-color: var(--gold); background: rgba(255,215,0,0.05); }
-        .preview-circle { width: 150px; height: 150px; border-radius: 50%; border: 3px solid var(--gold); margin: 15px auto; display: none; object-fit: cover; }
+        .preview-circle { width: 140px; height: 140px; border-radius: 50%; border: 3px solid var(--gold); margin: 15px auto; display: none; object-fit: cover; box-shadow: 0 0 20px var(--gold); }
 
-        /* Hall of Fame Grid */
-        .fame-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; margin-top: 20px; }
-        .fame-item { aspect-ratio: 1; border-radius: 10px; overflow: hidden; border: 1px solid #333; cursor: pointer; transition: 0.3s; }
-        .fame-item:hover { transform: scale(1.1); border-color: var(--gold); z-index: 20; }
-        .fame-item img { width: 100%; height: 100%; object-fit: cover; }
-
-        /* Lang Dropdown */
         .lang-box { position: fixed; bottom: 20px; left: 20px; z-index: 100; }
-        #langSelect { background: #000; color: var(--gold); border: 1px solid var(--gold); padding: 8px; border-radius: 5px; cursor: pointer; }
+        #langSelect { background: #000; color: var(--gold); border: 1px solid var(--gold); padding: 8px; border-radius: 5px; cursor: pointer; font-family: inherit; }
 
-        #step2, #hall-of-fame-page, #user-panel { display: none; opacity: 0; }
+        #step2, #hall-of-fame, #user-panel { display: none; opacity: 0; }
     </style>
 </head>
 <body>
     <div class="lang-box">
         <select id="langSelect" onchange="changeLang(this.value)">
-            <option value="en">English</option>
-            <option value="fa">فارسی</option>
-            <option value="ru">Русский</option>
-            <option value="zh">中文</option>
+            <option value="en">English</option><option value="fa">فارسی</option>
+            <option value="ru">Русский</option><option value="es">Español</option>
+            <option value="ar">العربية</option><option value="fr">Français</option><option value="zh">中文</option>
         </select>
     </div>
     <canvas id="mainCanvas"></canvas>
 
     <div id="step1" class="stage">
-        <h1 class="main-title" id="t-title" style="font-size: 3.5rem; letter-spacing: 20px; margin-top: 20vh;">THE VOID</h1>
-        <input type="text" id="sacrifice" placeholder="WHAT DO YOU SACRIFICE?" 
-               style="background:transparent; border:none; border-bottom:2px solid #333; color:var(--gold); font-size:1.5rem; text-align:center; width:80%; margin:50px 0; outline:none;">
+        <h1 class="main-title" id="t-title" style="font-size: 3rem; letter-spacing: 20px; margin-top: 15vh;">THE VOID</h1>
+        <input type="text" id="sacrifice" placeholder="WHAT DO YOU SACRIFICE?" maxlength="50" style="background:transparent; border:none; border-bottom:2px solid #333; color:var(--gold); font-size:1.4rem; text-align:center; width:85%; margin:60px 0; outline:none;">
         <button class="btn" onclick="triggerSequence()" id="t-btn-ascend">ASCEND</button>
     </div>
 
     <div id="step2" class="stage">
-        <h2 id="reform-target" style="opacity:0; height: 100px;">DIVINE SELECTION</h2>
+        <div id="reforming-text-area" style="height: 100px;"></div>
         
         <div class="plan-card active" onclick="setPlan('free', this)">
             <h3>VAGABOND <span style="float:right">FREE</span></h3>
-            <p id="t-limit">Limit: 3 Souls</p>
+            <p style="font-size:0.8rem; opacity:0.6;">Limit: 3/3 Souls</p>
         </div>
 
         <div class="plan-card" onclick="setPlan('rare', this)">
             <h3>IMPERIAL <span style="float:right">120 <div class="star-3d"></div></span></h3>
-            <input type="file" onchange="preview(this)" hidden id="file-rare">
-            <button class="btn" onclick="document.getElementById('file-rare').click()" style="font-size:0.7rem">UPLOAD IMAGE</button>
-            <img class="preview-circle" id="pre-rare">
+            <div class="upload-area">
+                <input type="file" id="file-rare" hidden onchange="preview(this)">
+                <button class="btn" onclick="document.getElementById('file-rare').click()" style="font-size:0.7rem; width:100%">UPLOAD SOUL IMAGE</button>
+                <img class="preview-circle" id="pre-rare">
+            </div>
         </div>
 
         <div class="plan-card" onclick="setPlan('legendary', this)">
             <h3>ETERNAL <span style="float:right">299 <div class="star-3d"></div></span></h3>
-            <input type="file" onchange="preview(this)" hidden id="file-legend">
-            <button class="btn" onclick="document.getElementById('file-legend').click()" style="font-size:0.7rem">UPLOAD IMAGE</button>
-            <img class="preview-circle" id="pre-legend">
+            <div class="upload-area">
+                <input type="file" id="file-legend" hidden onchange="preview(this)">
+                <button class="btn" onclick="document.getElementById('file-legend').click()" style="font-size:0.7rem; width:100%">UPLOAD SOUL IMAGE</button>
+                <img class="preview-circle" id="pre-legend">
+            </div>
         </div>
 
-        <button class="btn btn-luck" onclick="tryLuck()">KING'S LUCK (30 <div class="star-3d"></div>)</button>
-        <button class="btn" style="margin-top:20px; width:100%" onclick="mint()">MINT SOUL</button>
+        <button class="btn btn-luck" id="t-btn-luck" onclick="tryLuck()" style="width:100%; max-width:400px; margin-top:20px;">KING'S LUCK (30 <div class="star-3d"></div>)</button>
+        <button class="btn" style="margin-top:25px; width:100%; max-width:400px;" onclick="mint()">MINT DIVINE NFT</button>
 
-        <div style="margin-top: 50px; width: 100%; text-align: center;">
-            <button class="btn" onclick="showPanel()">USER PANEL / REFERRALS</button>
-            <div id="hall-mini" class="fame-grid">
-                </div>
-            <button class="btn" onclick="showHallOfFame()" style="margin-top:15px; border:none">VIEW FULL HALL OF FAME</button>
+        <div style="margin-top: 60px; text-align: center; width: 100%;">
+            <button class="btn" onclick="copyRef()">COPY REFERRAL LINK</button>
+            <p id="ref-count" style="font-size:0.8rem; color:var(--cyan); margin-top:10px;">Friends Invited: 0</p>
+            <button class="btn" style="border:none; color:#555;" onclick="togglePanel()">ENTER USER PANEL</button>
         </div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
-
         let canvas = document.getElementById('mainCanvas'), ctx = canvas.getContext('2d');
-        let particles = [], state = 'idle', targetPoints = [];
-        let currentPlan = 'free', userImgBase64 = null;
+        let particles = [], state = 'idle', currentPlan = 'free', userImg = null;
 
-        function init() {
-            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-        }
+        function init() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
         window.onresize = init; init();
 
-        // --- Particle Engine ---
         class Particle {
             constructor(x, y) {
-                this.x = x; this.y = y;
-                this.originX = x; this.originY = y;
-                this.vx = (Math.random()-0.5)*25; this.vy = (Math.random()-0.5)*25;
-                this.targetX = null; this.targetY = null;
+                this.x = x; this.y = y; this.vx = (Math.random()-0.5)*30; this.vy = (Math.random()-0.5)*30;
                 this.size = Math.random()*3; this.color = Math.random() > 0.5 ? '#FFD700' : '#00f2ff';
-                this.friction = 0.95; this.ease = 0.1;
+                this.targetX = null; this.targetY = null; this.alpha = 1;
             }
             update() {
-                if(state === 'exploding') {
-                    this.x += this.vx; this.y += this.vy;
-                    this.vx *= this.friction; this.vy *= this.friction;
-                } else if(state === 'reforming' && this.targetX) {
-                    this.x += (this.targetX - this.x) * this.ease;
-                    this.y += (this.targetY - this.y) * this.ease;
+                if(state === 'exploding') { this.x += this.vx; this.y += this.vy; this.vx *= 0.96; this.vy *= 0.96; }
+                else if(state === 'reforming' && this.targetX) {
+                    this.x += (this.targetX - this.x) * 0.1;
+                    this.y += (this.targetY - this.y) * 0.1;
                 }
             }
-            draw() {
-                ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2); ctx.fill();
-            }
+            draw() { ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2); ctx.fill(); }
         }
 
         function getTextPoints(text) {
-            const tempCtx = document.createElement('canvas').getContext('2d');
-            tempCtx.canvas.width = canvas.width; tempCtx.canvas.height = 200;
-            tempCtx.font = "900 40px Orbitron";
-            tempCtx.fillStyle = "white";
-            tempCtx.textAlign = "center";
-            tempCtx.fillText(text, canvas.width/2, 100);
-            const data = tempCtx.getImageData(0,0, canvas.width, 200).data;
-            let points = [];
+            const tCanvas = document.createElement('canvas');
+            const tCtx = tCanvas.getContext('2d');
+            tCanvas.width = canvas.width; tCanvas.height = 200;
+            tCtx.font = "900 35px Orbitron"; tCtx.fillStyle = "white"; tCtx.textAlign = "center";
+            tCtx.fillText(text, canvas.width/2, 100);
+            const data = tCtx.getImageData(0,0, canvas.width, 200).data;
+            let pts = [];
             for(let y=0; y<200; y+=4) {
                 for(let x=0; x<canvas.width; x+=4) {
-                    if(data[(y*canvas.width + x)*4 + 3] > 128) points.push({x, y: y + 50});
+                    if(data[(y*canvas.width + x)*4 + 3] > 128) pts.push({x, y: y + 100});
                 }
             }
-            return points;
+            return pts;
         }
 
         function triggerSequence() {
-            if(!document.getElementById('sacrifice').value) return tg.showAlert("Offer a sacrifice!");
+            if(!document.getElementById('sacrifice').value) return tg.showAlert("The Void demands a sacrifice.");
             state = 'exploding';
-            for(let i=0; i<600; i++) particles.push(new Particle(canvas.width/2, canvas.height/2));
-            
+            for(let i=0; i<800; i++) particles.push(new Particle(canvas.width/2, canvas.height/2));
             document.getElementById('step1').style.opacity = 0;
+            tg.HapticFeedback.impactOccurred('heavy');
+            
             setTimeout(() => {
                 document.getElementById('step1').style.display = 'none';
                 document.getElementById('step2').style.display = 'flex';
                 const pts = getTextPoints("DIVINE SELECTION");
                 particles.forEach((p, i) => {
-                    const target = pts[i % pts.length];
-                    p.targetX = target.x; p.targetY = target.y;
+                    const t = pts[i % pts.length];
+                    p.targetX = t.x; p.targetY = t.y;
                 });
                 state = 'reforming';
                 setTimeout(() => { document.getElementById('step2').style.opacity = 1; }, 500);
@@ -194,13 +159,12 @@
         }
 
         function animate() {
-            ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+            ctx.fillStyle = 'rgba(0,0,0,0.15)'; ctx.fillRect(0,0,canvas.width,canvas.height);
             particles.forEach(p => { p.update(); p.draw(); });
             requestAnimationFrame(animate);
         }
         animate();
 
-        // --- Logic Functions ---
         function setPlan(p, el) {
             currentPlan = p;
             document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('active'));
@@ -212,9 +176,8 @@
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
                 reader.onload = e => {
-                    userImgBase64 = e.target.result;
-                    const previews = document.querySelectorAll('.preview-circle');
-                    previews.forEach(p => { p.src = userImgBase64; p.style.display = 'block'; });
+                    userImg = e.target.result;
+                    document.querySelectorAll('.preview-circle').forEach(img => { img.src = userImg; img.style.display = 'block'; });
                 };
                 reader.readAsDataURL(input.files[0]);
             }
@@ -227,7 +190,7 @@
                 body: JSON.stringify({ u: tg.initDataUnsafe.user?.id, b: "KING'S LUCK", type: 'luck' })
             });
             const data = await res.json();
-            if(data.url) tg.openInvoice(data.url, s => { if(s==='paid') tg.showAlert("Fortune favors you!"); });
+            if(data.url) tg.openInvoice(data.url, s => { if(s==='paid') tg.showAlert("Fortune Favors You!"); });
         }
 
         async function mint() {
@@ -237,18 +200,18 @@
                 body: JSON.stringify({ 
                     u: tg.initDataUnsafe.user?.id, 
                     b: document.getElementById('sacrifice').value,
-                    p: userImgBase64, rank: currentPlan 
+                    p: userImg, rank: currentPlan 
                 })
             });
             const data = await res.json();
             if(data.url) tg.openInvoice(data.url, s => { if(s==='paid') tg.close(); });
-            else if(data.free) tg.showAlert("Ascended!");
+            else if(data.free) tg.showAlert("Ascension Complete.");
         }
 
         function copyRef() {
             const link = `https://t.me/livevoidbot?start=ref_${tg.initDataUnsafe.user?.id}`;
             navigator.clipboard.writeText(link);
-            tg.showAlert("Referral link copied! Invite 3 for 50% off.");
+            tg.showAlert("Link Copied! Invite 3 souls for 50% discount.");
         }
     </script>
 </body>
