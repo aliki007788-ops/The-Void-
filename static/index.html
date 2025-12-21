@@ -9,149 +9,167 @@
         @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap');
         body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; color: #FFD700; font-family: 'Cinzel', serif; }
         canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
-        .stage { position: relative; z-index: 10; height: 100vh; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; padding-top: 40px; transition: opacity 1s ease; box-sizing: border-box; overflow-y: auto; }
-        .main-title { font-size: 2.8rem; letter-spacing: 18px; margin-bottom: 80px; text-shadow: 0 0 30px rgba(255,215,0,0.6); }
-        input[type="text"] { background: transparent; border: none; border-bottom: 2px solid #333; color: #FFD700; font-size: 1.4rem; text-align: center; width: 80%; padding: 15px 0; outline: none; }
-        .btn { background: transparent; border: 2px solid #FFD700; color: #FFD700; padding: 18px 50px; font-size: 1.1rem; letter-spacing: 4px; cursor: pointer; margin: 20px 0; transition: 0.4s; z-index: 20; width: 85%; max-width: 350px; }
+        .stage { position: relative; z-index: 10; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; transition: opacity 1s ease; box-sizing: border-box; }
         
-        /* دکمه شانس پادشاه چشمک‌زن */
-        .luck-btn {
-            background: linear-gradient(45deg, #6200ea, #d500f9) !important;
-            border: none !important; color: white !important; font-weight: bold;
-            animation: pulse-glow 1.5s infinite;
-            box-shadow: 0 0 20px #d500f9;
-        }
-        @keyframes pulse-glow {
-            0% { transform: scale(1); box-shadow: 0 0 10px #d500f9; }
-            50% { transform: scale(1.05); box-shadow: 0 0 30px #ff00ff; }
-            100% { transform: scale(1); box-shadow: 0 0 10px #d500f9; }
-        }
+        /* تایتل و ورودی */
+        .main-title { font-size: 2.8rem; letter-spacing: 18px; margin-bottom: 50px; text-shadow: 0 0 30px rgba(255,215,0,0.6); }
+        input[type="text"] { background: transparent; border: none; border-bottom: 2px solid #333; color: #FFD700; font-size: 1.4rem; text-align: center; width: 80%; padding: 15px 0; outline: none; margin-bottom: 30px; }
+        
+        /* دکمه‌ها - تراز شده در وسط */
+        .btn-container { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 15px; }
+        .btn { background: transparent; border: 2px solid #FFD700; color: #FFD700; padding: 15px; width: 85%; max-width: 350px; font-size: 1.1rem; letter-spacing: 4px; cursor: pointer; transition: 0.4s; position: relative; overflow: hidden; }
+        .btn:active { background: #FFD700; color: #000; }
+        
+        /* دکمه شانس پادشاه */
+        .luck-btn { background: linear-gradient(45deg, #6200ea, #d500f9); border: none; color: white; box-shadow: 0 0 20px #d500f9; animation: pulse 1.5s infinite; font-weight: bold; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.03); } 100% { transform: scale(1); } }
 
-        #step2 { display: none; opacity: 0; pointer-events: none; }
-        .option-box { background: rgba(15,15,15,0.9); border: 1px solid #333; padding: 20px; border-radius: 10px; width: 85%; max-width: 400px; backdrop-filter: blur(10px); }
-        .price-tag { font-size: 1.5rem; color: #fff; margin-bottom: 10px; }
-        
         /* تابلوی افتخارات */
-        .hall { margin-top: auto; padding-bottom: 30px; width: 80%; font-size: 0.8rem; color: #666; }
-        .winner { display: flex; justify-content: space-between; border-bottom: 1px solid #222; padding: 5px 0; }
+        .hall { margin-top: 30px; width: 85%; max-width: 400px; font-size: 0.8rem; background: rgba(20,20,20,0.5); padding: 15px; border-radius: 10px; border: 1px solid #222; }
+        .winner { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #333; }
+        
+        /* صفحه دوم و پیش‌نمایش */
+        #step2 { display: none; opacity: 0; }
+        #photo-preview-container { margin-bottom: 20px; text-align: center; display: none; }
+        #photo-preview { width: 120px; height: 120px; object-fit: cover; border-radius: 50%; border: 4px solid #FFD700; box-shadow: 0 0 30px rgba(255,215,0,0.5); }
+        
+        /* قیمت و الماس */
+        .price { font-size: 2.5rem; margin: 15px 0; display: flex; align-items: center; gap: 10px; justify-content: center; }
+        .diamond { color: #00ffff; text-shadow: 0 0 25px #00ffff; font-size: 1.2em; animation: flash 2s infinite; }
+        @keyframes flash { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     </style>
 </head>
 <body>
     <canvas id="canvas"></canvas>
-    
+
     <div id="step1" class="stage">
         <h1 class="main-title">THE VOID</h1>
         <input type="text" id="sacrifice" placeholder="WHAT DO YOU SACRIFICE?" maxlength="50">
         <button class="btn" onclick="ascend()">ASCEND</button>
         
-        <div class="hall" id="hall">
-            <p style="letter-spacing: 5px; color: #FFD700;">LATEST ASCENSIONS</p>
-            <div id="winner-list">Loading the Void...</div>
+        <div class="hall">
+            <p style="text-align:center; color:#FFD700; letter-spacing:3px;">LATEST ASCENSIONS</p>
+            <div id="hall-list">Loading souls... [cite: 582, 605]</div>
         </div>
     </div>
 
     <div id="step2" class="stage">
-        <h2 id="grade" style="opacity: 0;">KING'S LUCK</h2>
-        <div class="option-box">
-            <button class="btn luck-btn" onclick="mint('luck')">TRY LUCK (99 ⭐)</button>
-            <div style="border-top: 1px solid #333; margin: 20px 0;"></div>
-            <p class="price-tag">DIVINE MINT: <span id="amount">120</span> ⭐</p>
-            <label style="display:block; border:1px dashed #555; padding:10px; cursor:pointer; margin-bottom:10px; font-size: 0.9rem;">
-                UPLOAD IMAGE
+        <div id="photo-preview-container">
+            <img id="photo-preview" />
+            <p style="font-size: 0.8rem; margin-top: 5px;">SOUL IMAGE DETECTED</p>
+        </div>
+
+        <div class="price"><span id="amount">150</span><span class="diamond">💎</span></div>
+
+        <div class="btn-container">
+            <button class="btn luck-btn" onclick="mint('kings-luck')">KING'S LUCK (199 ⭐)</button>
+            <button class="btn" onclick="mint('divine')">DIVINE (150 ⭐)</button>
+            <button class="btn" onclick="mint('celestial')">CELESTIAL (299 ⭐)</button>
+            <button class="btn" onclick="mint('legendary')">LEGENDARY (499 ⭐)</button>
+            
+            <label style="border:1px dashed #444; padding:10px; width:85%; text-align:center; cursor:pointer; font-size:0.9rem;">
+                UPLOAD SOUL PHOTO
                 <input type="file" id="upload" accept="image/*" style="display:none;" onchange="checkPreview()">
             </label>
-            <button class="btn" id="mintBtn" onclick="mint('divine')">MINT DIVINE NFT</button>
         </div>
-        <button class="btn" style="border:none; font-size: 0.8rem; color:#555;" onclick="shareStory()">SHARE FATE</button>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp; tg.expand();
-        const urlParams = new URLSearchParams(window.location.search);
-        const hasDiscount = urlParams.get('d') === '1';
-        if(hasDiscount) document.getElementById('amount').innerText = "60";
-
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
-        let particles = [], stars = [], state = 'idle';
+        let particles = [], state = 'idle';
 
-        function init() {
-            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-            for(let i=0; i<100; i++) stars.push({x:Math.random()*canvas.width, y:Math.random()*canvas.height, s:Math.random()*2});
+        // بارگذاری تابلوی افتخارات (10تای آخر)
+        async function loadHall() {
+            try {
+                const res = await fetch('/api/hall-of-fame'); // [cite: 607, 851]
+                const data = await res.json();
+                const list = document.getElementById('hall-list');
+                list.innerHTML = '';
+                data.winners.slice(-10).reverse().forEach(w => { // [cite: 611]
+                    list.innerHTML += `<div class="winner"><span>${w.user_id}</span><span>${w.level}</span></div>`;
+                });
+            } catch(e) { document.getElementById('hall-list').innerText = "The Void is quiet..."; }
         }
-        init();
+        loadHall();
+
+        function checkPreview() {
+            const file = document.getElementById('upload').files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    document.getElementById('photo-preview').src = e.target.result;
+                    document.getElementById('photo-preview-container').style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // انیمیشن انفجار و تشکیل متن
+        function ascend() {
+            const sac = document.getElementById('sacrifice').value;
+            if(!sac) return tg.showAlert("Name your sacrifice.");
+            
+            state = 'exploding';
+            for(let i=0; i<400; i++) {
+                particles.push({
+                    x: canvas.width/2, y: canvas.height/2,
+                    vx: (Math.random()-0.5)*20, vy: (Math.random()-0.5)*20,
+                    size: Math.random()*5+2, color: '#FFD700'
+                });
+            }
+            
+            document.getElementById('step1').style.opacity = 0;
+            setTimeout(() => {
+                document.getElementById('step1').style.display = 'none';
+                document.getElementById('step2').style.display = 'flex';
+                setTimeout(() => document.getElementById('step2').style.opacity = 1, 100);
+            }, 800);
+        }
+
+        async function mint(type) {
+            const sac = document.getElementById('sacrifice').value;
+            const file = document.getElementById('upload').files[0];
+            let photoBase64 = null;
+
+            if(file) {
+                photoBase64 = await new Promise(r => {
+                    const reader = new FileReader();
+                    reader.onload = e => r(e.target.result);
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            const res = await fetch('/create_stars_invoice', { // [cite: 834]
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    u: tg.initDataUnsafe.user?.id, 
+                    b: sac, 
+                    type: type, 
+                    p: photoBase64 
+                })
+            });
+            const data = await res.json();
+            if(data.url) tg.openInvoice(data.url); // [cite: 648]
+        }
 
         function draw() {
-            ctx.fillStyle = 'black'; ctx.fillRect(0,0,canvas.width, canvas.height);
-            ctx.fillStyle = 'white';
-            stars.forEach(s => ctx.fillRect(s.x, s.y, s.s, s.s));
-
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            ctx.fillRect(0,0,canvas.width, canvas.height);
             particles.forEach((p, i) => {
-                ctx.fillStyle = '#FFD700';
-                ctx.globalAlpha = p.alpha || 1;
+                p.x += p.vx; p.y += p.vy;
+                ctx.fillStyle = p.color;
                 ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
-                
-                if(state === 'exploding') {
-                    p.x += p.vx; p.y += p.vy; p.size *= 0.96;
-                } else if(state === 'imploding') {
-                    p.x += (p.tx - p.x) * 0.08;
-                    p.y += (p.ty - p.y) * 0.08;
-                    if(Math.abs(p.x - p.tx) < 1) p.alpha -= 0.02; // آرام محو شدن
-                }
-                if(p.size < 0.1 || p.alpha <= 0) particles.splice(i, 1);
+                p.size *= 0.98;
+                if(p.size < 0.5) particles.splice(i, 1);
             });
             requestAnimationFrame(draw);
         }
         draw();
-
-        function ascend() {
-            if(!document.getElementById('sacrifice').value) return tg.showAlert("Enter your burden.");
-            state = 'exploding';
-            for(let i=0; i<300; i++) {
-                const angle = Math.random()*Math.PI*2;
-                const speed = Math.random()*15+5;
-                particles.push({x:canvas.width/2, y:canvas.height/2, vx:Math.cos(angle)*speed, vy:Math.sin(angle)*speed, size:Math.random()*5+2});
-            }
-            document.getElementById('step1').style.opacity = 0;
-            setTimeout(createTitleParticles, 800);
-        }
-
-        function createTitleParticles() {
-            state = 'imploding';
-            document.getElementById('step1').style.display = 'none';
-            document.getElementById('step2').style.display = 'flex';
-            
-            // شبیه‌سازی متن KING'S LUCK با ذرات در مرکز
-            const text = "KING'S LUCK";
-            ctx.font = "bold 40px Cinzel";
-            const tw = ctx.measureText(text).width;
-            const startX = (canvas.width - tw) / 2;
-            
-            for(let i=0; i<text.length; i++) {
-                for(let j=0; j<5; j++) {
-                    particles.push({
-                        x: Math.random()*canvas.width, y: Math.random()*canvas.height,
-                        tx: startX + (i*30), ty: 100 + (Math.random()*20),
-                        size: Math.random()*4+1, alpha: 1
-                    });
-                }
-            }
-            setTimeout(() => {
-                document.getElementById('step2').style.opacity = 1;
-                document.getElementById('step2').style.pointerEvents = 'auto';
-            }, 1000);
-        }
-
-        async function mint(type) {
-            const sacrifice = document.getElementById('sacrifice').value;
-            const res = await fetch('/create_invoice', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({u: urlParams.get('u'), type: type, b: sacrifice, d: urlParams.get('d')})
-            });
-            const data = await res.json();
-            if(data.url) tg.openInvoice(data.url);
-        }
+        window.onresize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
+        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
     </script>
 </body>
 </html>
