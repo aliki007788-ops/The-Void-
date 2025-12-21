@@ -6,37 +6,50 @@
     <title>THE VOID</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap');
         body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; color: #FFD700; font-family: 'Cinzel', serif; }
         canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+        
         .stage { position: relative; z-index: 10; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; transition: opacity 1s ease; box-sizing: border-box; }
         
-        /* تایتل و ورودی */
-        .main-title { font-size: 2.8rem; letter-spacing: 18px; margin-bottom: 50px; text-shadow: 0 0 30px rgba(255,215,0,0.6); }
-        input[type="text"] { background: transparent; border: none; border-bottom: 2px solid #333; color: #FFD700; font-size: 1.4rem; text-align: center; width: 80%; padding: 15px 0; outline: none; margin-bottom: 30px; }
+        /* تیتر اول */
+        .main-title { font-size: 3rem; font-weight: 900; letter-spacing: 15px; margin-bottom: 40px; text-shadow: 0 0 30px rgba(255,215,0,0.7); }
         
-        /* دکمه‌ها - تراز شده در وسط */
-        .btn-container { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 15px; }
-        .btn { background: transparent; border: 2px solid #FFD700; color: #FFD700; padding: 15px; width: 85%; max-width: 350px; font-size: 1.1rem; letter-spacing: 4px; cursor: pointer; transition: 0.4s; position: relative; overflow: hidden; }
-        .btn:active { background: #FFD700; color: #000; }
-        
-        /* دکمه شانس پادشاه */
-        .luck-btn { background: linear-gradient(45deg, #6200ea, #d500f9); border: none; color: white; box-shadow: 0 0 20px #d500f9; animation: pulse 1.5s infinite; font-weight: bold; }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.03); } 100% { transform: scale(1); } }
+        input[type="text"] { background: transparent; border: none; border-bottom: 2px solid #444; color: #fff; font-size: 1.3rem; text-align: center; width: 85%; padding: 15px 0; outline: none; margin-bottom: 30px; transition: border-color 0.3s; }
+        input[type="text"]:focus { border-bottom-color: #FFD700; }
 
-        /* تابلوی افتخارات */
-        .hall { margin-top: 30px; width: 85%; max-width: 400px; font-size: 0.8rem; background: rgba(20,20,20,0.5); padding: 15px; border-radius: 10px; border: 1px solid #222; }
-        .winner { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #333; }
+        /* ظرف دکمه‌ها - ترازبندی دقیق در مرکز */
+        .btn-container { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 12px; }
         
-        /* صفحه دوم و پیش‌نمایش */
+        .btn { background: transparent; border: 2px solid #FFD700; color: #FFD700; padding: 16px; width: 85%; max-width: 340px; font-size: 1rem; font-weight: bold; letter-spacing: 3px; cursor: pointer; transition: 0.3s; position: relative; border-radius: 4px; }
+        .btn:active { background: #FFD700; color: #000; }
+
+        /* دکمه شانس پادشاه با افکت نئونی */
+        .luck-btn { 
+            background: linear-gradient(45deg, #6200ea, #d500f9, #FFD700); 
+            background-size: 200% 200%;
+            border: none; color: white; 
+            box-shadow: 0 0 25px rgba(213, 0, 249, 0.6); 
+            animation: moveGradient 3s infinite, pulseBtn 1.5s infinite;
+        }
+        @keyframes moveGradient { 0% {background-position: 0% 50%} 50% {background-position: 100% 50%} 100% {background-position: 0% 50%} }
+        @keyframes pulseBtn { 0% { transform: scale(1); } 50% { transform: scale(1.04); } 100% { transform: scale(1); } }
+
+        /* تابلوی افتخارات (۱۰تای آخر) */
+        .hall { margin-top: 40px; width: 85%; max-width: 380px; background: rgba(15,15,15,0.7); padding: 15px; border: 1px dashed #333; border-radius: 8px; }
+        .hall-item { display: flex; justify-content: space-between; font-size: 0.75rem; padding: 6px 0; border-bottom: 1px solid #222; opacity: 0.8; }
+        .rank-DIVINE { color: #FFD700; } .rank-LEGENDARY { color: #d500f9; }
+
+        /* پیش‌نمایش تصویر */
+        #photo-preview-container { margin-bottom: 15px; display: none; }
+        #photo-preview { width: 110px; height: 110px; border-radius: 50%; border: 3px solid #FFD700; object-fit: cover; box-shadow: 0 0 20px #FFD700; }
+
+        /* الماس و قیمت */
+        .price-display { font-size: 2.2rem; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-weight: bold; }
+        .gem { color: #00ffff; text-shadow: 0 0 20px #00ffff; animation: gemGlow 2s infinite; }
+        @keyframes gemGlow { 0%, 100% { opacity: 1; filter: hue-rotate(0deg); } 50% { opacity: 0.6; filter: hue-rotate(45deg); } }
+
         #step2 { display: none; opacity: 0; }
-        #photo-preview-container { margin-bottom: 20px; text-align: center; display: none; }
-        #photo-preview { width: 120px; height: 120px; object-fit: cover; border-radius: 50%; border: 4px solid #FFD700; box-shadow: 0 0 30px rgba(255,215,0,0.5); }
-        
-        /* قیمت و الماس */
-        .price { font-size: 2.5rem; margin: 15px 0; display: flex; align-items: center; gap: 10px; justify-content: center; }
-        .diamond { color: #00ffff; text-shadow: 0 0 25px #00ffff; font-size: 1.2em; animation: flash 2s infinite; }
-        @keyframes flash { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     </style>
 </head>
 <body>
@@ -44,22 +57,21 @@
 
     <div id="step1" class="stage">
         <h1 class="main-title">THE VOID</h1>
-        <input type="text" id="sacrifice" placeholder="WHAT DO YOU SACRIFICE?" maxlength="50">
+        <input type="text" id="sacrifice" placeholder="WHAT DO YOU SACRIFICE?" maxlength="40">
         <button class="btn" onclick="ascend()">ASCEND</button>
         
         <div class="hall">
-            <p style="text-align:center; color:#FFD700; letter-spacing:3px;">LATEST ASCENSIONS</p>
-            <div id="hall-list">Loading souls... [cite: 582, 605]</div>
+            <p style="text-align:center; font-size:0.9rem; margin-top:0; color:#FFD700;">LATEST ASCENSIONS</p>
+            <div id="hall-list">Connecting to the abyss...</div>
         </div>
     </div>
 
     <div id="step2" class="stage">
         <div id="photo-preview-container">
             <img id="photo-preview" />
-            <p style="font-size: 0.8rem; margin-top: 5px;">SOUL IMAGE DETECTED</p>
         </div>
 
-        <div class="price"><span id="amount">150</span><span class="diamond">💎</span></div>
+        <div class="price-display"><span>COST</span><span class="gem">💎</span></div>
 
         <div class="btn-container">
             <button class="btn luck-btn" onclick="mint('kings-luck')">KING'S LUCK (199 ⭐)</button>
@@ -67,8 +79,8 @@
             <button class="btn" onclick="mint('celestial')">CELESTIAL (299 ⭐)</button>
             <button class="btn" onclick="mint('legendary')">LEGENDARY (499 ⭐)</button>
             
-            <label style="border:1px dashed #444; padding:10px; width:85%; text-align:center; cursor:pointer; font-size:0.9rem;">
-                UPLOAD SOUL PHOTO
+            <label style="color:#666; font-size:0.8rem; margin-top:10px; cursor:pointer; text-decoration:underline;">
+                + UPLOAD SOUL IMAGE
                 <input type="file" id="upload" accept="image/*" style="display:none;" onchange="checkPreview()">
             </label>
         </div>
@@ -80,23 +92,30 @@
         const ctx = canvas.getContext('2d');
         let particles = [], state = 'idle';
 
-        // بارگذاری تابلوی افتخارات (10تای آخر)
-        async function loadHall() {
+        // مقداردهی اولیه بوم
+        function initCanvas() {
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+        }
+        initCanvas();
+        window.onresize = initCanvas;
+
+        // لود کردن لیست برنده‌ها (عین فایل ورد)
+        async function fetchHall() {
             try {
-                const res = await fetch('/api/hall-of-fame'); // [cite: 607, 851]
-                const data = await res.json();
+                const r = await fetch('/api/hall-of-fame'); [cite: 393]
+                const d = await r.json();
                 const list = document.getElementById('hall-list');
                 list.innerHTML = '';
-                data.winners.slice(-10).reverse().forEach(w => { // [cite: 611]
-                    list.innerHTML += `<div class="winner"><span>${w.user_id}</span><span>${w.level}</span></div>`;
+                d.winners.slice(-8).reverse().forEach(w => { [cite: 395]
+                    list.innerHTML += `<div class="hall-item"><span>${w.user_id}</span><span class="rank-${w.level.toUpperCase()}">${w.level}</span></div>`;
                 });
-            } catch(e) { document.getElementById('hall-list').innerText = "The Void is quiet..."; }
+            } catch(e) { document.getElementById('hall-list').innerHTML = "The Void is silent."; }
         }
-        loadHall();
+        fetchHall();
 
         function checkPreview() {
             const file = document.getElementById('upload').files[0];
-            if (file) {
+            if(file) {
                 const reader = new FileReader();
                 reader.onload = e => {
                     document.getElementById('photo-preview').src = e.target.result;
@@ -106,20 +125,38 @@
             }
         }
 
-        // انیمیشن انفجار و تشکیل متن
+        function draw() {
+            ctx.fillStyle = 'rgba(0,0,0,0.15)';
+            ctx.fillRect(0,0,canvas.width, canvas.height);
+            
+            particles.forEach((p, i) => {
+                p.x += p.vx; p.y += p.vy;
+                p.alpha -= 0.005;
+                ctx.globalAlpha = p.alpha;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+                ctx.fill();
+                if(p.alpha <= 0) particles.splice(i, 1);
+            });
+            ctx.globalAlpha = 1;
+            requestAnimationFrame(draw);
+        }
+        draw();
+
         function ascend() {
             const sac = document.getElementById('sacrifice').value;
-            if(!sac) return tg.showAlert("Name your sacrifice.");
-            
-            state = 'exploding';
-            for(let i=0; i<400; i++) {
+            if(sac.length < 3) return tg.showAlert("Your burden is too light.");
+
+            // افکت ذرات برای تشکیل متن
+            for(let i=0; i<500; i++) {
                 particles.push({
                     x: canvas.width/2, y: canvas.height/2,
-                    vx: (Math.random()-0.5)*20, vy: (Math.random()-0.5)*20,
-                    size: Math.random()*5+2, color: '#FFD700'
+                    vx: (Math.random()-0.5)*25, vy: (Math.random()-0.5)*25,
+                    size: Math.random()*4+1, color: '#FFD700', alpha: 1
                 });
             }
-            
+
             document.getElementById('step1').style.opacity = 0;
             setTimeout(() => {
                 document.getElementById('step1').style.display = 'none';
@@ -131,45 +168,29 @@
         async function mint(type) {
             const sac = document.getElementById('sacrifice').value;
             const file = document.getElementById('upload').files[0];
-            let photoBase64 = null;
+            let pData = null;
 
             if(file) {
-                photoBase64 = await new Promise(r => {
+                pData = await new Promise(res => {
                     const reader = new FileReader();
-                    reader.onload = e => r(e.target.result);
+                    reader.onload = e => res(e.target.result);
                     reader.readAsDataURL(file);
                 });
             }
 
-            const res = await fetch('/create_stars_invoice', { // [cite: 834]
+            const res = await fetch('/create_stars_invoice', { [cite: 376]
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
-                    u: tg.initDataUnsafe.user?.id, 
-                    b: sac, 
-                    type: type, 
-                    p: photoBase64 
+                    u: tg.initDataUnsafe.user?.id,
+                    b: sac,
+                    type: type,
+                    p: pData
                 })
             });
             const data = await res.json();
-            if(data.url) tg.openInvoice(data.url); // [cite: 648]
+            if(data.url) tg.openInvoice(data.url); [cite: 375]
         }
-
-        function draw() {
-            ctx.fillStyle = 'rgba(0,0,0,0.2)';
-            ctx.fillRect(0,0,canvas.width, canvas.height);
-            particles.forEach((p, i) => {
-                p.x += p.vx; p.y += p.vy;
-                ctx.fillStyle = p.color;
-                ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
-                p.size *= 0.98;
-                if(p.size < 0.5) particles.splice(i, 1);
-            });
-            requestAnimationFrame(draw);
-        }
-        draw();
-        window.onresize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
-        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
     </script>
 </body>
 </html>
