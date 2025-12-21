@@ -3,220 +3,248 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>THE VOID - Supreme Edition</title>
+    <title>THE VOID - SUPREME EDITION</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/@tonconnect/sdk@latest/dist/tonconnect-sdk.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Orbitron:wght@400;900&display=swap');
-        :root { --gold: #FFD700; --cyan: #00f2ff; --glass: rgba(255, 255, 255, 0.05); }
+        :root { --gold: #FFD700; --cyan: #00f2ff; --glass: rgba(255, 255, 255, 0.05); --glass-border: rgba(255, 255, 255, 0.1); }
         body, html { margin: 0; padding: 0; background: #000; color: #fff; font-family: 'Cinzel', serif; overflow-x: hidden; scroll-behavior: smooth; }
         canvas { position: fixed; top: 0; left: 0; z-index: 1; pointer-events: none; }
-        .stage { position: relative; z-index: 10; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; transition: 1.5s; }
+        
+        /* Live Feed */
+        #live-feed { position: fixed; top: 0; width: 100%; height: 35px; background: rgba(0,0,0,0.9); z-index: 1000; border-bottom: 1px solid #1a1a1a; color: var(--cyan); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-family: 'Orbitron'; overflow: hidden; }
+
+        .stage { position: relative; z-index: 10; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 60px 20px; box-sizing: border-box; transition: 1.5s; }
 
         /* 3D Cyan Rotating Star */
+        .star-container { perspective: 1000px; display: inline-block; vertical-align: middle; margin-left: 10px; }
         .star-3d {
-            display: inline-block; width: 18px; height: 18px; background: var(--cyan);
+            width: 24px; height: 24px; background: var(--cyan);
             clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-            box-shadow: 0 0 15px var(--cyan); animation: rotateY 3s linear infinite; transform-style: preserve-3d; vertical-align: middle; margin: 0 5px;
+            box-shadow: 0 0 20px var(--cyan); animation: rotate3D 3s linear infinite; transform-style: preserve-3d;
         }
-        @keyframes rotateY { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
+        @keyframes rotate3D { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
 
-        /* UI Components */
-        .btn { background: transparent; border: 1px solid var(--gold); color: var(--gold); padding: 12px 25px; cursor: pointer; transition: 0.4s; text-transform: uppercase; font-family: 'Orbitron', sans-serif; box-shadow: 0 0 10px rgba(255,215,0,0.1); margin: 5px; }
-        .btn:hover { box-shadow: 0 0 25px var(--gold); background: rgba(255,215,0,0.1); }
-        .plan-card { background: var(--glass); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.05); padding: 15px; border-radius: 20px; width: 95%; max-width: 400px; margin: 8px 0; cursor: pointer; }
-        .plan-card.active { border-color: var(--gold); background: rgba(255,215,0,0.1); }
+        /* Typography */
+        .main-title { font-size: 3rem; letter-spacing: 20px; margin-top: 10vh; text-shadow: 0 0 30px rgba(255,215,0,0.5); font-family: 'Orbitron'; }
         
-        /* New: AI Canvas Editor */
-        #ai-canvas { background: rgba(0,0,0,0.8); border: 1px solid var(--gold); padding: 15px; border-radius: 15px; width: 90%; margin: 10px 0; display: none; }
-        input[type=range] { width: 100%; accent-color: var(--gold); }
+        /* Inputs & Buttons */
+        input[type="text"] { background: transparent; border: none; border-bottom: 2px solid #222; color: var(--gold); font-size: 1.6rem; text-align: center; width: 85%; margin: 60px 0; outline: none; transition: 0.3s; }
+        input[type="text"]:focus { border-bottom-color: var(--gold); }
+        .btn { background: transparent; border: 1px solid var(--gold); color: var(--gold); padding: 15px 40px; cursor: pointer; transition: 0.4s; text-transform: uppercase; letter-spacing: 3px; font-family: 'Orbitron'; box-shadow: 0 0 15px rgba(255,215,0,0.1); }
+        .btn:hover { background: rgba(255,215,0,0.1); box-shadow: 0 0 30px var(--gold); transform: translateY(-2px); }
 
-        /* New: Live Feed & Leaderboard */
-        #live-feed { height: 50px; overflow: hidden; color: var(--cyan); font-size: 0.8rem; border-bottom: 1px solid #222; width: 100%; text-align: center; }
-        #leaderboard { background: var(--glass); width: 90%; border-radius: 15px; padding: 15px; margin-top: 20px; display: none; }
+        /* Glass Cards for Ranks */
+        .plan-container { display: flex; overflow-x: auto; width: 100%; gap: 15px; padding: 20px 10px; scrollbar-width: none; }
+        .plan-card {
+            min-width: 200px; background: var(--glass); backdrop-filter: blur(20px); border: 1px solid var(--glass-border);
+            padding: 25px; border-radius: 20px; text-align: center; transition: 0.5s; cursor: pointer; position: relative;
+        }
+        .plan-card.active { border-color: var(--gold); background: rgba(255,215,0,0.05); transform: scale(1.05); }
+        .plan-price { font-size: 1.5rem; color: #fff; margin-top: 15px; display: flex; align-items: center; justify-content: center; }
 
-        /* Admin Panel Styles */
-        #admin-panel { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 1000; display: none; padding: 20px; box-sizing: border-box; overflow-y: auto; }
-        .admin-toggle { display: flex; justify-content: space-between; padding: 15px; border-bottom: 1px solid #333; }
+        /* Additional Sections: Referral, Hall of Fame, Auction, NFT */
+        .supreme-section { width: 100%; max-width: 450px; background: var(--glass); backdrop-filter: blur(15px); border: 1px solid var(--glass-border); border-radius: 25px; margin: 15px 0; padding: 20px; box-sizing: border-box; }
+        .section-header { color: var(--gold); font-family: 'Orbitron'; font-size: 0.9rem; margin-bottom: 15px; display: flex; justify-content: space-between; }
+
+        /* AI Canvas Editor */
+        #ai-editor { display: none; }
+        .slider-group { margin: 15px 0; }
+        .slider-group label { display: block; font-size: 0.7rem; color: var(--gold); margin-bottom: 5px; }
+        input[type="range"] { width: 100%; accent-color: var(--gold); }
+
+        /* Admin Dashboard */
+        #admin-dash { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 5000; display: none; padding: 40px; box-sizing: border-box; }
+        .toggle-row { display: flex; justify-content: space-between; padding: 15px 0; border-bottom: 1px solid #222; }
 
         #step2 { display: none; opacity: 0; }
     </style>
 </head>
 <body>
-    <div id="admin-panel">
-        <h2 style="color:var(--gold)">DIVINE CONTROL PANEL</h2>
-        <div class="admin-toggle"><span>Wallet Connection</span> <input type="checkbox" id="toggle-wallet" checked></div>
-        <div class="admin-toggle"><span>AI Canvas Editor</span> <input type="checkbox" id="toggle-canvas" checked></div>
-        <div class="admin-toggle"><span>Live Feed</span> <input type="checkbox" id="toggle-feed" checked></div>
-        <div class="admin-toggle"><span>Leaderboard</span> <input type="checkbox" id="toggle-leader" checked></div>
-        <button class="btn" onclick="saveSettings()">SAVE & REBOOT</button>
-        <button class="btn" style="border-color:red; color:red" onclick="closeAdmin()">CLOSE</button>
+    <div id="live-feed">INITIATING COSMIC SYNC...</div>
+
+    <div id="admin-dash">
+        <h1 style="color:var(--gold); font-family:'Orbitron'">VOID MASTER PANEL</h1>
+        <div class="toggle-row"><span>Wallet Connect</span> <input type="checkbox" id="adm-wallet" checked></div>
+        <div class="toggle-row"><span>AI Canvas Editor</span> <input type="checkbox" id="adm-canvas" checked></div>
+        <div class="toggle-row"><span>Live Feed</span> <input type="checkbox" id="adm-feed" checked></div>
+        <div class="toggle-row"><span>Leaderboard/Hall</span> <input type="checkbox" id="adm-leader" checked></div>
+        <button class="btn" style="margin-top:40px" onclick="saveAdmin()">APPLY & REBOOT</button>
+        <button class="btn" style="border-color:red; color:red" onclick="document.getElementById('admin-dash').style.display='none'">EXIT</button>
     </div>
 
-    <div id="live-feed">Waiting for new sacrifices...</div>
     <canvas id="mainCanvas"></canvas>
 
     <div id="step1" class="stage">
-        <h1 id="t-title" style="font-size: 2.8rem; letter-spacing: 15px; margin-top: 15vh;">THE VOID</h1>
-        <input type="text" id="sacrifice" placeholder="WHAT DO YOU SACRIFICE?" style="background:transparent; border:none; border-bottom:2px solid #333; color:var(--gold); font-size:1.2rem; text-align:center; width:80%; margin:50px 0; outline:none;">
-        <button class="btn" onclick="triggerSequence()">ASCEND</button>
-        <button id="wallet-btn" class="btn" style="display:none; border-color:var(--cyan); color:var(--cyan)" onclick="connectTON()">CONNECT WALLET</button>
-        <button id="admin-btn" class="btn" style="display:none; border-color:#555; color:#555" onclick="openAdmin()">ADMIN</button>
+        <h1 class="main-title">THE VOID</h1>
+        <input type="text" id="sacrifice" placeholder="NAME YOUR BURDEN" maxlength="50">
+        <button class="btn" onclick="ascend()">ASCEND</button>
+        <button id="ton-connect-btn" class="btn" style="display:none; margin-top:20px; border-color:var(--cyan); color:var(--cyan)">CONNECT WALLET</button>
+        <div id="admin-trigger" style="position:fixed; bottom:10px; font-size:10px; color:#111" onclick="openAdmin()">ADMIN</div>
     </div>
 
     <div id="step2" class="stage">
-        <div id="reforming-target" style="height: 60px;"></div>
-        
-        <div class="plan-card active" onclick="setPlan('vagabond', this)">
-            <h3>VAGABOND <span style="float:right">FREE</span></h3>
+        <div class="plan-container">
+            <div class="plan-card active" onclick="setPlan('eternal', this)">
+                <div style="font-size:0.8rem; color:var(--gold)">RANK I</div>
+                <div style="font-weight:bold">ETERNAL</div>
+                <div class="plan-price">FREE</div>
+            </div>
+            <div class="plan-card" onclick="setPlan('divine', this)">
+                <div style="font-size:0.8rem; color:var(--gold)">RANK II</div>
+                <div style="font-weight:bold">DIVINE</div>
+                <div class="plan-price">99 <div class="star-container"><div class="star-3d"></div></div></div>
+            </div>
+            <div class="plan-card" onclick="setPlan('celestial', this)">
+                <div style="font-size:0.8rem; color:var(--gold)">RANK III</div>
+                <div style="font-weight:bold">CELESTIAL</div>
+                <div class="plan-price">299 <div class="star-container"><div class="star-3d"></div></div></div>
+            </div>
+            <div class="plan-card" onclick="setPlan('legendary', this)">
+                <div style="font-size:0.8rem; color:var(--gold)">RANK IV</div>
+                <div style="font-weight:bold">LEGENDARY</div>
+                <div class="plan-price">499 <div class="star-container"><div class="star-3d"></div></div></div>
+            </div>
         </div>
 
-        <div class="plan-card" onclick="setPlan('divine', this)">
-            <h3>DIVINE <span style="float:right">99 <div class="star-3d"></div></span></h3>
+        <div id="ai-editor" class="supreme-section">
+            <div class="section-header"><span>AI CANVAS</span> <span>PREMIUM</span></div>
+            <div class="slider-group">
+                <label>GOLDEN SATURATION</label>
+                <input type="range" id="sat-slider" min="0" max="200" value="115">
+            </div>
+            <div class="slider-group">
+                <label>TRANSFORMATION INTENSITY</label>
+                <input type="range" id="strength-slider" min="20" max="95" value="65">
+            </div>
         </div>
 
-        <div class="plan-card" onclick="setPlan('celestial', this)">
-            <h3>CELESTIAL <span style="float:right">299 <div class="star-3d"></div></span></h3>
+        <div class="supreme-section">
+            <div class="section-header"><span>SACRIFICE IMAGE</span></div>
+            <input type="file" id="soul-img" hidden onchange="handleFile(this)">
+            <button class="btn" style="width:100%" onclick="document.getElementById('soul-img').click()">UPLOAD SOUL IMAGE</button>
+            <div id="preview-area" style="display:none; text-align:center; margin-top:15px;">
+                <img id="img-prev" style="width:80px; height:80px; border-radius:50%; border:2px solid var(--gold)">
+            </div>
         </div>
 
-        <div class="plan-card" onclick="setPlan('legendary', this)">
-            <h3>LEGENDARY <span style="float:right">499 <div class="star-3d"></div></span></h3>
+        <div id="hall-of-fame" class="supreme-section">
+            <div class="section-header"><span>HALL OF FAME</span> <span>TOP SOULS</span></div>
+            <div id="leader-list" style="font-size:0.8rem; opacity:0.7"></div>
         </div>
 
-        <div id="ai-canvas">
-            <h4 style="margin:5px 0">AI CANVAS SETTINGS</h4>
-            <label>Divine Saturation</label> <input type="range" id="param-sat" min="0" max="200" value="100">
-            <label>Void Brightness</label> <input type="range" id="param-bri" min="50" max="150" value="100">
-            <label>AI Transformation Strength</label> <input type="range" id="param-strength" min="10" max="90" value="65">
+        <div class="supreme-section">
+            <div class="section-header"><span>REFERRAL PORTAL</span></div>
+            <div style="font-size:0.7rem; color:#888; margin-bottom:10px">Invite 3 souls for a Divine Gift</div>
+            <code id="ref-link" style="color:var(--cyan); font-size:0.7rem">t.me/voidbot?start=...</code>
         </div>
 
-        <input type="file" id="image-upload" hidden onchange="previewImg(this)">
-        <button class="btn" onclick="document.getElementById('image-upload').click()">UPLOAD SOUL IMAGE</button>
-        
-        <button class="btn" style="width:100%; max-width:350px; background:var(--gold); color:#000" onclick="mint()">MINT DIVINE NFT</button>
-
-        <div id="leaderboard">
-            <h3 style="color:var(--gold); text-align:center">PANTHEON OF SOULS</h3>
-            <div id="leader-list"></div>
+        <div class="supreme-section">
+            <div class="section-header"><span>NFT & AUCTION</span> <span style="color:#f00">SOON</span></div>
+            <div style="text-align:center; padding:10px; font-size:0.8rem; border:1px dashed #333">FORGING SMART CONTRACTS...</div>
         </div>
+
+        <button class="btn" style="width:100%; max-width:450px; background:var(--gold); color:#000" onclick="mintNFT()">MINT VOID IDENTITY</button>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
-        const connector = new TonConnectSDK.TonConnect();
         let canvas = document.getElementById('mainCanvas'), ctx = canvas.getContext('2d');
-        let particles = [], state = 'idle', currentPlan = 'vagabond', userImg = null;
-        let adminId = 12345678; // این را به ID واقعی خود تغییر دهید
+        let particles = [], state = 'idle', selectedRank = 'eternal', b64Img = null;
 
         function init() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
         window.onresize = init; init();
 
-        // Particles & Reforming (همان کدهای قبلی بدون تغییر)
         class Particle {
             constructor(x, y) {
-                this.x = x; this.y = y; this.vx = (Math.random()-0.5)*30; this.vy = (Math.random()-0.5)*30;
-                this.size = Math.random()*2.5; this.color = Math.random() > 0.5 ? '#FFD700' : '#00f2ff';
+                this.x = x; this.y = y; this.vx = (Math.random()-0.5)*40; this.vy = (Math.random()-0.5)*40;
+                this.size = Math.random()*3; this.color = Math.random() > 0.5 ? '#FFD700' : '#00f2ff';
                 this.targetX = null; this.targetY = null;
             }
             update() {
-                if(state === 'exploding') { this.x += this.vx; this.y += this.vy; }
+                if(state === 'exploding') { this.x += this.vx; this.y += this.vy; this.vx *= 0.95; this.vy *= 0.95; }
                 else if(state === 'reforming' && this.targetX) {
-                    this.x += (this.targetX - this.x) * 0.12; this.y += (this.targetY - this.y) * 0.12;
+                    this.x += (this.targetX - this.x) * 0.1; this.y += (this.targetY - this.y) * 0.1;
                 }
             }
             draw() { ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2); ctx.fill(); }
         }
 
-        async function triggerSequence() {
+        async function loadConfig() {
+            const res = await fetch('/get_void_config');
+            const cfg = await res.json();
+            if(cfg.wallet) document.getElementById('ton-connect-btn').style.display = 'block';
+            if(cfg.canvas) document.getElementById('ai-editor').style.display = 'block';
+            if(cfg.leader) document.getElementById('hall-of-fame').style.display = 'block';
+            if(tg.initDataUnsafe.user?.id == 12345678) document.getElementById('admin-trigger').style.display = 'block';
+        }
+
+        function ascend() {
+            if(!document.getElementById('sacrifice').value) return tg.showAlert("Void demands a name.");
             state = 'exploding';
-            for(let i=0; i<800; i++) particles.push(new Particle(canvas.width/2, canvas.height/2));
+            for(let i=0; i<1000; i++) particles.push(new Particle(canvas.width/2, canvas.height/2));
             document.getElementById('step1').style.opacity = 0;
+            tg.HapticFeedback.impactOccurred('heavy');
             setTimeout(() => {
                 document.getElementById('step1').style.display = 'none';
                 document.getElementById('step2').style.display = 'flex';
                 state = 'reforming';
                 setTimeout(() => { document.getElementById('step2').style.opacity = 1; }, 500);
-            }, 1000);
-            
-            // ثبت در فید زنده
-            fetch('/add_feed', { method: 'POST', body: JSON.stringify({ u: tg.initDataUnsafe.user?.first_name, b: document.getElementById('sacrifice').value }), headers: {'Content-Type': 'application/json' } });
+            }, 1200);
+            fetch('/add_feed', { method:'POST', body: JSON.stringify({u: tg.initDataUnsafe.user?.first_name, b: document.getElementById('sacrifice').value}), headers:{'Content-Type':'application/json'} });
         }
 
         function animate() {
-            ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+            ctx.fillStyle = 'rgba(0,0,0,0.1)'; ctx.fillRect(0,0,canvas.width,canvas.height);
             particles.forEach(p => { p.update(); p.draw(); });
             requestAnimationFrame(animate);
         }
         animate();
 
-        // New Logic
-        async function loadConfig() {
-            const res = await fetch('/get_config');
-            const cfg = await res.json();
-            if(cfg.wallet) document.getElementById('wallet-btn').style.display = 'inline-block';
-            if(cfg.canvas) document.getElementById('ai-canvas').style.display = 'block';
-            if(cfg.leader) { document.getElementById('leaderboard').style.display = 'block'; updateLeaderboard(); }
-            if(tg.initDataUnsafe.user?.id == adminId) document.getElementById('admin-btn').style.display = 'inline-block';
-        }
-
-        async function connectTON() {
-            const walletConnectionSource = { universalLink: 'https://tonkeeper.com/ton-connect', bridgeUrl: 'https://bridge.tonapi.io/bridge' };
-            connector.connect(walletConnectionSource);
-        }
-
-        function openAdmin() { document.getElementById('admin-panel').style.display = 'block'; }
-        function closeAdmin() { document.getElementById('admin-panel').style.display = 'none'; }
-
-        async function saveSettings() {
-            const data = {
-                wallet: document.getElementById('toggle-wallet').checked,
-                canvas: document.getElementById('toggle-canvas').checked,
-                feed: document.getElementById('toggle-feed').checked,
-                leader: document.getElementById('toggle-leader').checked
+        function handleFile(input) {
+            const reader = new FileReader();
+            reader.onload = e => { 
+                b64Img = e.target.result; 
+                document.getElementById('preview-area').style.display='block';
+                document.getElementById('img-prev').src = b64Img;
             };
-            await fetch('/update_config', { method: 'POST', body: JSON.stringify(data), headers: {'Content-Type': 'application/json'} });
-            location.reload();
+            reader.readAsDataURL(input.files[0]);
         }
 
-        async function mint() {
-            const params = {
-                sat: document.getElementById('param-sat').value,
-                bri: document.getElementById('param-bri').value,
-                strength: document.getElementById('param-strength').value / 100
-            };
+        async function mintNFT() {
+            const ai_params = { sat: document.getElementById('sat-slider').value, strength: document.getElementById('strength-slider').value/100 };
             const res = await fetch('/create_stars_invoice', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ 
-                    u: tg.initDataUnsafe.user?.id, 
-                    b: document.getElementById('sacrifice').value,
-                    p: userImg, rank: currentPlan, params: params
-                })
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({ u: tg.initDataUnsafe.user?.id, b: document.getElementById('sacrifice').value, p: b64Img, rank: selectedRank, ai_params: ai_params })
             });
             const data = await res.json();
             if(data.url) tg.openInvoice(data.url, s => { if(s==='paid') tg.close(); });
+            else if(data.free) tg.showAlert("Sacrifice Accepted.");
         }
 
-        loadConfig();
-        setInterval(async () => {
-            const res = await fetch('/get_feed');
-            const data = await res.json();
-            document.getElementById('live-feed').innerText = data.last;
-        }, 5000);
-
         function setPlan(p, el) {
-            currentPlan = p;
+            selectedRank = p;
             document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('active'));
             el.classList.add('active');
         }
-        function previewImg(input) {
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = e => { userImg = e.target.result; };
-                reader.readAsDataURL(input.files[0]);
-            }
+
+        function openAdmin() { document.getElementById('admin-dash').style.display='block'; }
+        async function saveAdmin() {
+            const data = { wallet: document.getElementById('adm-wallet').checked, canvas: document.getElementById('adm-canvas').checked, feed: document.getElementById('adm-feed').checked, leader: document.getElementById('adm-leader').checked };
+            await fetch('/update_void_config', { method:'POST', body: JSON.stringify(data), headers:{'Content-Type':'application/json'} });
+            location.reload();
         }
+
+        setInterval(async () => {
+            const r = await fetch('/get_feed');
+            const d = await r.json();
+            document.getElementById('live-feed').innerText = d.last;
+        }, 5000);
+
+        loadConfig();
     </script>
 </body>
 </html>
