@@ -3,507 +3,219 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>THE VOID</title>
+    <title>THE VOID - Divine Ascension</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            overflow: hidden;
-            background: #000;
-            color: #FFD700;
-            font-family: 'Cinzel', serif;
-        }
-        canvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
-            pointer-events: none;
-        }
-        .container {
-            position: relative;
-            z-index: 10;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            box-sizing: border-box;
-            overflow-y: auto;
-        }
-        .main-title {
-            font-size: 3.5rem;
-            letter-spacing: 15px;
-            margin: 0 0 60px;
-            text-shadow: 0 0 40px #FFD700;
-            opacity: 1;
-            transition: opacity 1s ease;
-        }
-        input[type="text"] {
-            width: 90%;
-            max-width: 400px;
-            padding: 18px;
-            margin: 30px 0;
-            background: rgba(255, 215, 0, 0.1);
-            border: 2px solid #FFD700;
-            color: #FFFFFF;
-            font-size: 20px;
-            text-align: center;
-            border-radius: 12px;
-            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
-        }
-        .btn {
-            width: 90%;
-            max-width: 350px;
-            padding: 20px;
-            margin: 15px 0;
-            background: transparent;
-            border: 3px solid #FFD700;
-            color: #FFD700;
-            font-size: 22px;
-            font-weight: bold;
-            border-radius: 15px;
-            cursor: pointer;
-            transition: all 0.4s;
-            box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
-        }
-        .btn:hover {
-            background: rgba(255, 215, 0, 0.2);
-            transform: scale(1.08);
-            box-shadow: 0 0 50px rgba(255, 215, 0, 0.8);
-        }
-        .kings-luck {
-            background: linear-gradient(45deg, #8B00FF, #FF00FF, #FFD700);
-            background-size: 200%;
-            animation: pulse 3s infinite;
-            border: none;
-            color: white;
-            font-size: 26px;
-            box-shadow: 0 0 60px rgba(255, 0, 255, 0.8);
-        }
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
-        }
-        .preview-circle {
-            width: 250px;
-            height: 250px;
-            border-radius: 50%;
-            border: 8px solid #FFD700;
-            box-shadow: 0 0 60px #FFD700, inset 0 0 40px rgba(255, 215, 0, 0.3);
-            overflow: hidden;
-            margin: 40px 0;
-            background: #000;
-            position: relative;
-        }
-        .preview-circle img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        .preview-circle::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255,215,0,0.2) 0%, transparent 70%);
-            animation: glow 4s infinite;
-        }
-        @keyframes glow {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .hall-of-fame {
-            margin: 60px 0;
-            width: 90%;
-            max-width: 500px;
-        }
-        .hall-title {
-            font-size: 24px;
-            margin-bottom: 20px;
-            text-shadow: 0 0 20px #FFD700;
-        }
-        .hall-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-        }
-        .hall-item {
-            position: relative;
-            border: 2px solid #FFD700;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        .hall-item:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 40px rgba(255, 215, 0, 0.8);
-        }
-        .hall-item img {
-            width: 100%;
-            height: 200px;
-            object-fit: cover;
-        }
-        .hall-info {
-            padding: 10px;
-            background: rgba(0, 0, 0, 0.8);
-            text-align: center;
-            font-size: 14px;
-        }
-        #particles-title {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 4rem;
-            font-weight: 900;
-            letter-spacing: 20px;
-            opacity: 0;
-            text-shadow: 0 0 60px #FFD700;
-            z-index: 20;
-            pointer-events: none;
-        }
-        .language-selector {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            z-index: 30;
-        }
-        .language-btn {
-            background: rgba(255, 215, 0, 0.2);
-            border: 1px solid #FFD700;
-            color: #FFD700;
-            padding: 8px 12px;
-            margin-left: 5px;
-            border-radius: 8px;
-            cursor: pointer;
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Noto+Sans+JP&family=Amiri&display=swap');
+        body, html { margin: 0; padding: 0; height: 100%; overflow-x: hidden; background: #000; color: #FFD700; font-family: 'Cinzel', serif; scroll-behavior: smooth; }
+        canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+        .stage { position: relative; z-index: 10; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; transition: opacity 1s ease; }
+        
+        /* Language Selector */
+        .lang-bar { position: absolute; top: 10px; right: 10px; z-index: 100; display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end; width: 150px; }
+        .lang-btn { background: rgba(255,215,0,0.1); border: 1px solid #FFD700; color: #FFD700; font-size: 0.7rem; padding: 4px 8px; cursor: pointer; border-radius: 4px; }
+
+        .main-title { font-size: 2.5rem; letter-spacing: 12px; margin-top: 40px; text-shadow: 0 0 30px rgba(255,215,0,0.6); text-align: center; }
+        input[type="text"], select { background: rgba(20,20,20,0.8); border: none; border-bottom: 2px solid #333; color: #FFD700; font-size: 1.2rem; text-align: center; width: 85%; padding: 15px 0; margin: 10px 0; outline: none; font-family: inherit; border-radius: 5px; }
+        
+        .btn { background: transparent; border: 2px solid #FFD700; color: #FFD700; padding: 15px 40px; font-size: 1rem; letter-spacing: 4px; cursor: pointer; margin: 20px 0; transition: 0.4s; z-index: 20; text-transform: uppercase; width: 80%; max-width: 300px; }
+        .btn:active { background: #FFD700; color: #000; }
+        .btn.luck { border-color: #00ffff; color: #00ffff; box-shadow: 0 0 15px rgba(0,255,255,0.3); }
+
+        .option-box { background: rgba(15,15,15,0.95); border: 1px solid #444; padding: 20px; border-radius: 12px; width: 90%; max-width: 400px; backdrop-filter: blur(15px); margin: 15px 0; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .rank-card { display: flex; justify-content: space-between; align-items: center; padding: 10px; border: 1px solid #333; margin: 5px 0; border-radius: 8px; cursor: pointer; }
+        .rank-card.active { border-color: #FFD700; background: rgba(255,215,0,0.1); }
+        
+        #hall-of-fame { width: 90%; margin-top: 50px; text-align: center; }
+        .fame-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; margin-top: 20px; }
+        .fame-item { border: 1px solid #CDA434; border-radius: 5px; overflow: hidden; height: 140px; background: #111; }
+
+        #step2 { display: none; opacity: 0; }
+        .price { font-size: 2.5rem; margin: 15px 0; display: flex; align-items: center; gap: 10px; justify-content: center; }
+        .diamond { color: #00ffff; text-shadow: 0 0 20px #00ffff; }
+        
+        #photo-preview { width: 150px; height: 150px; object-fit: cover; border-radius: 50%; border: 4px solid #FFD700; margin: 20px 0; display: none; }
     </style>
 </head>
 <body>
-    <canvas id="particles-canvas"></canvas>
-    <div id="particles-title">KING'S LUCK</div>
+    <div class="lang-bar" id="langBar"></div>
+    <canvas id="canvas"></canvas>
 
-    <div id="step1" class="container active">
-        <div class="language-selector">
-            <button class="language-btn" onclick="setLanguage('en')">EN</button>
-            <button class="language-btn" onclick="setLanguage('fa')">FA</button>
-            <button class="language-btn" onclick="setLanguage('ru')">RU</button>
-            <button class="language-btn" onclick="setLanguage('ar')">AR</button>
-            <button class="language-btn" onclick="setLanguage('tr')">TR</button>
+    <div id="step1" class="stage">
+        <h1 class="main-title" id="t-title">THE VOID</h1>
+        <input type="text" id="sacrifice" placeholder="WHAT DO YOU SACRIFICE?" maxlength="50">
+        
+        <div class="option-box">
+            <p style="font-size: 0.8rem; text-align: center;" id="t-rank-select">SELECT YOUR ASCENSION RANK</p>
+            <div class="rank-card active" onclick="setRank('common', 0, this)">
+                <span>Common</span><span id="t-free">FREE</span>
+            </div>
+            <div class="rank-card" onclick="setRank('rare', 120, this)">
+                <span>Rare (Flux)</span><span>120 ⭐</span>
+            </div>
+            <div class="rank-card" onclick="setRank('legendary', 299, this)">
+                <span>Legendary (3D)</span><span>299 ⭐</span>
+            </div>
         </div>
 
-        <h1 class="main-title" id="main-title">THE VOID</h1>
-        <input type="text" id="burden" placeholder="YOUR ETERNAL BURDEN...">
-        <button class="btn" onclick="ascend()" id="ascend-btn">ASCEND</button>
+        <button class="btn" onclick="ascend()" id="t-btn-ascend">ASCEND</button>
+        <button class="btn luck" onclick="tryLuck()" id="t-btn-luck">KING'S LUCK (30 ⭐)</button>
 
-        <div class="hall-of-fame">
-            <div class="hall-title" id="hall-title">HALL OF ETERNITY</div>
-            <div class="hall-grid" id="hall-grid">
-                <!-- ۴۰ گواهی برتر اینجا لود می‌شن -->
+        <div id="hall-of-fame">
+            <h3 id="t-fame">HALL OF FAME</h3>
+            <div class="fame-grid" id="fameGrid">
+                <div class="fame-item"></div><div class="fame-item"></div><div class="fame-item"></div>
             </div>
-            <button class="btn" onclick="showFullHall()" id="full-hall-btn">VIEW FULL GALLERY</button>
         </div>
     </div>
 
-    <div id="step2" class="container">
-        <div class="preview-circle" id="preview-circle">
-            <img id="preview-img" src="" alt="" style="display:none;">
+    <div id="step2" class="stage">
+        <h2 id="grade">DIVINE GRADE</h2>
+        <img id="photo-preview" src="" alt="Soul">
+        <div class="price"><span id="amount">120</span><span class="diamond"> ⭐ </span></div>
+        
+        <div class="option-box">
+            <label style="display:block; border:1px dashed #555; padding:15px; cursor:pointer; text-align: center;">
+                <span id="t-upload">UPLOAD SOUL IMAGE</span>
+                <input type="file" id="upload" accept="image/*" style="display:none;" onchange="handlePhoto(this)">
+            </label>
+            <div style="margin-top: 15px; text-align: center;">
+                <label><input type="checkbox" id="profile" onchange="handlePhoto(null)"> <span id="t-use-prof">USE PROFILE PHOTO</span></label>
+            </div>
         </div>
-        <input type="file" id="photo-upload" accept="image/*" style="display:none;" onchange="previewPhoto(event)">
-
-        <button class="btn kings-luck" onclick="buy('kings-luck')">
-            👑 KING'S LUCK – 199 ⭐
-            <br><small>Chance for Legendary!</small>
-        </button>
-
-        <button class="btn" onclick="buy('divine')">💎 DIVINE – 150 ⭐</button>
-        <button class="btn" onclick="buy('celestial')">🌟 CELESTIAL – 299 ⭐</button>
-        <button class="btn" onclick="buy('legendary')">🔥 LEGENDARY – 499 ⭐</button>
-
-        <button class="btn share-btn" onclick="shareToStory()">
-            ✨ SHARE MY FATE TO STORY
-        </button>
+        
+        <button class="btn" id="mintBtn" onclick="mint()">MINT NFT</button>
+        <p style="color: #666; font-size: 0.7rem; text-align: center; width: 80%;" id="t-nft-note">This certificate is unique and ready for the TON blockchain ecosystem.</p>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
-        tg.ready();
-
-        const userId = tg.initDataUnsafe.user?.id || "unknown";
-        const userLang = tg.initDataUnsafe.user?.language_code || "en";
-
-        // ترجمه‌ها (چندزبانه)
-        const translations = {
-            en: {
-                title: "THE VOID",
-                placeholder: "YOUR ETERNAL BURDEN...",
-                ascend: "ASCEND",
-                hallTitle: "HALL OF ETERNITY",
-                fullHall: "VIEW FULL GALLERY",
-                kingsLuck: "KING'S LUCK – 199 ⭐",
-                divine: "DIVINE – 150 ⭐",
-                celestial: "CELESTIAL – 299 ⭐",
-                legendary: "LEGENDARY – 499 ⭐",
-                share: "SHARE MY FATE TO STORY"
-            },
-            fa: {
-                title: "خلأ ابدی",
-                placeholder: "بار ابدی خود را وارد کنید...",
-                ascend: "صعود",
-                hallTitle: "تالار ابدیت",
-                fullHall: "مشاهده گالری کامل",
-                kingsLuck: "شانس پادشاه – ۱۹۹ ⭐",
-                divine: "الهی – ۱۵۰ ⭐",
-                celestial: "آسمانی – ۲۹۹ ⭐",
-                legendary: "افسانه‌ای – ۴۹۹ ⭐",
-                share: "سرنوشتم را در استوری به اشتراک بگذار"
-            },
-            ru: {
-                title: "БЕЗДНА",
-                placeholder: "ВАШЕ ВЕЧНОЕ БРЕМЯ...",
-                ascend: "ВОЗНЕСЕНИЕ",
-                hallTitle: "ЗАЛ ВЕЧНОСТИ",
-                fullHall: "ПОСМОТРЕТЬ ПОЛНУЮ ГАЛЕРЕЮ",
-                kingsLuck: "УДАЧА КОРОЛЯ – 199 ⭐",
-                divine: "БОЖЕСТВЕННЫЙ – 150 ⭐",
-                celestial: "НЕБЕСНЫЙ – 299 ⭐",
-                legendary: "ЛЕГЕНДАРНЫЙ – 499 ⭐",
-                share: "ПОДЕЛИТЬСЯ СУДЬБОЙ В СТОРИ"
-            },
-            ar: {
-                title: "الفراغ الأبدي",
-                placeholder: "عبئك الأبدي...",
-                ascend: "الصعود",
-                hallTitle: "قاعة الأبدية",
-                fullHall: "عرض المعرض الكامل",
-                kingsLuck: "حظ الملك – 199 ⭐",
-                divine: "إلهي – 150 ⭐",
-                celestial: "سماوي – 299 ⭐",
-                legendary: "أسطوري – 499 ⭐",
-                share: "شارك مصيري في القصة"
-            },
-            tr: {
-                title: "BOŞLUK",
-                placeholder: "EBEDİ YÜKÜNÜZ...",
-                ascend: "YÜKSEL",
-                hallTitle: "EBEDİYET SALONU",
-                fullHall: "TAM GALERİYİ GÖR",
-                kingsLuck: "KRAL ŞANSI – 199 ⭐",
-                divine: "İLahi – 150 ⭐",
-                celestial: "GÖKSEL – 299 ⭐",
-                legendary: "EFSANEVİ – 499 ⭐",
-                share: "KADERİMİ HİKAYEDE PAYLAŞ"
-            }
+        
+        const i18n = {
+            en: { title: "THE VOID", sacrifice: "WHAT DO YOU SACRIFICE?", rank: "SELECT RANK", free: "FREE", ascend: "ASCEND", luck: "KING'S LUCK (30 ⭐)", fame: "HALL OF FAME", upload: "UPLOAD SOUL IMAGE", use_prof: "USE PROFILE PHOTO", mint: "MINT DIVINE NFT" },
+            fa: { title: "خلأ ابدی", sacrifice: "چه چیزی را فدا می‌کنی؟", rank: "انتخاب رتبه صعود", free: "رایگان", ascend: "صعود", luck: "شانس پادشاه (۳۰ ⭐)", fame: "تالار افتخارات", upload: "بارگذاری تصویر روح", use_prof: "استفاده از عکس پروفایل", mint: "تولید گواهی الهی" },
+            ru: { title: "ПУСТОТА", sacrifice: "ЧЕМ ВЫ ЖЕРТВУЕТЕ?", rank: "ВЫБЕРИТЕ РАНГ", free: "БЕСПЛАТНО", ascend: "ВОСХОЖДЕНИЕ", luck: "УДАЧА КОРОЛЯ (30 ⭐)", fame: "ЗАЛ СЛАВЫ", upload: "ЗАГРУЗИТЬ ФОТО", use_prof: "ФОТО ПРОФИЛЯ", mint: "СОЗДАТЬ NFT" },
+            es: { title: "EL VACÍO", sacrifice: "¿QUÉ SACRIFICAS?", rank: "ELEGIR RANGO", free: "GRATIS", ascend: "ASCENDER", luck: "SUERTE DEL REY (30 ⭐)", fame: "SALÓN DE LA FAMA", upload: "SUBIR IMAGEN", use_prof: "FOTO DE PERFIL", mint: "MINT NFT DIVINO" },
+            ar: { title: "الفراغ الأبدي", sacrifice: "ماذا تضحي؟", rank: "اختر رتبة الصعود", free: "مجاني", ascend: "ارتقاء", luck: "حظ الملك (30 ⭐)", fame: "قاعة المشاهير", upload: "رفع صورة الروح", use_prof: "استخدام صورة الملف", mint: "سك NFT الإلهي" },
+            fr: { title: "LE VIDE", sacrifice: "QUE SACRIFIEZ-VOUS ?", rank: "CHOISIR LE RANG", free: "GRATUIT", ascend: "ASCENSION", luck: "CHANCE DU ROI (30 ⭐)", fame: "GALERIE D'HONNEUR", upload: "CHARGER L'IMAGE", use_prof: "PHOTO DE PROFIL", mint: "FORGER NFT" },
+            zh: { title: "虚空", sacrifice: "你牺牲了什么？", rank: "选择等级", free: "免费", ascend: "飞升", luck: "国王的运气 (30 ⭐)", fame: "名人堂", upload: "上传灵魂图像", use_prof: "使用个人资料照片", mint: "铸造神圣NFT" }
         };
 
-        function setLanguage(lang) {
-            const t = translations[lang] || translations.en;
-            document.getElementById('main-title').innerText = t.title;
-            document.getElementById('burden').placeholder = t.placeholder;
-            document.getElementById('ascend-btn').innerText = t.ascend;
-            document.getElementById('hall-title').innerText = t.hallTitle;
-            document.getElementById('full-hall-btn').innerText = t.fullHall;
-            // دکمه‌های صفحه دوم هم آپدیت می‌شن
+        let currentLang = 'en';
+        let selectedRank = 'common';
+        let currentPrice = 0;
+
+        function setLang(lang) {
+            currentLang = lang;
+            document.getElementById('t-title').innerText = i18n[lang].title;
+            document.getElementById('sacrifice').placeholder = i18n[lang].sacrifice;
+            document.getElementById('t-rank-select').innerText = i18n[lang].rank;
+            document.getElementById('t-free').innerText = i18n[lang].free;
+            document.getElementById('t-btn-ascend').innerText = i18n[lang].ascend;
+            document.getElementById('t-btn-luck').innerText = i18n[lang].luck;
+            document.getElementById('t-fame').innerText = i18n[lang].fame;
+            document.getElementById('t-upload').innerText = i18n[lang].upload;
+            document.getElementById('t-use-prof').innerText = i18n[lang].use_prof;
+            document.getElementById('mintBtn').innerText = i18n[lang].mint;
         }
 
-        setLanguage(userLang);
+        const langBar = document.getElementById('langBar');
+        Object.keys(i18n).forEach(lang => {
+            const b = document.createElement('button');
+            b.className = 'lang-btn';
+            b.innerText = lang.toUpperCase();
+            b.onclick = () => setLang(lang);
+            langBar.appendChild(b);
+        });
 
-        // ذرات معلق در بک‌گراند (در همه صفحات)
-        const canvas = document.getElementById('particles-canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-
-        let floatingParticles = [];
-        class FloatingParticle {
-            constructor() {
-                this.x = Math.random() * canvas.width;
-                this.y = Math.random() * canvas.height;
-                this.size = Math.random() * 3 + 1;
-                this.speedX = Math.random() * 1 - 0.5;
-                this.speedY = Math.random() * 1 - 0.5;
-                this.color = ['#FFD700', '#FF00FF', '#FFFFFF'][Math.floor(Math.random() * 3)];
-                this.opacity = Math.random() * 0.5 + 0.3;
-            }
-            update() {
-                this.x += this.speedX;
-                this.y += this.speedY;
-                if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
-                if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
-            }
-            draw() {
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fillStyle = this.color.replace(')', `, ${this.opacity})`);
-                ctx.fill();
-            }
+        function setRank(rank, price, el) {
+            selectedRank = rank;
+            currentPrice = price;
+            document.querySelectorAll('.rank-card').forEach(c => c.classList.remove('active'));
+            el.classList.add('active');
+            document.getElementById('amount').innerText = price;
+            tg.HapticFeedback.selectionChanged();
         }
 
-        for (let i = 0; i < 150; i++) {
-            floatingParticles.push(new FloatingParticle());
-        }
-
-        function animateFloating() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            floatingParticles.forEach(p => {
-                p.update();
-                p.draw();
-            });
-            requestAnimationFrame(animateFloating);
-        }
-        animateFloating();
-
-        // انیمیشن انفجار و تشکیل عنوان
-        let explosionParticles = [];
-        class ExplosionParticle {
-            constructor() {
-                this.x = canvas.width / 2;
-                this.y = canvas.height / 2;
-                this.vx = (Math.random() - 0.5) * 15;
-                this.vy = (Math.random() - 0.5) * 15;
-                this.size = Math.random() * 4 + 2;
-                this.color = ['#FFD700', '#FF00FF', '#FFFFFF'][Math.floor(Math.random() * 3)];
-                this.life = 100;
-            }
-            update() {
-                this.x += this.vx;
-                this.y += this.vy;
-                this.life -= 2;
-            }
-            draw() {
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fillStyle = this.color;
-                ctx.globalAlpha = this.life / 100;
-                ctx.fill();
-                ctx.globalAlpha = 1;
-            }
-        }
-
-        function explodeAndReform() {
-            // انفجار
-            for (let i = 0; i < 400; i++) {
-                explosionParticles.push(new ExplosionParticle());
-            }
-
-            function animateExplosion() {
-                explosionParticles.forEach((p, i) => {
-                    p.update();
-                    p.draw();
-                    if (p.life <= 0) explosionParticles.splice(i, 1);
-                });
-                if (explosionParticles.length > 0) {
-                    requestAnimationFrame(animateExplosion);
-                } else {
-                    // بازگشت و تشکیل "KING'S LUCK"
-                    document.getElementById('particles-title').style.opacity = 1;
-                    setTimeout(() => {
-                        document.getElementById('step2').classList.add('active');
-                    }, 2000);
-                }
-            }
-            animateExplosion();
-        }
-
-        function ascend() {
-            const burden = document.getElementById('burden').value.trim();
-            if (!burden || burden.length < 3) {
-                tg.showAlert(translations[userLang].alert || "Your burden must be at least 3 characters.");
-                return;
-            }
-            window.currentBurden = burden;
-            document.getElementById('main-title').style.opacity = 0;
-            document.getElementById('step1').classList.remove('active');
-            explodeAndReform();
-        }
-
-        // پیش‌نمایش عکس
-        function previewPhoto(event) {
-            const file = event.target.files[0];
-            if (file) {
+        function handlePhoto(input) {
+            const preview = document.getElementById('photo-preview');
+            if (input && input.files[0]) {
                 const reader = new FileReader();
-                reader.onload = function(e) {
-                    const img = document.getElementById('preview-img');
-                    img.src = e.target.result;
-                    img.style.display = 'block';
-                    // ارسال عکس به backend برای Divine
-                    window.currentPhoto = e.target.result;
-                }
-                reader.readAsDataURL(file);
+                reader.onload = e => { preview.src = e.target.result; preview.style.display = 'block'; };
+                reader.readAsDataURL(input.files[0]);
+            } else if (document.getElementById('profile').checked && tg.initDataUnsafe.user?.photo_url) {
+                preview.src = tg.initDataUnsafe.user.photo_url;
+                preview.style.display = 'block';
             }
         }
 
-        // لود Hall of Fame (۴۰ گواهی)
-        async function loadHallOfFame() {
-            // در نسخه واقعی از API لود می‌شه
-            const mockData = Array(40).fill().map((_, i) => ({
-                image: "https://via.placeholder.com/300x400?text=Legendary+" + (i+1),
-                level: ["Legendary", "Celestial", "Divine"][i % 3],
-                burden: "Eternal Sovereign " + (i+1)
-            }));
-
-            const grid = document.getElementById('hall-grid');
-            mockData.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'hall-item';
-                div.innerHTML = `
-                    <img src="${item.image}" alt="${item.level}">
-                    <div class="hall-info">
-                        <div>${item.burden}</div>
-                        <div class="rank-${item.level}">${item.level}</div>
-                    </div>
-                `;
-                div.onclick = () => showFullHall();
-                grid.appendChild(div);
-            });
-        }
-        loadHallOfFame();
-
-        function showFullHall() {
-            tg.showAlert("Full Gallery coming soon! The Void is expanding...");
-        }
-
-        function buy(type) {
-            const burden = window.currentBurden || "Eternal Sovereign";
-            const payload = {
-                u: userId,
-                b: burden,
-                type: type,
-                p: window.currentPhoto || null
-            };
-
-            fetch('/create_stars_invoice', {
+        async function tryLuck() {
+            const sacrifice = document.getElementById('sacrifice').value.trim();
+            if(!sacrifice) return tg.showAlert("Name your burden first.");
+            const res = await fetch('/create_stars_invoice', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(payload)
-            }).then(res => res.json()).then(data => {
-                if (data.url) tg.openInvoice(data.url);
+                body: JSON.stringify({ u: tg.initDataUnsafe.user?.id, b: sacrifice, type: 'luck', price: 30 })
             });
+            const data = await res.json();
+            if(data.url) tg.openInvoice(data.url, s => { if(s==='paid') tg.showAlert("Fortune favors the bold!"); });
         }
 
-        function shareToStory() {
-            const text = "I ascended in THE VOID and claimed my eternal fate! 🌌 Join the eternal archive:";
-            const url = "https://t.me/YOUR_BOT_USERNAME";
-            tg.shareToStory(url, { text: text });
+        // --- Existing Animation Code [Source: 58-134] ---
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [], stars = [], meteors = [], state = 'idle';
+        function init() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; stars = []; for(let i=0; i<150; i++) stars.push({x:Math.random()*canvas.width, y:Math.random()*canvas.height, s:Math.random()*1.5, vx:(Math.random()-0.5)*0.4, vy:(Math.random()-0.5)*0.4}); }
+        window.onresize = init; init();
+        function draw() {
+            ctx.fillStyle = 'rgba(0,0,0,0.1)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+            stars.forEach(s => { s.x+=s.vx; s.y+=s.vy; if(s.x<0||s.x>canvas.width) s.vx*=-1; if(s.y<0||s.y>canvas.height) s.vy*=-1; ctx.fillStyle='#FFF'; ctx.beginPath(); ctx.arc(s.x,s.y,s.s,0,Math.PI*2); ctx.fill(); });
+            particles.forEach((p, i) => { ctx.fillStyle = '#FFD700'; ctx.globalAlpha = p.alpha || 1; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill(); if(state==='exploding'){p.x+=p.vx; p.y+=p.vy; p.size*=0.985;} if(p.size<0.5) particles.splice(i,1); });
+            requestAnimationFrame(draw);
+        }
+        draw();
+
+        function ascend() {
+            const sacrifice = document.getElementById('sacrifice').value.trim();
+            if(!sacrifice) return tg.showAlert("The Void requires a name.");
+            tg.HapticFeedback.impactOccurred('heavy');
+            state = 'exploding';
+            for(let i=0; i<300; i++) {
+                const a = Math.random()*Math.PI*2; const s = Math.random()*15+5;
+                particles.push({x:canvas.width/2, y:canvas.height/2, vx:Math.cos(a)*s, vy:Math.sin(a)*s, size:Math.random()*5+2});
+            }
+            if(selectedRank === 'common') {
+                setTimeout(() => mint(), 1000);
+            } else {
+                document.getElementById('step1').style.opacity = 0;
+                setTimeout(() => {
+                    document.getElementById('step1').style.display = 'none';
+                    const s2 = document.getElementById('step2');
+                    s2.style.display = 'flex'; setTimeout(() => s2.style.opacity = 1, 50);
+                }, 800);
+            }
         }
 
-        window.addEventListener('resize', () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        });
+        async function mint() {
+            const sacrifice = document.getElementById('sacrifice').value.trim();
+            const photoInput = document.getElementById('upload');
+            let photo = null;
+            if(photoInput.files[0]) {
+                photo = await new Promise(r => { const reader = new FileReader(); reader.onload = e => r(e.target.result); reader.readAsDataURL(photoInput.files[0]); });
+            }
+            const res = await fetch('/create_stars_invoice', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ 
+                    u: tg.initDataUnsafe.user?.id || 0, b: sacrifice, p: photo, 
+                    rank: selectedRank, price: currentPrice, prof: document.getElementById('profile').checked 
+                })
+            });
+            const data = await res.json();
+            if(data.url) tg.openInvoice(data.url, s => { if(s==='paid') tg.close(); });
+            else if(data.free) { tg.showAlert("Ascension Complete."); tg.close(); }
+        }
     </script>
 </body>
 </html>
