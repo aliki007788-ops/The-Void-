@@ -4,6 +4,7 @@ import base64
 import tempfile
 import secrets
 import random
+from datetime import datetime, timedelta
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from aiogram import Bot, Dispatcher, types, F
@@ -22,151 +23,163 @@ bot = Bot(token=os.getenv("BOT_TOKEN"))
 dp = Dispatcher(storage=MemoryStorage())
 app = FastAPI()
 ADMIN_ID = int(os.getenv("ADMIN_ID", "0"))
-PRICE_PREMIUM = 120
+
+# قیمت‌ها
+PRICE_DIVINE = 150
+PRICE_CELESTIAL = 299
+PRICE_LEGENDARY = 499
+PRICE_KINGS_LUCK = 199
+
+# دیتابیس‌های موقت
+REFERRALS = {}  # {user_id: count}
+DAILY_FREE = {}  # {user_id: {"count": int, "date": str}}
+HALL_OF_FAME = []  # list of dicts
+VIP_CODES = set()
 
 VIP_FILE = "vip_codes.txt"
+if os.path.exists(VIP_FILE):
+    with open(VIP_FILE, "r") as f:
+        VIP_CODES = set(line.strip().upper() for line in f if line.strip())
 
-def load_vip_codes():
-    if os.path.exists(VIP_FILE):
-        with open(VIP_FILE, "r", encoding="utf-8") as f:
-            return set(line.strip().upper() for line in f if line.strip())
-    return set()
+def save_vip_codes():
+    with open(VIP_FILE, "w") as f:
+        f.write("\n".join(sorted(VIP_CODES)))
 
-def save_vip_codes(codes):
-    with open(VIP_FILE, "w", encoding="utf-8") as f:
-        f.write("\n".join(sorted(codes)))
+async def send_certificate(uid, burden, level="Eternal", photo_path=None):
+    path, style = create_certificate(uid, burden, level, photo_path)
+    if not path:
+        await bot.send_message(uid, "🌌 The Void is temporarily silent. Try again later.")
+        return
 
-VIP_CODES = load_vip_codes()
+    caption = (
+        "🔱 <b>ASCENSION COMPLETE</b>\n\n"
+        f"\"<i>{burden.upper()}</i>\"\n\n"
+        f"<b>Level: {level}</b>\n"
+        f"<b>Style: {style}</b>\n\n"
+        "Your soul has been eternally crowned in glory.\n"
+        "A unique masterpiece, forever preserved.\n"
+        f"Holder ID: <code>{uid}</code>\n"
+        "2025.VO-ID"
+    )
+    await bot.send_document(uid, FSInputFile(path), caption=caption, parse_mode="HTML")
+    os.remove(path)
+    if photo_path and os.path.exists(photo_path):
+        os.remove(photo_path)
 
-async def send_nft(uid: int, burden: str, photo_path: str = None, is_gift: bool = False):
-    nft_path, style_name = create_certificate(uid, burden, photo_path)
-    
-    if is_gift:
-        caption = (
-            "🔱 <b>DIVINE PARTNERSHIP GRANTED</b>\n\n"
-            f"\"<i>{burden.upper()}</i>\"\n\n"
-            f"<b>{style_name}</b>\n\n"
-            "Your noble essence has been eternally enshrined\n"
-            "in the sacred archive of the Void.\n\n"
-            "A masterpiece forged for eternity."
-        )
-    else:
-        caption = (
-            "🔱 <b>ASCENSION COMPLETE</b>\n\n"
-            f"\"<i>{burden.upper()}</i>\"\n\n"
-            "HAS BEEN CONSUMED BY THE ETERNAL VOID\n\n"
-            f"<b>{style_name}</b>\n\n"
-            "Your soul has received its eternal crown of glory.\n"
-            "A unique masterpiece, forever preserved.\n"
-            f"Holder ID: <code>{uid}</code>\n"
-            "Timestamp: <code>2025.VO-ID</code>"
-        )
-    
-    await bot.send_document(uid, FSInputFile(nft_path), caption=caption, parse_mode="HTML")
-    
-    for p in [nft_path, photo_path]:
-        if p and os.path.exists(p):
-            try:
-                os.remove(p)
-            except:
-                pass
+    # Hall of Fame
+    if level in ["Celestial", "Legendary"]:
+        HALL_OF_FAME.append({"user": f"User_{str(uid)[-4:]}", "level": level, "burden": burden, "date": datetime.now().isoformat()})
+        if len(HALL_OF_FAME) > 50:
+            HALL_OF_FAME = HALL_OF_FAME[-50:]
 
-# /start – متن کامل خوش‌آمدگویی انگلیسی
+# /start
 @dp.message(F.text == "/start")
-async def start(message: types.Message):
-    welcome_text = """
-🌌 <b>WELCOME, WANDERER OF THE COSMOS</b> 🌌
+async def start(message: types.Message, raw_payload: str = None):
+    ref_id = None
+    if raw_payload and raw_payload.startswith("ref_"):
+        ref_id = int(raw_payload[4:])
+        if ref_id != message.from_user.id:
+            REFERRALS[ref_id] = REFERRALS.get(ref_id, 0) + 1
 
-The Eternal Void has sensed your presence.
+    welcome = """
+🌌 <b>WELCOME TO THE ETERNAL VOID</b> 🌌
 
-In the year <b>2025.VO-ID</b>, the ancient gates have parted once more — revealing a realm where burdens are transformed into eternal glory.
+The ancient gates have opened.
 
-<b>VOID ASCENSION CERTIFICATE</b>
+Two paths to ascension:
 
-Two sacred paths await your offering:
-
-<b>1. Free Eternal Ascension</b>
-• Simply send your <i>Burden Title</i> directly in this chat
-• Receive a magnificent certificate forged in cosmic gold instantly
-
-<b>2. Divine Ascension (120 ⭐)</b>
-• Tap "ENTER THE VOID" below
-• Crown yourself with your soul image (photo)
-• Receive the ultimate royal glow and divine imprint
-
-Each certificate is adorned with one of <b>30 sacred styles</b>.
-
-Once consumed, your burden is eternal.
+<b>• Eternal (Free – 3 daily)</b>: Send your burden title
+<b>• Divine+ (Paid)</b>: Use the portal for photo + royal ascension
 
 Your referral link:
-<code>https://t.me/livevoidbot?start=ref_{message.from_user.id}</code>
+<code>https://t.me/{bot_username}?start=ref_{message.from_user.id}</code>
 
-Share it and grow the Void.
+Bring 5 souls → 50% eternal discount
+
+The Void awaits your offering.
     """.strip()
 
     kb = InlineKeyboardMarkup(inline_keyboard=[[
         InlineKeyboardButton(text="🔱 ENTER THE VOID", web_app=WebAppInfo(url=f"{os.getenv('WEBHOOK_URL')}/static/index.html"))
     ]])
 
-    await message.answer(welcome_text, reply_markup=kb, parse_mode="HTML")
+    await message.answer(welcome, reply_markup=kb, parse_mode="HTML")
 
-# --- دستورات ویژه ادمین (اولویت بالا) ---
+# ادمین
 @dp.message(Command("divine"), F.from_user.id == ADMIN_ID)
-async def admin_divine_text(message: types.Message):
+async def admin_divine(message: types.Message):
     args = message.text.split(maxsplit=1)
-    burden = args[1].strip()[:50] if len(args) > 1 else "Divine Admin Creation"
-    await message.answer("👑 <b>Admin Divine Forging...</b>", parse_mode="HTML")
-    await send_nft(message.from_user.id, burden)
+    burden = args[1].strip()[:50] if len(args) > 1 else "Admin Divine Creation"
+    await message.answer("👑 Admin Divine Forging...")
+    await send_certificate(message.from_user.id, burden, "Legendary")
 
 @dp.message(F.photo, F.from_user.id == ADMIN_ID)
-async def admin_divine_photo(message: types.Message):
-    burden = message.caption.strip()[:50] if message.caption else "Divine Gift from the Void"
+async def admin_photo(message: types.Message):
+    burden = message.caption.strip()[:50] if message.caption else "Admin Divine Portrait"
     photo = message.photo[-1]
     file = await bot.get_file(photo.file_id)
-    photo_path = f"admin_divine_{message.from_user.id}.jpg"
-    await bot.download_file(file.file_path, photo_path)
-    await message.answer("👑 <b>Admin Divine Forging...</b>", parse_mode="HTML")
-    await send_nft(message.from_user.id, burden, photo_path)
+    path = f"admin_{message.from_user.id}.jpg"
+    await bot.download_file(file.file_path, path)
+    await message.answer("👑 Admin Divine with Portrait Forging...")
+    await send_certificate(message.from_user.id, burden, "Legendary", path)
 
-# --- حالت رایگان عادی ---
+# رایگان
 @dp.message(F.text, ~F.text.startswith("/"))
-async def free_ascension(message: types.Message):
-    burden = message.text.strip()
-    if len(burden) < 3:
-        await message.answer("🔥 Your burden is too light. Enter at least 3 characters.\nExample: Emperor of Silence")
+async def free(message: types.Message):
+    today = datetime.now().date().isoformat()
+    user_data = DAILY_FREE.get(message.from_user.id, {"count": 0, "date": today})
+    if user_data["date"] != today:
+        user_data = {"count": 0, "date": today}
+    
+    if user_data["count"] >= 3:
+        await message.answer("🌌 You have reached your 3 free ascensions today.\nUse the portal for Divine ascension.")
         return
-    if len(burden) > 50:
-        burden = burden[:47] + "..."
     
-    await message.answer("🌌 <b>THE VOID ACCEPTS YOUR OFFERING</b>\n\nForging your eternal certificate...\nOne moment, wanderer.", parse_mode="HTML")
-    await send_nft(message.from_user.id, burden)
+    burden = message.text.strip()[:50]
+    user_data["count"] += 1
+    DAILY_FREE[message.from_user.id] = user_data
     
-    premium_text = """
-🎁 <b>YOUR ETERNAL CERTIFICATE HAS BEEN FORGED</b>
+    await message.answer("🌌 Forging your Eternal certificate...")
+    await send_certificate(message.from_user.id, burden, "Eternal")
 
-This is merely the beginning.
-
-For the ultimate <b>Divine Ascension</b> with your soul image and royal glow:
-
-Tap the sacred portal below 👇
-    """.strip()
-    
-    kb = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="🔱 DIVINE ASCENSION WITH PHOTO", web_app=WebAppInfo(url=f"{os.getenv('WEBHOOK_URL')}/static/index.html"))
-    ]])
-    
-    await message.answer(premium_text, reply_markup=kb, parse_mode="HTML")
-
-# --- پرداخت Divine از وب‌اپ ---
+# پرداخت
 async def create_invoice_logic(data):
     uid = data['u']
-    burden_raw = data.get('b', '').strip()
-    burden_upper = burden_raw.upper()
-    if burden_raw in VIP_CODES or burden_upper in VIP_CODES:
-        VIP_CODES.discard(burden_raw)
-        VIP_CODES.discard(burden_upper)
-        save_vip_codes(VIP_CODES)
-        await send_nft(uid, burden_raw, None, is_gift=True)
+    burden = data.get('b', 'Eternal Sovereign')
+    type = data['type']
+    
+    # VIP
+    if burden.upper() in VIP_CODES:
+        VIP_CODES.discard(burden.upper())
+        save_vip_codes()
+        await send_certificate(uid, burden, "Legendary")
+        return {"free": True}
+    
+    # رفرال تخفیف
+    ref_count = REFERRALS.get(uid, 0)
+    discount = 0.5 if ref_count >= 5 else 1.0
+    
+    prices = {
+        "divine": PRICE_DIVINE,
+        "celestial": PRICE_CELESTIAL,
+        "legendary": PRICE_LEGENDARY,
+        "kings-luck": PRICE_KINGS_LUCK
+    }
+    
+    base = prices.get(type, PRICE_DIVINE)
+    final = int(base * discount)
+    
+    # شانس پادشاه
+    if type == "kings-luck":
+        chance = random.random()
+        level = "Eternal"
+        if chance < 0.01:
+            level = "Legendary"
+        elif chance < 0.1:
+            level = "Celestial"
+        elif chance < 0.4:
+            level = "Divine"
+        await send_certificate(uid, burden, level)
         return {"free": True}
     
     temp_path = "none"
@@ -178,32 +191,38 @@ async def create_invoice_logic(data):
         temp_path = tmp.name
     
     link = await bot.create_invoice_link(
-        title="DIVINE ASCENSION",
-        description="Luxurious Soul Crown",
-        payload=f"{uid}:{burden_raw}:{temp_path}",
+        title=f"VOID {type.upper()}",
+        description="Ascension to Glory",
+        payload=f"{uid}:{burden}:{temp_path}:{type}",
         currency="XTR",
-        prices=[LabeledPrice(label="Crown Fee", amount=PRICE_PREMIUM)]
+        prices=[LabeledPrice("Ascension Fee", final)]
     )
     return {"url": link}
 
 @app.post("/create_stars_invoice")
-async def create_invoice_post(request: Request):
+async def invoice(request: Request):
     data = await request.json()
     return await create_invoice_logic(data)
 
 @dp.pre_checkout_query()
-async def pre_checkout(q: types.PreCheckoutQuery):
+async def pre(q: types.PreCheckoutQuery):
     await q.answer(ok=True)
 
 @dp.message(F.successful_payment)
-async def successful_payment(message: types.Message):
+async def paid(message: types.Message):
     parts = message.successful_payment.invoice_payload.split(":")
     uid = int(parts[0])
     burden = parts[1]
     temp_path = parts[2] if parts[2] != "none" else None
-    await send_nft(uid, burden, temp_path)
+    type = parts[3]
+    level = {"divine": "Divine", "celestial": "Celestial", "legendary": "Legendary"}.get(type, "Divine")
+    await send_certificate(uid, burden, level, temp_path)
 
-# --- وب‌هوک و استاتیک ---
+# Hall of Fame
+@app.get("/api/hall-of-fame")
+async def hall():
+    return {"winners": HALL_OF_FAME[-10:]}
+
 app.mount("/static", StaticFiles(directory="static"))
 
 @app.post("/webhook")
