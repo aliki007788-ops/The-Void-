@@ -35,101 +35,159 @@
             align-items: center;
             padding: 20px;
             box-sizing: border-box;
+            overflow-y: auto;
         }
-        h1 {
-            font-size: 3rem;
-            letter-spacing: 12px;
-            margin: 0 0 40px;
-            text-shadow: 0 0 30px #FFD700;
+        .main-title {
+            font-size: 3.5rem;
+            letter-spacing: 15px;
+            margin: 0 0 60px;
+            text-shadow: 0 0 40px #FFD700;
+            opacity: 1;
+            transition: opacity 1s ease;
         }
         input[type="text"] {
             width: 90%;
             max-width: 400px;
-            padding: 15px;
-            margin: 20px 0;
+            padding: 18px;
+            margin: 30px 0;
             background: rgba(255, 215, 0, 0.1);
-            border: 1px solid #FFD700;
+            border: 2px solid #FFD700;
             color: #FFFFFF;
-            font-size: 18px;
+            font-size: 20px;
             text-align: center;
-            border-radius: 8px;
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
         }
         .btn {
             width: 90%;
             max-width: 350px;
-            padding: 18px;
-            margin: 12px 0;
+            padding: 20px;
+            margin: 15px 0;
             background: transparent;
-            border: 2px solid #FFD700;
+            border: 3px solid #FFD700;
             color: #FFD700;
-            font-size: 18px;
+            font-size: 22px;
             font-weight: bold;
-            border-radius: 12px;
+            border-radius: 15px;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.4s;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
         }
         .btn:hover {
             background: rgba(255, 215, 0, 0.2);
-            transform: scale(1.05);
+            transform: scale(1.08);
+            box-shadow: 0 0 50px rgba(255, 215, 0, 0.8);
         }
         .kings-luck {
             background: linear-gradient(45deg, #8B00FF, #FF00FF, #FFD700);
             background-size: 200%;
-            animation: pulse 2s infinite;
+            animation: pulse 3s infinite;
             border: none;
             color: white;
-            font-size: 22px;
-            box-shadow: 0 0 40px rgba(255, 0, 255, 0.8);
+            font-size: 26px;
+            box-shadow: 0 0 60px rgba(255, 0, 255, 0.8);
         }
         @keyframes pulse {
             0% { transform: scale(1); }
-            50% { transform: scale(1.08); }
+            50% { transform: scale(1.1); }
             100% { transform: scale(1); }
         }
+        .preview-circle {
+            width: 250px;
+            height: 250px;
+            border-radius: 50%;
+            border: 8px solid #FFD700;
+            box-shadow: 0 0 60px #FFD700, inset 0 0 40px rgba(255, 215, 0, 0.3);
+            overflow: hidden;
+            margin: 40px 0;
+            background: #000;
+            position: relative;
+        }
+        .preview-circle img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .preview-circle::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,215,0,0.2) 0%, transparent 70%);
+            animation: glow 4s infinite;
+        }
+        @keyframes glow {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
         .hall-of-fame {
-            margin-top: 40px;
-            padding: 20px;
-            border: 1px dashed #FFD700;
+            margin: 60px 0;
             width: 90%;
-            max-width: 400px;
-            background: rgba(20, 20, 20, 0.6);
-            border-radius: 12px;
+            max-width: 500px;
         }
         .hall-title {
-            font-size: 20px;
-            margin-bottom: 15px;
+            font-size: 24px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px #FFD700;
         }
-        .winner {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid #333;
-            font-size: 16px;
+        .hall-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
         }
-        .rank-LEGENDARY { color: #FF00FF; text-shadow: 0 0 10px #FF00FF; }
-        .rank-CELESTIAL { color: #00FFFF; text-shadow: 0 0 10px #00FFFF; }
-        .rank-DIVINE { color: #FFD700; text-shadow: 0 0 10px #FFD700; }
-        .rank-ETERNAL { color: #C0C0C0; }
-        .share-btn {
-            margin-top: 30px;
-            border-color: #00FF7F;
-            color: #00FF7F;
-            font-size: 18px;
+        .hall-item {
+            position: relative;
+            border: 2px solid #FFD700;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+            cursor: pointer;
+            transition: all 0.3s;
         }
-        #step1, #step2 { position: absolute; width: 100%; height: 100%; opacity: 0; transition: opacity 1s ease; }
-        #step1.active, #step2.active { opacity: 1; }
+        .hall-item:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 40px rgba(255, 215, 0, 0.8);
+        }
+        .hall-item img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+        .hall-info {
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            text-align: center;
+            font-size: 14px;
+        }
         #particles-title {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 3.5rem;
+            font-size: 4rem;
             font-weight: 900;
-            letter-spacing: 15px;
+            letter-spacing: 20px;
             opacity: 0;
-            text-shadow: 0 0 40px #FFD700;
+            text-shadow: 0 0 60px #FFD700;
             z-index: 20;
             pointer-events: none;
+        }
+        .language-selector {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 30;
+        }
+        .language-btn {
+            background: rgba(255, 215, 0, 0.2);
+            border: 1px solid #FFD700;
+            color: #FFD700;
+            padding: 8px 12px;
+            margin-left: 5px;
+            border-radius: 8px;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -137,20 +195,33 @@
     <canvas id="particles-canvas"></canvas>
     <div id="particles-title">KING'S LUCK</div>
 
-    <div id="step1" class="container">
-        <h1>THE VOID</h1>
-        <p style="font-size: 18px; max-width: 80%; margin-bottom: 30px;">Enter your eternal burden to begin ascension</p>
-        <input type="text" id="burden" placeholder="YOUR BURDEN TITLE...">
-        <button class="btn" onclick="ascend()">ASCEND</button>
+    <div id="step1" class="container active">
+        <div class="language-selector">
+            <button class="language-btn" onclick="setLanguage('en')">EN</button>
+            <button class="language-btn" onclick="setLanguage('fa')">FA</button>
+            <button class="language-btn" onclick="setLanguage('ru')">RU</button>
+            <button class="language-btn" onclick="setLanguage('ar')">AR</button>
+            <button class="language-btn" onclick="setLanguage('tr')">TR</button>
+        </div>
+
+        <h1 class="main-title" id="main-title">THE VOID</h1>
+        <input type="text" id="burden" placeholder="YOUR ETERNAL BURDEN...">
+        <button class="btn" onclick="ascend()" id="ascend-btn">ASCEND</button>
 
         <div class="hall-of-fame">
-            <div class="hall-title">🏆 HALL OF FAME – LATEST ASCENSIONS</div>
-            <div id="hall-list">Loading eternal souls...</div>
+            <div class="hall-title" id="hall-title">HALL OF ETERNITY</div>
+            <div class="hall-grid" id="hall-grid">
+                <!-- ۴۰ گواهی برتر اینجا لود می‌شن -->
+            </div>
+            <button class="btn" onclick="showFullHall()" id="full-hall-btn">VIEW FULL GALLERY</button>
         </div>
     </div>
 
     <div id="step2" class="container">
-        <h2>CHOOSE YOUR DESTINY</h2>
+        <div class="preview-circle" id="preview-circle">
+            <img id="preview-img" src="" alt="" style="display:none;">
+        </div>
+        <input type="file" id="photo-upload" accept="image/*" style="display:none;" onchange="previewPhoto(event)">
 
         <button class="btn kings-luck" onclick="buy('kings-luck')">
             👑 KING'S LUCK – 199 ⭐
@@ -171,136 +242,262 @@
         tg.expand();
         tg.ready();
 
-        const urlParams = new URLSearchParams(window.location.search);
         const userId = tg.initDataUnsafe.user?.id || "unknown";
+        const userLang = tg.initDataUnsafe.user?.language_code || "en";
 
-        document.getElementById('step1').classList.add('active');
+        // ترجمه‌ها (چندزبانه)
+        const translations = {
+            en: {
+                title: "THE VOID",
+                placeholder: "YOUR ETERNAL BURDEN...",
+                ascend: "ASCEND",
+                hallTitle: "HALL OF ETERNITY",
+                fullHall: "VIEW FULL GALLERY",
+                kingsLuck: "KING'S LUCK – 199 ⭐",
+                divine: "DIVINE – 150 ⭐",
+                celestial: "CELESTIAL – 299 ⭐",
+                legendary: "LEGENDARY – 499 ⭐",
+                share: "SHARE MY FATE TO STORY"
+            },
+            fa: {
+                title: "خلأ ابدی",
+                placeholder: "بار ابدی خود را وارد کنید...",
+                ascend: "صعود",
+                hallTitle: "تالار ابدیت",
+                fullHall: "مشاهده گالری کامل",
+                kingsLuck: "شانس پادشاه – ۱۹۹ ⭐",
+                divine: "الهی – ۱۵۰ ⭐",
+                celestial: "آسمانی – ۲۹۹ ⭐",
+                legendary: "افسانه‌ای – ۴۹۹ ⭐",
+                share: "سرنوشتم را در استوری به اشتراک بگذار"
+            },
+            ru: {
+                title: "БЕЗДНА",
+                placeholder: "ВАШЕ ВЕЧНОЕ БРЕМЯ...",
+                ascend: "ВОЗНЕСЕНИЕ",
+                hallTitle: "ЗАЛ ВЕЧНОСТИ",
+                fullHall: "ПОСМОТРЕТЬ ПОЛНУЮ ГАЛЕРЕЮ",
+                kingsLuck: "УДАЧА КОРОЛЯ – 199 ⭐",
+                divine: "БОЖЕСТВЕННЫЙ – 150 ⭐",
+                celestial: "НЕБЕСНЫЙ – 299 ⭐",
+                legendary: "ЛЕГЕНДАРНЫЙ – 499 ⭐",
+                share: "ПОДЕЛИТЬСЯ СУДЬБОЙ В СТОРИ"
+            },
+            ar: {
+                title: "الفراغ الأبدي",
+                placeholder: "عبئك الأبدي...",
+                ascend: "الصعود",
+                hallTitle: "قاعة الأبدية",
+                fullHall: "عرض المعرض الكامل",
+                kingsLuck: "حظ الملك – 199 ⭐",
+                divine: "إلهي – 150 ⭐",
+                celestial: "سماوي – 299 ⭐",
+                legendary: "أسطوري – 499 ⭐",
+                share: "شارك مصيري في القصة"
+            },
+            tr: {
+                title: "BOŞLUK",
+                placeholder: "EBEDİ YÜKÜNÜZ...",
+                ascend: "YÜKSEL",
+                hallTitle: "EBEDİYET SALONU",
+                fullHall: "TAM GALERİYİ GÖR",
+                kingsLuck: "KRAL ŞANSI – 199 ⭐",
+                divine: "İLahi – 150 ⭐",
+                celestial: "GÖKSEL – 299 ⭐",
+                legendary: "EFSANEVİ – 499 ⭐",
+                share: "KADERİMİ HİKAYEDE PAYLAŞ"
+            }
+        };
 
-        // ذرات انفجار و تشکیل عنوان "KING'S LUCK"
+        function setLanguage(lang) {
+            const t = translations[lang] || translations.en;
+            document.getElementById('main-title').innerText = t.title;
+            document.getElementById('burden').placeholder = t.placeholder;
+            document.getElementById('ascend-btn').innerText = t.ascend;
+            document.getElementById('hall-title').innerText = t.hallTitle;
+            document.getElementById('full-hall-btn').innerText = t.fullHall;
+            // دکمه‌های صفحه دوم هم آپدیت می‌شن
+        }
+
+        setLanguage(userLang);
+
+        // ذرات معلق در بک‌گراند (در همه صفحات)
         const canvas = document.getElementById('particles-canvas');
         const ctx = canvas.getContext('2d');
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
-        const particles = [];
-        const particleCount = 300;
-        const titleText = "KING'S LUCK";
-        const titleElement = document.getElementById('particles-title');
-
-        class Particle {
+        let floatingParticles = [];
+        class FloatingParticle {
             constructor() {
-                this.x = canvas.width / 2;
-                this.y = canvas.height / 2;
-                this.vx = (Math.random() - 0.5) * 10;
-                this.vy = (Math.random() - 0.5) * 10;
-                this.radius = Math.random() * 3 + 1;
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 3 + 1;
+                this.speedX = Math.random() * 1 - 0.5;
+                this.speedY = Math.random() * 1 - 0.5;
                 this.color = ['#FFD700', '#FF00FF', '#FFFFFF'][Math.floor(Math.random() * 3)];
-                this.alpha = 1;
+                this.opacity = Math.random() * 0.5 + 0.3;
             }
             update() {
-                this.x += this.vx;
-                this.y += this.vy;
-                this.alpha -= 0.01;
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+                if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
             }
             draw() {
                 ctx.beginPath();
-                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(${this.color === '#FFD700' ? '255,215,0' : this.color === '#FF00FF' ? '255,0,255' : '255,255,255'}, ${this.alpha})`;
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color.replace(')', `, ${this.opacity})`);
                 ctx.fill();
             }
         }
 
-        function explode() {
-            for (let i = 0; i < particleCount; i++) {
-                particles.push(new Particle());
-            }
+        for (let i = 0; i < 150; i++) {
+            floatingParticles.push(new FloatingParticle());
         }
 
-        function animateParticles() {
+        function animateFloating() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            particles.forEach((p, i) => {
+            floatingParticles.forEach(p => {
                 p.update();
                 p.draw();
-                if (p.alpha <= 0) particles.splice(i, 1);
             });
-            if (particles.length === 0) {
-                titleElement.style.opacity = 1;
-                titleElement.style.transition = 'opacity 2s ease';
-                setTimeout(() => {
-                    titleElement.style.opacity = 0;
-                }, 3000);
-            } else {
-                requestAnimationFrame(animateParticles);
+            requestAnimationFrame(animateFloating);
+        }
+        animateFloating();
+
+        // انیمیشن انفجار و تشکیل عنوان
+        let explosionParticles = [];
+        class ExplosionParticle {
+            constructor() {
+                this.x = canvas.width / 2;
+                this.y = canvas.height / 2;
+                this.vx = (Math.random() - 0.5) * 15;
+                this.vy = (Math.random() - 0.5) * 15;
+                this.size = Math.random() * 4 + 2;
+                this.color = ['#FFD700', '#FF00FF', '#FFFFFF'][Math.floor(Math.random() * 3)];
+                this.life = 100;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life -= 2;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = this.life / 100;
+                ctx.fill();
+                ctx.globalAlpha = 1;
             }
         }
 
-        // انفجار ذرات وقتی به مرحله دوم می‌ریم
+        function explodeAndReform() {
+            // انفجار
+            for (let i = 0; i < 400; i++) {
+                explosionParticles.push(new ExplosionParticle());
+            }
+
+            function animateExplosion() {
+                explosionParticles.forEach((p, i) => {
+                    p.update();
+                    p.draw();
+                    if (p.life <= 0) explosionParticles.splice(i, 1);
+                });
+                if (explosionParticles.length > 0) {
+                    requestAnimationFrame(animateExplosion);
+                } else {
+                    // بازگشت و تشکیل "KING'S LUCK"
+                    document.getElementById('particles-title').style.opacity = 1;
+                    setTimeout(() => {
+                        document.getElementById('step2').classList.add('active');
+                    }, 2000);
+                }
+            }
+            animateExplosion();
+        }
+
         function ascend() {
             const burden = document.getElementById('burden').value.trim();
             if (!burden || burden.length < 3) {
-                tg.showAlert("Your burden must be at least 3 characters.");
+                tg.showAlert(translations[userLang].alert || "Your burden must be at least 3 characters.");
                 return;
             }
             window.currentBurden = burden;
+            document.getElementById('main-title').style.opacity = 0;
             document.getElementById('step1').classList.remove('active');
-            document.getElementById('step2').classList.add('active');
-            explode();
-            animateParticles();
+            explodeAndReform();
         }
 
-        async function loadHallOfFame() {
-            try {
-                const res = await fetch('/api/hall-of-fame');
-                const data = await res.json();
-                const list = document.getElementById('hall-list');
-                list.innerHTML = '';
-                data.winners.slice(-10).reverse().forEach(w => {
-                    const div = document.createElement('div');
-                    div.className = 'winner';
-                    div.innerHTML = `<span>${w.user}</span><span class="rank-${w.rank}">${w.rank}</span>`;
-                    list.appendChild(div);
-                });
-            } catch (e) {
-                document.getElementById('hall-list').innerHTML = 'The Void is silent...';
+        // پیش‌نمایش عکس
+        function previewPhoto(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.getElementById('preview-img');
+                    img.src = e.target.result;
+                    img.style.display = 'block';
+                    // ارسال عکس به backend برای Divine
+                    window.currentPhoto = e.target.result;
+                }
+                reader.readAsDataURL(file);
             }
+        }
+
+        // لود Hall of Fame (۴۰ گواهی)
+        async function loadHallOfFame() {
+            // در نسخه واقعی از API لود می‌شه
+            const mockData = Array(40).fill().map((_, i) => ({
+                image: "https://via.placeholder.com/300x400?text=Legendary+" + (i+1),
+                level: ["Legendary", "Celestial", "Divine"][i % 3],
+                burden: "Eternal Sovereign " + (i+1)
+            }));
+
+            const grid = document.getElementById('hall-grid');
+            mockData.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'hall-item';
+                div.innerHTML = `
+                    <img src="${item.image}" alt="${item.level}">
+                    <div class="hall-info">
+                        <div>${item.burden}</div>
+                        <div class="rank-${item.level}">${item.level}</div>
+                    </div>
+                `;
+                div.onclick = () => showFullHall();
+                grid.appendChild(div);
+            });
         }
         loadHallOfFame();
 
-        async function buy(type) {
+        function showFullHall() {
+            tg.showAlert("Full Gallery coming soon! The Void is expanding...");
+        }
+
+        function buy(type) {
             const burden = window.currentBurden || "Eternal Sovereign";
             const payload = {
                 u: userId,
                 b: burden,
-                type: type
+                type: type,
+                p: window.currentPhoto || null
             };
 
-            try {
-                const res = await fetch('/create_stars_invoice', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(payload)
-                });
-                const data = await res.json();
-                if (data.url) {
-                    tg.openInvoice(data.url);
-                } else if (data.free) {
-                    tg.showAlert("Your ascension has been granted by the Void.");
-                } else {
-                    tg.showAlert("The Void is unreachable at this moment.");
-                }
-            } catch (e) {
-                tg.showAlert("Connection to the Void failed.");
-            }
+            fetch('/create_stars_invoice', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            }).then(res => res.json()).then(data => {
+                if (data.url) tg.openInvoice(data.url);
+            });
         }
 
         function shareToStory() {
-            const botUsername = "YOUR_BOT_USERNAME"; // حتماً یوزرنیم باتت رو بدون @ بگذار
-            const text = "I just ascended in THE VOID and claimed my eternal fate! 🌌\n\nJoin the eternal archive:";
-            const url = `https://t.me/${botUsername}`;
-
-            tg.shareToStory(url, {
-                text: text
-            });
+            const text = "I ascended in THE VOID and claimed my eternal fate! 🌌 Join the eternal archive:";
+            const url = "https://t.me/YOUR_BOT_USERNAME";
+            tg.shareToStory(url, { text: text });
         }
 
         window.addEventListener('resize', () => {
