@@ -3,248 +3,216 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>THE VOID - SUPREME EDITION</title>
+    <title>THE VOID - Genesis</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://unpkg.com/@tonconnect/sdk@latest/dist/tonconnect-sdk.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Orbitron:wght@400;900&display=swap');
-        :root { --gold: #FFD700; --cyan: #00f2ff; --glass: rgba(255, 255, 255, 0.05); --glass-border: rgba(255, 255, 255, 0.1); }
+        :root { --gold: #FFD700; --cyan: #00f2ff; --glass: rgba(255, 255, 255, 0.05); }
         body, html { margin: 0; padding: 0; background: #000; color: #fff; font-family: 'Cinzel', serif; overflow-x: hidden; scroll-behavior: smooth; }
         canvas { position: fixed; top: 0; left: 0; z-index: 1; pointer-events: none; }
-        
-        /* Live Feed */
-        #live-feed { position: fixed; top: 0; width: 100%; height: 35px; background: rgba(0,0,0,0.9); z-index: 1000; border-bottom: 1px solid #1a1a1a; color: var(--cyan); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-family: 'Orbitron'; overflow: hidden; }
+        .stage { position: relative; z-index: 10; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; transition: 1.5s; }
 
-        .stage { position: relative; z-index: 10; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 60px 20px; box-sizing: border-box; transition: 1.5s; }
-
-        /* 3D Cyan Rotating Star */
-        .star-container { perspective: 1000px; display: inline-block; vertical-align: middle; margin-left: 10px; }
+        /* 3D Rotating Star - Cyan & Glowing */
         .star-3d {
-            width: 24px; height: 24px; background: var(--cyan);
-            clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-            box-shadow: 0 0 20px var(--cyan); animation: rotate3D 3s linear infinite; transform-style: preserve-3d;
+            display: inline-block; width: 18px; height: 18px;
+            background: var(--cyan); clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+            box-shadow: 0 0 15px var(--cyan); animation: rotateY 3s linear infinite; transform-style: preserve-3d; vertical-align: middle; margin: 0 8px;
         }
-        @keyframes rotate3D { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
+        @keyframes rotateY { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
 
-        /* Typography */
-        .main-title { font-size: 3rem; letter-spacing: 20px; margin-top: 10vh; text-shadow: 0 0 30px rgba(255,215,0,0.5); font-family: 'Orbitron'; }
+        /* Buttons with Gold Hover & Shadows */
+        .btn { 
+            background: transparent; border: 1px solid var(--gold); color: var(--gold); padding: 15px 30px; cursor: pointer; transition: 0.4s; 
+            text-transform: uppercase; letter-spacing: 2px; font-family: 'Orbitron', sans-serif; box-shadow: 0 0 10px rgba(255,215,0,0.2);
+        }
+        .btn:hover { box-shadow: 0 0 30px var(--gold); transform: scale(1.05); background: rgba(255,215,0,0.1); }
         
-        /* Inputs & Buttons */
-        input[type="text"] { background: transparent; border: none; border-bottom: 2px solid #222; color: var(--gold); font-size: 1.6rem; text-align: center; width: 85%; margin: 60px 0; outline: none; transition: 0.3s; }
-        input[type="text"]:focus { border-bottom-color: var(--gold); }
-        .btn { background: transparent; border: 1px solid var(--gold); color: var(--gold); padding: 15px 40px; cursor: pointer; transition: 0.4s; text-transform: uppercase; letter-spacing: 3px; font-family: 'Orbitron'; box-shadow: 0 0 15px rgba(255,215,0,0.1); }
-        .btn:hover { background: rgba(255,215,0,0.1); box-shadow: 0 0 30px var(--gold); transform: translateY(-2px); }
-
-        /* Glass Cards for Ranks */
-        .plan-container { display: flex; overflow-x: auto; width: 100%; gap: 15px; padding: 20px 10px; scrollbar-width: none; }
-        .plan-card {
-            min-width: 200px; background: var(--glass); backdrop-filter: blur(20px); border: 1px solid var(--glass-border);
-            padding: 25px; border-radius: 20px; text-align: center; transition: 0.5s; cursor: pointer; position: relative;
+        .btn-luck { 
+            border: 2px solid var(--gold); animation: pulse-gold 1.5s infinite; font-weight: 900; background: linear-gradient(45deg, #000, #1a1a1a);
         }
-        .plan-card.active { border-color: var(--gold); background: rgba(255,215,0,0.05); transform: scale(1.05); }
-        .plan-price { font-size: 1.5rem; color: #fff; margin-top: 15px; display: flex; align-items: center; justify-content: center; }
+        @keyframes pulse-gold { 0%, 100% { box-shadow: 0 0 5px var(--gold); } 50% { box-shadow: 0 0 35px var(--gold); } }
 
-        /* Additional Sections: Referral, Hall of Fame, Auction, NFT */
-        .supreme-section { width: 100%; max-width: 450px; background: var(--glass); backdrop-filter: blur(15px); border: 1px solid var(--glass-border); border-radius: 25px; margin: 15px 0; padding: 20px; box-sizing: border-box; }
-        .section-header { color: var(--gold); font-family: 'Orbitron'; font-size: 0.9rem; margin-bottom: 15px; display: flex; justify-content: space-between; }
+        /* Glass Tabs - Invisible until content is shown */
+        .plan-card { 
+            background: var(--glass); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.05); padding: 25px; border-radius: 20px; width: 90%; max-width: 400px; margin: 12px 0; transition: 0.5s; cursor: pointer;
+        }
+        .plan-card.active { border-color: var(--gold); background: rgba(255,215,0,0.05); }
+        .preview-circle { width: 140px; height: 140px; border-radius: 50%; border: 3px solid var(--gold); margin: 15px auto; display: none; object-fit: cover; box-shadow: 0 0 20px var(--gold); }
 
-        /* AI Canvas Editor */
-        #ai-editor { display: none; }
-        .slider-group { margin: 15px 0; }
-        .slider-group label { display: block; font-size: 0.7rem; color: var(--gold); margin-bottom: 5px; }
-        input[type="range"] { width: 100%; accent-color: var(--gold); }
+        .lang-box { position: fixed; bottom: 20px; left: 20px; z-index: 100; }
+        #langSelect { background: #000; color: var(--gold); border: 1px solid var(--gold); padding: 8px; border-radius: 5px; cursor: pointer; font-family: inherit; }
 
-        /* Admin Dashboard */
-        #admin-dash { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 5000; display: none; padding: 40px; box-sizing: border-box; }
-        .toggle-row { display: flex; justify-content: space-between; padding: 15px 0; border-bottom: 1px solid #222; }
-
-        #step2 { display: none; opacity: 0; }
+        #step2, #hall-of-fame, #user-panel { display: none; opacity: 0; }
     </style>
 </head>
 <body>
-    <div id="live-feed">INITIATING COSMIC SYNC...</div>
-
-    <div id="admin-dash">
-        <h1 style="color:var(--gold); font-family:'Orbitron'">VOID MASTER PANEL</h1>
-        <div class="toggle-row"><span>Wallet Connect</span> <input type="checkbox" id="adm-wallet" checked></div>
-        <div class="toggle-row"><span>AI Canvas Editor</span> <input type="checkbox" id="adm-canvas" checked></div>
-        <div class="toggle-row"><span>Live Feed</span> <input type="checkbox" id="adm-feed" checked></div>
-        <div class="toggle-row"><span>Leaderboard/Hall</span> <input type="checkbox" id="adm-leader" checked></div>
-        <button class="btn" style="margin-top:40px" onclick="saveAdmin()">APPLY & REBOOT</button>
-        <button class="btn" style="border-color:red; color:red" onclick="document.getElementById('admin-dash').style.display='none'">EXIT</button>
+    <div class="lang-box">
+        <select id="langSelect" onchange="changeLang(this.value)">
+            <option value="en">English</option><option value="fa">فارسی</option>
+            <option value="ru">Русский</option><option value="es">Español</option>
+            <option value="ar">العربية</option><option value="fr">Français</option><option value="zh">中文</option>
+        </select>
     </div>
-
     <canvas id="mainCanvas"></canvas>
 
     <div id="step1" class="stage">
-        <h1 class="main-title">THE VOID</h1>
-        <input type="text" id="sacrifice" placeholder="NAME YOUR BURDEN" maxlength="50">
-        <button class="btn" onclick="ascend()">ASCEND</button>
-        <button id="ton-connect-btn" class="btn" style="display:none; margin-top:20px; border-color:var(--cyan); color:var(--cyan)">CONNECT WALLET</button>
-        <div id="admin-trigger" style="position:fixed; bottom:10px; font-size:10px; color:#111" onclick="openAdmin()">ADMIN</div>
+        <h1 class="main-title" id="t-title" style="font-size: 3rem; letter-spacing: 20px; margin-top: 15vh;">THE VOID</h1>
+        <input type="text" id="sacrifice" placeholder="WHAT DO YOU SACRIFICE?" maxlength="50" style="background:transparent; border:none; border-bottom:2px solid #333; color:var(--gold); font-size:1.4rem; text-align:center; width:85%; margin:60px 0; outline:none;">
+        <button class="btn" onclick="triggerSequence()" id="t-btn-ascend">ASCEND</button>
     </div>
 
     <div id="step2" class="stage">
-        <div class="plan-container">
-            <div class="plan-card active" onclick="setPlan('eternal', this)">
-                <div style="font-size:0.8rem; color:var(--gold)">RANK I</div>
-                <div style="font-weight:bold">ETERNAL</div>
-                <div class="plan-price">FREE</div>
-            </div>
-            <div class="plan-card" onclick="setPlan('divine', this)">
-                <div style="font-size:0.8rem; color:var(--gold)">RANK II</div>
-                <div style="font-weight:bold">DIVINE</div>
-                <div class="plan-price">99 <div class="star-container"><div class="star-3d"></div></div></div>
-            </div>
-            <div class="plan-card" onclick="setPlan('celestial', this)">
-                <div style="font-size:0.8rem; color:var(--gold)">RANK III</div>
-                <div style="font-weight:bold">CELESTIAL</div>
-                <div class="plan-price">299 <div class="star-container"><div class="star-3d"></div></div></div>
-            </div>
-            <div class="plan-card" onclick="setPlan('legendary', this)">
-                <div style="font-size:0.8rem; color:var(--gold)">RANK IV</div>
-                <div style="font-weight:bold">LEGENDARY</div>
-                <div class="plan-price">499 <div class="star-container"><div class="star-3d"></div></div></div>
+        <div id="reforming-text-area" style="height: 100px;"></div>
+        
+        <div class="plan-card active" onclick="setPlan('free', this)">
+            <h3>VAGABOND <span style="float:right">FREE</span></h3>
+            <p style="font-size:0.8rem; opacity:0.6;">Limit: 3/3 Souls</p>
+        </div>
+
+        <div class="plan-card" onclick="setPlan('rare', this)">
+            <h3>IMPERIAL <span style="float:right">120 <div class="star-3d"></div></span></h3>
+            <div class="upload-area">
+                <input type="file" id="file-rare" hidden onchange="preview(this)">
+                <button class="btn" onclick="document.getElementById('file-rare').click()" style="font-size:0.7rem; width:100%">UPLOAD SOUL IMAGE</button>
+                <img class="preview-circle" id="pre-rare">
             </div>
         </div>
 
-        <div id="ai-editor" class="supreme-section">
-            <div class="section-header"><span>AI CANVAS</span> <span>PREMIUM</span></div>
-            <div class="slider-group">
-                <label>GOLDEN SATURATION</label>
-                <input type="range" id="sat-slider" min="0" max="200" value="115">
-            </div>
-            <div class="slider-group">
-                <label>TRANSFORMATION INTENSITY</label>
-                <input type="range" id="strength-slider" min="20" max="95" value="65">
+        <div class="plan-card" onclick="setPlan('legendary', this)">
+            <h3>ETERNAL <span style="float:right">299 <div class="star-3d"></div></span></h3>
+            <div class="upload-area">
+                <input type="file" id="file-legend" hidden onchange="preview(this)">
+                <button class="btn" onclick="document.getElementById('file-legend').click()" style="font-size:0.7rem; width:100%">UPLOAD SOUL IMAGE</button>
+                <img class="preview-circle" id="pre-legend">
             </div>
         </div>
 
-        <div class="supreme-section">
-            <div class="section-header"><span>SACRIFICE IMAGE</span></div>
-            <input type="file" id="soul-img" hidden onchange="handleFile(this)">
-            <button class="btn" style="width:100%" onclick="document.getElementById('soul-img').click()">UPLOAD SOUL IMAGE</button>
-            <div id="preview-area" style="display:none; text-align:center; margin-top:15px;">
-                <img id="img-prev" style="width:80px; height:80px; border-radius:50%; border:2px solid var(--gold)">
-            </div>
-        </div>
+        <button class="btn btn-luck" id="t-btn-luck" onclick="tryLuck()" style="width:100%; max-width:400px; margin-top:20px;">KING'S LUCK (30 <div class="star-3d"></div>)</button>
+        <button class="btn" style="margin-top:25px; width:100%; max-width:400px;" onclick="mint()">MINT DIVINE NFT</button>
 
-        <div id="hall-of-fame" class="supreme-section">
-            <div class="section-header"><span>HALL OF FAME</span> <span>TOP SOULS</span></div>
-            <div id="leader-list" style="font-size:0.8rem; opacity:0.7"></div>
+        <div style="margin-top: 60px; text-align: center; width: 100%;">
+            <button class="btn" onclick="copyRef()">COPY REFERRAL LINK</button>
+            <p id="ref-count" style="font-size:0.8rem; color:var(--cyan); margin-top:10px;">Friends Invited: 0</p>
+            <button class="btn" style="border:none; color:#555;" onclick="togglePanel()">ENTER USER PANEL</button>
         </div>
-
-        <div class="supreme-section">
-            <div class="section-header"><span>REFERRAL PORTAL</span></div>
-            <div style="font-size:0.7rem; color:#888; margin-bottom:10px">Invite 3 souls for a Divine Gift</div>
-            <code id="ref-link" style="color:var(--cyan); font-size:0.7rem">t.me/voidbot?start=...</code>
-        </div>
-
-        <div class="supreme-section">
-            <div class="section-header"><span>NFT & AUCTION</span> <span style="color:#f00">SOON</span></div>
-            <div style="text-align:center; padding:10px; font-size:0.8rem; border:1px dashed #333">FORGING SMART CONTRACTS...</div>
-        </div>
-
-        <button class="btn" style="width:100%; max-width:450px; background:var(--gold); color:#000" onclick="mintNFT()">MINT VOID IDENTITY</button>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
         let canvas = document.getElementById('mainCanvas'), ctx = canvas.getContext('2d');
-        let particles = [], state = 'idle', selectedRank = 'eternal', b64Img = null;
+        let particles = [], state = 'idle', currentPlan = 'free', userImg = null;
 
         function init() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
         window.onresize = init; init();
 
         class Particle {
             constructor(x, y) {
-                this.x = x; this.y = y; this.vx = (Math.random()-0.5)*40; this.vy = (Math.random()-0.5)*40;
+                this.x = x; this.y = y; this.vx = (Math.random()-0.5)*30; this.vy = (Math.random()-0.5)*30;
                 this.size = Math.random()*3; this.color = Math.random() > 0.5 ? '#FFD700' : '#00f2ff';
-                this.targetX = null; this.targetY = null;
+                this.targetX = null; this.targetY = null; this.alpha = 1;
             }
             update() {
-                if(state === 'exploding') { this.x += this.vx; this.y += this.vy; this.vx *= 0.95; this.vy *= 0.95; }
+                if(state === 'exploding') { this.x += this.vx; this.y += this.vy; this.vx *= 0.96; this.vy *= 0.96; }
                 else if(state === 'reforming' && this.targetX) {
-                    this.x += (this.targetX - this.x) * 0.1; this.y += (this.targetY - this.y) * 0.1;
+                    this.x += (this.targetX - this.x) * 0.1;
+                    this.y += (this.targetY - this.y) * 0.1;
                 }
             }
             draw() { ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2); ctx.fill(); }
         }
 
-        async function loadConfig() {
-            const res = await fetch('/get_void_config');
-            const cfg = await res.json();
-            if(cfg.wallet) document.getElementById('ton-connect-btn').style.display = 'block';
-            if(cfg.canvas) document.getElementById('ai-editor').style.display = 'block';
-            if(cfg.leader) document.getElementById('hall-of-fame').style.display = 'block';
-            if(tg.initDataUnsafe.user?.id == 12345678) document.getElementById('admin-trigger').style.display = 'block';
+        function getTextPoints(text) {
+            const tCanvas = document.createElement('canvas');
+            const tCtx = tCanvas.getContext('2d');
+            tCanvas.width = canvas.width; tCanvas.height = 200;
+            tCtx.font = "900 35px Orbitron"; tCtx.fillStyle = "white"; tCtx.textAlign = "center";
+            tCtx.fillText(text, canvas.width/2, 100);
+            const data = tCtx.getImageData(0,0, canvas.width, 200).data;
+            let pts = [];
+            for(let y=0; y<200; y+=4) {
+                for(let x=0; x<canvas.width; x+=4) {
+                    if(data[(y*canvas.width + x)*4 + 3] > 128) pts.push({x, y: y + 100});
+                }
+            }
+            return pts;
         }
 
-        function ascend() {
-            if(!document.getElementById('sacrifice').value) return tg.showAlert("Void demands a name.");
+        function triggerSequence() {
+            if(!document.getElementById('sacrifice').value) return tg.showAlert("The Void demands a sacrifice.");
             state = 'exploding';
-            for(let i=0; i<1000; i++) particles.push(new Particle(canvas.width/2, canvas.height/2));
+            for(let i=0; i<800; i++) particles.push(new Particle(canvas.width/2, canvas.height/2));
             document.getElementById('step1').style.opacity = 0;
             tg.HapticFeedback.impactOccurred('heavy');
+            
             setTimeout(() => {
                 document.getElementById('step1').style.display = 'none';
                 document.getElementById('step2').style.display = 'flex';
+                const pts = getTextPoints("DIVINE SELECTION");
+                particles.forEach((p, i) => {
+                    const t = pts[i % pts.length];
+                    p.targetX = t.x; p.targetY = t.y;
+                });
                 state = 'reforming';
                 setTimeout(() => { document.getElementById('step2').style.opacity = 1; }, 500);
-            }, 1200);
-            fetch('/add_feed', { method:'POST', body: JSON.stringify({u: tg.initDataUnsafe.user?.first_name, b: document.getElementById('sacrifice').value}), headers:{'Content-Type':'application/json'} });
+            }, 1000);
         }
 
         function animate() {
-            ctx.fillStyle = 'rgba(0,0,0,0.1)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+            ctx.fillStyle = 'rgba(0,0,0,0.15)'; ctx.fillRect(0,0,canvas.width,canvas.height);
             particles.forEach(p => { p.update(); p.draw(); });
             requestAnimationFrame(animate);
         }
         animate();
 
-        function handleFile(input) {
-            const reader = new FileReader();
-            reader.onload = e => { 
-                b64Img = e.target.result; 
-                document.getElementById('preview-area').style.display='block';
-                document.getElementById('img-prev').src = b64Img;
-            };
-            reader.readAsDataURL(input.files[0]);
+        function setPlan(p, el) {
+            currentPlan = p;
+            document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('active'));
+            el.classList.add('active');
+            tg.HapticFeedback.selectionChanged();
         }
 
-        async function mintNFT() {
-            const ai_params = { sat: document.getElementById('sat-slider').value, strength: document.getElementById('strength-slider').value/100 };
+        function preview(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    userImg = e.target.result;
+                    document.querySelectorAll('.preview-circle').forEach(img => { img.src = userImg; img.style.display = 'block'; });
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        async function tryLuck() {
             const res = await fetch('/create_stars_invoice', {
-                method:'POST',
-                headers:{'Content-Type':'application/json'},
-                body: JSON.stringify({ u: tg.initDataUnsafe.user?.id, b: document.getElementById('sacrifice').value, p: b64Img, rank: selectedRank, ai_params: ai_params })
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ u: tg.initDataUnsafe.user?.id, b: "KING'S LUCK", type: 'luck' })
+            });
+            const data = await res.json();
+            if(data.url) tg.openInvoice(data.url, s => { if(s==='paid') tg.showAlert("Fortune Favors You!"); });
+        }
+
+        async function mint() {
+            const res = await fetch('/create_stars_invoice', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ 
+                    u: tg.initDataUnsafe.user?.id, 
+                    b: document.getElementById('sacrifice').value,
+                    p: userImg, rank: currentPlan 
+                })
             });
             const data = await res.json();
             if(data.url) tg.openInvoice(data.url, s => { if(s==='paid') tg.close(); });
-            else if(data.free) tg.showAlert("Sacrifice Accepted.");
+            else if(data.free) tg.showAlert("Ascension Complete.");
         }
 
-        function setPlan(p, el) {
-            selectedRank = p;
-            document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('active'));
-            el.classList.add('active');
+        function copyRef() {
+            const link = `https://t.me/livevoidbot?start=ref_${tg.initDataUnsafe.user?.id}`;
+            navigator.clipboard.writeText(link);
+            tg.showAlert("Link Copied! Invite 3 souls for 50% discount.");
         }
-
-        function openAdmin() { document.getElementById('admin-dash').style.display='block'; }
-        async function saveAdmin() {
-            const data = { wallet: document.getElementById('adm-wallet').checked, canvas: document.getElementById('adm-canvas').checked, feed: document.getElementById('adm-feed').checked, leader: document.getElementById('adm-leader').checked };
-            await fetch('/update_void_config', { method:'POST', body: JSON.stringify(data), headers:{'Content-Type':'application/json'} });
-            location.reload();
-        }
-
-        setInterval(async () => {
-            const r = await fetch('/get_feed');
-            const d = await r.json();
-            document.getElementById('live-feed').innerText = d.last;
-        }, 5000);
-
-        loadConfig();
     </script>
 </body>
 </html>
