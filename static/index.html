@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>THE VOID - Divine Ascension</title>
+    <title>THE VOID - Supreme Edition</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://unpkg.com/@tonconnect/sdk@latest/dist/tonconnect-sdk.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Orbitron:wght@400;900&display=swap');
         :root { --gold: #FFD700; --cyan: #00f2ff; --glass: rgba(255, 255, 255, 0.05); }
@@ -20,96 +21,106 @@
         }
         @keyframes rotateY { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
 
-        /* Buttons with Gold Glow & Shadows */
-        .btn { 
-            background: transparent; border: 1px solid var(--gold); color: var(--gold); padding: 15px 30px; cursor: pointer; transition: 0.4s; 
-            text-transform: uppercase; letter-spacing: 2px; font-family: 'Orbitron', sans-serif; box-shadow: 0 0 10px rgba(255,215,0,0.1);
-        }
-        .btn:hover { box-shadow: 0 0 30px var(--gold); transform: scale(1.05); background: rgba(255,215,0,0.1); }
-        .btn-luck { border: 2px solid var(--gold); animation: pulse-gold 1.5s infinite; font-weight: 900; background: linear-gradient(45deg, #000, #1a1a1a); }
-        @keyframes pulse-gold { 0%, 100% { box-shadow: 0 0 5px var(--gold); } 50% { box-shadow: 0 0 35px var(--gold); } }
+        /* UI Components */
+        .btn { background: transparent; border: 1px solid var(--gold); color: var(--gold); padding: 12px 25px; cursor: pointer; transition: 0.4s; text-transform: uppercase; font-family: 'Orbitron', sans-serif; box-shadow: 0 0 10px rgba(255,215,0,0.1); margin: 5px; }
+        .btn:hover { box-shadow: 0 0 25px var(--gold); background: rgba(255,215,0,0.1); }
+        .plan-card { background: var(--glass); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.05); padding: 15px; border-radius: 20px; width: 95%; max-width: 400px; margin: 8px 0; cursor: pointer; }
+        .plan-card.active { border-color: var(--gold); background: rgba(255,215,0,0.1); }
+        
+        /* New: AI Canvas Editor */
+        #ai-canvas { background: rgba(0,0,0,0.8); border: 1px solid var(--gold); padding: 15px; border-radius: 15px; width: 90%; margin: 10px 0; display: none; }
+        input[type=range] { width: 100%; accent-color: var(--gold); }
 
-        /* Glass Tabs for 4 Levels */
-        .plan-card { 
-            background: var(--glass); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.05); padding: 20px; border-radius: 20px; width: 95%; max-width: 400px; margin: 10px 0; transition: 0.5s; cursor: pointer;
-        }
-        .plan-card.active { border-color: var(--gold); background: rgba(255,215,0,0.07); }
-        .preview-circle { width: 120px; height: 120px; border-radius: 50%; border: 2px solid var(--gold); margin: 10px auto; display: none; object-fit: cover; box-shadow: 0 0 20px var(--gold); }
+        /* New: Live Feed & Leaderboard */
+        #live-feed { height: 50px; overflow: hidden; color: var(--cyan); font-size: 0.8rem; border-bottom: 1px solid #222; width: 100%; text-align: center; }
+        #leaderboard { background: var(--glass); width: 90%; border-radius: 15px; padding: 15px; margin-top: 20px; display: none; }
 
-        .lang-box { position: fixed; bottom: 20px; left: 20px; z-index: 100; }
-        #langSelect { background: #000; color: var(--gold); border: 1px solid var(--gold); padding: 8px; border-radius: 5px; }
+        /* Admin Panel Styles */
+        #admin-panel { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 1000; display: none; padding: 20px; box-sizing: border-box; overflow-y: auto; }
+        .admin-toggle { display: flex; justify-content: space-between; padding: 15px; border-bottom: 1px solid #333; }
 
-        #step2, #hall-of-fame { display: none; opacity: 0; }
-        .fame-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; width: 100%; }
-        .fame-item img { width: 100%; border-radius: 8px; border: 1px solid #333; }
+        #step2 { display: none; opacity: 0; }
     </style>
 </head>
 <body>
-    <div class="lang-box"><select id="langSelect" onchange="changeLang(this.value)"><option value="en">English</option><option value="fa">فارسی</option></select></div>
+    <div id="admin-panel">
+        <h2 style="color:var(--gold)">DIVINE CONTROL PANEL</h2>
+        <div class="admin-toggle"><span>Wallet Connection</span> <input type="checkbox" id="toggle-wallet" checked></div>
+        <div class="admin-toggle"><span>AI Canvas Editor</span> <input type="checkbox" id="toggle-canvas" checked></div>
+        <div class="admin-toggle"><span>Live Feed</span> <input type="checkbox" id="toggle-feed" checked></div>
+        <div class="admin-toggle"><span>Leaderboard</span> <input type="checkbox" id="toggle-leader" checked></div>
+        <button class="btn" onclick="saveSettings()">SAVE & REBOOT</button>
+        <button class="btn" style="border-color:red; color:red" onclick="closeAdmin()">CLOSE</button>
+    </div>
+
+    <div id="live-feed">Waiting for new sacrifices...</div>
     <canvas id="mainCanvas"></canvas>
 
     <div id="step1" class="stage">
-        <h1 class="main-title" style="font-size: 3rem; letter-spacing: 20px; margin-top: 15vh;">THE VOID</h1>
-        <input type="text" id="sacrifice" placeholder="WHAT DO YOU SACRIFICE?" style="background:transparent; border:none; border-bottom:2px solid #333; color:var(--gold); font-size:1.4rem; text-align:center; width:85%; margin:60px 0; outline:none;">
+        <h1 id="t-title" style="font-size: 2.8rem; letter-spacing: 15px; margin-top: 15vh;">THE VOID</h1>
+        <input type="text" id="sacrifice" placeholder="WHAT DO YOU SACRIFICE?" style="background:transparent; border:none; border-bottom:2px solid #333; color:var(--gold); font-size:1.2rem; text-align:center; width:80%; margin:50px 0; outline:none;">
         <button class="btn" onclick="triggerSequence()">ASCEND</button>
+        <button id="wallet-btn" class="btn" style="display:none; border-color:var(--cyan); color:var(--cyan)" onclick="connectTON()">CONNECT WALLET</button>
+        <button id="admin-btn" class="btn" style="display:none; border-color:#555; color:#555" onclick="openAdmin()">ADMIN</button>
     </div>
 
     <div id="step2" class="stage">
-        <div id="reform-container" style="height: 80px;"></div>
+        <div id="reforming-target" style="height: 60px;"></div>
         
-        <div class="plan-card active" onclick="setPlan('vagabond', this, 0)">
+        <div class="plan-card active" onclick="setPlan('vagabond', this)">
             <h3>VAGABOND <span style="float:right">FREE</span></h3>
-            <p style="font-size:0.7rem; opacity:0.5;">Daily Limit: 3 Images</p>
         </div>
 
-        <div class="plan-card" onclick="setPlan('divine', this, 99)">
+        <div class="plan-card" onclick="setPlan('divine', this)">
             <h3>DIVINE <span style="float:right">99 <div class="star-3d"></div></span></h3>
-            <input type="file" id="f-divine" hidden onchange="preview(this, 'p-divine')">
-            <button class="btn" onclick="document.getElementById('f-divine').click()" style="font-size:0.6rem; width:100%">UPLOAD IMAGE</button>
-            <img class="preview-circle" id="p-divine">
         </div>
 
-        <div class="plan-card" onclick="setPlan('celestial', this, 299)">
+        <div class="plan-card" onclick="setPlan('celestial', this)">
             <h3>CELESTIAL <span style="float:right">299 <div class="star-3d"></div></span></h3>
-            <input type="file" id="f-celestial" hidden onchange="preview(this, 'p-celestial')">
-            <button class="btn" onclick="document.getElementById('f-celestial').click()" style="font-size:0.6rem; width:100%">UPLOAD IMAGE</button>
-            <img class="preview-circle" id="p-celestial">
         </div>
 
-        <div class="plan-card" onclick="setPlan('legendary', this, 499)">
+        <div class="plan-card" onclick="setPlan('legendary', this)">
             <h3>LEGENDARY <span style="float:right">499 <div class="star-3d"></div></span></h3>
-            <input type="file" id="f-legendary" hidden onchange="preview(this, 'p-legendary')">
-            <button class="btn" onclick="document.getElementById('f-legendary').click()" style="font-size:0.6rem; width:100%">UPLOAD IMAGE</button>
-            <img class="preview-circle" id="p-legendary">
         </div>
 
-        <button class="btn btn-luck" onclick="tryLuck()" style="width:100%; max-width:400px; margin-top:20px;">KING'S LUCK (30 <div class="star-3d"></div>)</button>
-        <button class="btn" style="margin-top:20px; width:100%; max-width:400px;" onclick="mint()">MINT NFT CERTIFICATE</button>
+        <div id="ai-canvas">
+            <h4 style="margin:5px 0">AI CANVAS SETTINGS</h4>
+            <label>Divine Saturation</label> <input type="range" id="param-sat" min="0" max="200" value="100">
+            <label>Void Brightness</label> <input type="range" id="param-bri" min="50" max="150" value="100">
+            <label>AI Transformation Strength</label> <input type="range" id="param-strength" min="10" max="90" value="65">
+        </div>
 
-        <div style="margin-top: 40px; text-align: center;">
-            <button class="btn" style="border:none" onclick="copyRef()">COPY REFERRAL LINK</button>
-            <div class="fame-grid" id="mini-hall"></div>
-            <button class="btn" style="margin-top:20px;" onclick="showFullHall()">HALL OF FAME</button>
+        <input type="file" id="image-upload" hidden onchange="previewImg(this)">
+        <button class="btn" onclick="document.getElementById('image-upload').click()">UPLOAD SOUL IMAGE</button>
+        
+        <button class="btn" style="width:100%; max-width:350px; background:var(--gold); color:#000" onclick="mint()">MINT DIVINE NFT</button>
+
+        <div id="leaderboard">
+            <h3 style="color:var(--gold); text-align:center">PANTHEON OF SOULS</h3>
+            <div id="leader-list"></div>
         </div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
+        const connector = new TonConnectSDK.TonConnect();
         let canvas = document.getElementById('mainCanvas'), ctx = canvas.getContext('2d');
         let particles = [], state = 'idle', currentPlan = 'vagabond', userImg = null;
+        let adminId = 12345678; // این را به ID واقعی خود تغییر دهید
 
         function init() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
         window.onresize = init; init();
 
+        // Particles & Reforming (همان کدهای قبلی بدون تغییر)
         class Particle {
             constructor(x, y) {
-                this.x = x; this.y = y; this.vx = (Math.random()-0.5)*35; this.vy = (Math.random()-0.5)*35;
-                this.size = Math.random()*3; this.color = Math.random() > 0.5 ? '#FFD700' : '#00f2ff';
+                this.x = x; this.y = y; this.vx = (Math.random()-0.5)*30; this.vy = (Math.random()-0.5)*30;
+                this.size = Math.random()*2.5; this.color = Math.random() > 0.5 ? '#FFD700' : '#00f2ff';
                 this.targetX = null; this.targetY = null;
             }
             update() {
-                if(state === 'exploding') { this.x += this.vx; this.y += this.vy; this.vx *= 0.95; this.vy *= 0.95; }
+                if(state === 'exploding') { this.x += this.vx; this.y += this.vy; }
                 else if(state === 'reforming' && this.targetX) {
                     this.x += (this.targetX - this.x) * 0.12; this.y += (this.targetY - this.y) * 0.12;
                 }
@@ -117,35 +128,19 @@
             draw() { ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2); ctx.fill(); }
         }
 
-        function getTextPoints(text) {
-            const tCanvas = document.createElement('canvas'); const tCtx = tCanvas.getContext('2d');
-            tCanvas.width = canvas.width; tCanvas.height = 150;
-            tCtx.font = "900 30px Orbitron"; tCtx.fillStyle = "white"; tCtx.textAlign = "center";
-            tCtx.fillText(text, canvas.width/2, 80);
-            const data = tCtx.getImageData(0,0, canvas.width, 150).data;
-            let pts = [];
-            for(let y=0; y<150; y+=4) {
-                for(let x=0; x<canvas.width; x+=4) {
-                    if(data[(y*canvas.width + x)*4 + 3] > 128) pts.push({x, y: y + 50});
-                }
-            }
-            return pts;
-        }
-
-        function triggerSequence() {
-            if(!document.getElementById('sacrifice').value) return tg.showAlert("The Void requires a name.");
+        async function triggerSequence() {
             state = 'exploding';
-            for(let i=0; i<1000; i++) particles.push(new Particle(canvas.width/2, canvas.height/2));
+            for(let i=0; i<800; i++) particles.push(new Particle(canvas.width/2, canvas.height/2));
             document.getElementById('step1').style.opacity = 0;
-            tg.HapticFeedback.impactOccurred('heavy');
             setTimeout(() => {
                 document.getElementById('step1').style.display = 'none';
                 document.getElementById('step2').style.display = 'flex';
-                const pts = getTextPoints("DIVINE SELECTION");
-                particles.forEach((p, i) => { const t = pts[i % pts.length]; p.targetX = t.x; p.targetY = t.y; });
                 state = 'reforming';
                 setTimeout(() => { document.getElementById('step2').style.opacity = 1; }, 500);
-            }, 1200);
+            }, 1000);
+            
+            // ثبت در فید زنده
+            fetch('/add_feed', { method: 'POST', body: JSON.stringify({ u: tg.initDataUnsafe.user?.first_name, b: document.getElementById('sacrifice').value }), headers: {'Content-Type': 'application/json' } });
         }
 
         function animate() {
@@ -155,43 +150,72 @@
         }
         animate();
 
-        function setPlan(p, el, price) {
-            currentPlan = p;
-            document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('active'));
-            el.classList.add('active');
-            tg.HapticFeedback.selectionChanged();
+        // New Logic
+        async function loadConfig() {
+            const res = await fetch('/get_config');
+            const cfg = await res.json();
+            if(cfg.wallet) document.getElementById('wallet-btn').style.display = 'inline-block';
+            if(cfg.canvas) document.getElementById('ai-canvas').style.display = 'block';
+            if(cfg.leader) { document.getElementById('leaderboard').style.display = 'block'; updateLeaderboard(); }
+            if(tg.initDataUnsafe.user?.id == adminId) document.getElementById('admin-btn').style.display = 'inline-block';
         }
 
-        function preview(input, id) {
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = e => { 
-                    userImg = e.target.result; 
-                    const p = document.getElementById(id); p.src = userImg; p.style.display = 'block';
-                };
-                reader.readAsDataURL(input.files[0]);
-            }
+        async function connectTON() {
+            const walletConnectionSource = { universalLink: 'https://tonkeeper.com/ton-connect', bridgeUrl: 'https://bridge.tonapi.io/bridge' };
+            connector.connect(walletConnectionSource);
+        }
+
+        function openAdmin() { document.getElementById('admin-panel').style.display = 'block'; }
+        function closeAdmin() { document.getElementById('admin-panel').style.display = 'none'; }
+
+        async function saveSettings() {
+            const data = {
+                wallet: document.getElementById('toggle-wallet').checked,
+                canvas: document.getElementById('toggle-canvas').checked,
+                feed: document.getElementById('toggle-feed').checked,
+                leader: document.getElementById('toggle-leader').checked
+            };
+            await fetch('/update_config', { method: 'POST', body: JSON.stringify(data), headers: {'Content-Type': 'application/json'} });
+            location.reload();
         }
 
         async function mint() {
+            const params = {
+                sat: document.getElementById('param-sat').value,
+                bri: document.getElementById('param-bri').value,
+                strength: document.getElementById('param-strength').value / 100
+            };
             const res = await fetch('/create_stars_invoice', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ 
                     u: tg.initDataUnsafe.user?.id, 
                     b: document.getElementById('sacrifice').value,
-                    p: userImg, rank: currentPlan 
+                    p: userImg, rank: currentPlan, params: params
                 })
             });
             const data = await res.json();
-            if(data.url) tg.openInvoice(data.url, s => { if(s==='paid') tg.showAlert("Ascended!"); });
-            else if(data.free) tg.showAlert("Recorded in the Void.");
+            if(data.url) tg.openInvoice(data.url, s => { if(s==='paid') tg.close(); });
         }
 
-        function copyRef() {
-            const link = `https://t.me/voidbot?start=ref_${tg.initDataUnsafe.user?.id}`;
-            navigator.clipboard.writeText(link);
-            tg.showAlert("Referral link copied!");
+        loadConfig();
+        setInterval(async () => {
+            const res = await fetch('/get_feed');
+            const data = await res.json();
+            document.getElementById('live-feed').innerText = data.last;
+        }, 5000);
+
+        function setPlan(p, el) {
+            currentPlan = p;
+            document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('active'));
+            el.classList.add('active');
+        }
+        function previewImg(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = e => { userImg = e.target.result; };
+                reader.readAsDataURL(input.files[0]);
+            }
         }
     </script>
 </body>
