@@ -10,274 +10,147 @@
         body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; color: #FFD700; font-family: 'Cinzel', serif; }
         canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
         .stage { position: relative; z-index: 10; height: 100vh; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; padding-top: 40px; transition: opacity 1s ease; box-sizing: border-box; overflow-y: auto; }
-      
-        .main-title { font-size: 2.8rem; letter-spacing: 18px; margin-bottom: 80px; white-space: nowrap; text-shadow: 0 0 30px rgba(255,215,0,0.6); }
-        input[type="text"] { background: transparent; border: none; border-bottom: 2px solid #333; color: #FFD700; font-size: 1.4rem; text-align: center; width: 80%; padding: 15px 0; outline: none; font-family: monospace; }
-        .btn { background: transparent; border: 2px solid #FFD700; color: #FFD700; padding: 18px 70px; font-size: 1.2rem; letter-spacing: 6px; cursor: pointer; margin: 40px 0; transition: 0.4s; z-index: 20; }
-        .btn:active { background: #FFD700; color: #000; }
+        .main-title { font-size: 2.8rem; letter-spacing: 18px; margin-bottom: 80px; text-shadow: 0 0 30px rgba(255,215,0,0.6); }
+        input[type="text"] { background: transparent; border: none; border-bottom: 2px solid #333; color: #FFD700; font-size: 1.4rem; text-align: center; width: 80%; padding: 15px 0; outline: none; }
+        .btn { background: transparent; border: 2px solid #FFD700; color: #FFD700; padding: 18px 50px; font-size: 1.1rem; letter-spacing: 4px; cursor: pointer; margin: 20px 0; transition: 0.4s; z-index: 20; width: 85%; max-width: 350px; }
+        
+        /* دکمه شانس پادشاه چشمک‌زن */
+        .luck-btn {
+            background: linear-gradient(45deg, #6200ea, #d500f9) !important;
+            border: none !important; color: white !important; font-weight: bold;
+            animation: pulse-glow 1.5s infinite;
+            box-shadow: 0 0 20px #d500f9;
+        }
+        @keyframes pulse-glow {
+            0% { transform: scale(1); box-shadow: 0 0 10px #d500f9; }
+            50% { transform: scale(1.05); box-shadow: 0 0 30px #ff00ff; }
+            100% { transform: scale(1); box-shadow: 0 0 10px #d500f9; }
+        }
+
         #step2 { display: none; opacity: 0; pointer-events: none; }
-        .option-box { background: rgba(15,15,15,0.9); border: 1px solid #333; padding: 30px; border-radius: 10px; width: 85%; max-width: 400px; backdrop-filter: blur(10px); margin: 20px 0; }
-        .price { font-size: 4rem; margin: 20px 0; display: flex; align-items: center; gap: 15px; justify-content: center; }
-        .diamond { color: #00ffff; text-shadow: 0 0 30px #00ffff; font-size: 1.2em; }
-        .free-note { font-size: 1rem; color: #888; margin: 20px 0; text-align: center; line-height: 1.5; }
-        #grade { letter-spacing: 8px; color: #FFD700; font-size: 2.2rem; opacity: 0; transition: opacity 2s ease 1s; margin: 20px 0; }
-        #photo-preview-container { margin: 30px 0; text-align: center; display: none; }
-        #photo-preview { width: 200px; height: 200px; object-fit: cover; border-radius: 50%; border: 6px solid #FFD700; box-shadow: 0 0 50px rgba(255,215,0,0.7); }
-        #photo-preview-text { margin-top: 15px; color: #FFD700; font-size: 1.1rem; }
+        .option-box { background: rgba(15,15,15,0.9); border: 1px solid #333; padding: 20px; border-radius: 10px; width: 85%; max-width: 400px; backdrop-filter: blur(10px); }
+        .price-tag { font-size: 1.5rem; color: #fff; margin-bottom: 10px; }
+        
+        /* تابلوی افتخارات */
+        .hall { margin-top: auto; padding-bottom: 30px; width: 80%; font-size: 0.8rem; color: #666; }
+        .winner { display: flex; justify-content: space-between; border-bottom: 1px solid #222; padding: 5px 0; }
     </style>
 </head>
 <body>
     <canvas id="canvas"></canvas>
+    
     <div id="step1" class="stage">
         <h1 class="main-title">THE VOID</h1>
         <input type="text" id="sacrifice" placeholder="WHAT DO YOU SACRIFICE?" maxlength="50">
         <button class="btn" onclick="ascend()">ASCEND</button>
+        
+        <div class="hall" id="hall">
+            <p style="letter-spacing: 5px; color: #FFD700;">LATEST ASCENSIONS</p>
+            <div id="winner-list">Loading the Void...</div>
+        </div>
     </div>
+
     <div id="step2" class="stage">
-        <h2 id="grade">DIVINE GRADE</h2>
-        <div id="photo-preview-container">
-            <img id="photo-preview" />
-            <p id="photo-preview-text">Your soul image, crowned in eternal glory</p>
-        </div>
-        <div class="price"><span id="amount">120</span><span class="diamond">💎</span></div>
-        <p class="free-note">Classic ascension is free in direct chat.<br>This divine version crowns you with your soul image.</p>
+        <h2 id="grade" style="opacity: 0;">KING'S LUCK</h2>
         <div class="option-box">
-            <label style="display:block; border:1px dashed #555; padding:15px; cursor:pointer; margin-bottom:20px;">
-                UPLOAD SOUL IMAGE
-                <input type="file" id="upload" accept="image/*" style="display:none;" onchange="checkPremium()">
+            <button class="btn luck-btn" onclick="mint('luck')">TRY LUCK (99 ⭐)</button>
+            <div style="border-top: 1px solid #333; margin: 20px 0;"></div>
+            <p class="price-tag">DIVINE MINT: <span id="amount">120</span> ⭐</p>
+            <label style="display:block; border:1px dashed #555; padding:10px; cursor:pointer; margin-bottom:10px; font-size: 0.9rem;">
+                UPLOAD IMAGE
+                <input type="file" id="upload" accept="image/*" style="display:none;" onchange="checkPreview()">
             </label>
-            <label><input type="checkbox" id="profile" onchange="checkPremium()"> USE PROFILE PHOTO</label>
+            <button class="btn" id="mintBtn" onclick="mint('divine')">MINT DIVINE NFT</button>
         </div>
-        <button class="btn" id="mintBtn" onclick="mint()">MINT DIVINE NFT</button>
+        <button class="btn" style="border:none; font-size: 0.8rem; color:#555;" onclick="shareStory()">SHARE FATE</button>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp; tg.expand();
+        const urlParams = new URLSearchParams(window.location.search);
+        const hasDiscount = urlParams.get('d') === '1';
+        if(hasDiscount) document.getElementById('amount').innerText = "60";
+
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
-        let particles = [], stars = [], meteors = [], state = 'idle';
+        let particles = [], stars = [], state = 'idle';
 
         function init() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            stars = [];
-            for(let i = 0; i < 150; i++) {
-                stars.push({
-                    x: Math.random() * canvas.width,
-                    y: Math.random() * canvas.height,
-                    s: Math.random() * 1.5,
-                    vx: (Math.random() - 0.5) * 0.4,
-                    vy: (Math.random() - 0.5) * 0.4
-                });
-            }
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            for(let i=0; i<100; i++) stars.push({x:Math.random()*canvas.width, y:Math.random()*canvas.height, s:Math.random()*2});
         }
-        window.onresize = init; init();
+        init();
 
         function draw() {
-            ctx.fillStyle = 'rgba(0,0,0,0.1)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = 'black'; ctx.fillRect(0,0,canvas.width, canvas.height);
+            ctx.fillStyle = 'white';
+            stars.forEach(s => ctx.fillRect(s.x, s.y, s.s, s.s));
 
-            // ستاره‌ها
-            stars.forEach(s => {
-                s.x += s.vx; s.y += s.vy;
-                if(s.x < 0 || s.x > canvas.width) s.vx *= -1;
-                if(s.y < 0 || s.y > canvas.height) s.vy *= -1;
-                ctx.fillStyle = '#FFF';
-                ctx.beginPath(); ctx.arc(s.x, s.y, s.s, 0, Math.PI*2); ctx.fill();
-            });
-
-            // شهاب‌سنگ‌ها
-            if(Math.random() < 0.01) meteors.push({x: Math.random()*canvas.width, y: -20, v: Math.random()*10+5});
-            meteors.forEach((m, i) => {
-                ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 2;
-                ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(m.x - 40, m.y - 40); ctx.stroke();
-                m.y += m.v; m.x += m.v * 0.3;
-                if(m.y > canvas.height + 50) meteors.splice(i,1);
-            });
-
-            // ذرات انفجار و عنوان
             particles.forEach((p, i) => {
                 ctx.fillStyle = '#FFD700';
                 ctx.globalAlpha = p.alpha || 1;
                 ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
-                ctx.globalAlpha = 1;
-
+                
                 if(state === 'exploding') {
-                    p.x += p.vx; p.y += p.vy; p.size *= 0.985; // کندتر کوچک شدن
+                    p.x += p.vx; p.y += p.vy; p.size *= 0.96;
                 } else if(state === 'imploding') {
-                    const dx = p.tx - p.x;
-                    const dy = p.ty - p.y;
-                    p.x += dx * 0.08;  // خیلی آرام‌تر (0.08 به جای 0.15)
-                    p.y += dy * 0.08;
-                    p.size = Math.max(p.size * 1.01, p.finalSize || 4); // کمی بزرگ‌تر شدن هنگام رسیدن
-                    if (Math.abs(dx) < 2 && Math.abs(dy) < 2) {
-                        p.size *= 0.98; // فقط بعد از رسیدن کوچک بشه
-                    }
+                    p.x += (p.tx - p.x) * 0.08;
+                    p.y += (p.ty - p.y) * 0.08;
+                    if(Math.abs(p.x - p.tx) < 1) p.alpha -= 0.02; // آرام محو شدن
                 }
-                if(p.size < 0.5) particles.splice(i,1);
+                if(p.size < 0.1 || p.alpha <= 0) particles.splice(i, 1);
             });
-
             requestAnimationFrame(draw);
         }
         draw();
 
         function ascend() {
-            if(!document.getElementById('sacrifice').value.trim()) return tg.showAlert("Your burden must be named.");
-            tg.HapticFeedback.impactOccurred('heavy');
+            if(!document.getElementById('sacrifice').value) return tg.showAlert("Enter your burden.");
             state = 'exploding';
-            particles = [];
-
-            // ۴۵۰ ذره انفجار
-            for(let i = 0; i < 450; i++) {
-                const a = Math.random() * Math.PI * 2;
-                const s = Math.random() * 16 + 10;
-                particles.push({
-                    x: canvas.width / 2,
-                    y: canvas.height / 2,
-                    vx: Math.cos(a) * s,
-                    vy: Math.sin(a) * s,
-                    size: Math.random() * 7 + 4
-                });
+            for(let i=0; i<300; i++) {
+                const angle = Math.random()*Math.PI*2;
+                const speed = Math.random()*15+5;
+                particles.push({x:canvas.width/2, y:canvas.height/2, vx:Math.cos(angle)*speed, vy:Math.sin(angle)*speed, size:Math.random()*5+2});
             }
-
             document.getElementById('step1').style.opacity = 0;
-
-            setTimeout(() => {
-                state = 'imploding';
-                document.getElementById('step1').style.display = 'none';
-                const s2 = document.getElementById('step2');
-                s2.style.display = 'flex';
-
-                createTitleParticles();
-
-                setTimeout(() => {
-                    s2.style.opacity = 1;
-                    s2.style.pointerEvents = 'auto';
-                    document.getElementById('grade').style.opacity = 1; // fade-in آرام عنوان
-                    state = 'idle';
-                }, 1500); // زمان بیشتر برای لذت بردن از تشکیل عنوان
-            }, 800);
+            setTimeout(createTitleParticles, 800);
         }
 
         function createTitleParticles() {
-            const titleElement = document.getElementById('grade');
-            const text = titleElement.innerText;
-            const rect = titleElement.getBoundingClientRect();
-            const fontSize = parseFloat(getComputedStyle(titleElement).fontSize);
-
-            ctx.font = `bold ${fontSize}px Cinzel`;
-            const textWidth = ctx.measureText(text).width;
-            const textX = rect.left + (rect.width - textWidth) / 2;
-            const textY = rect.top + rect.height / 2;
-
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = canvas.width;
-            tempCanvas.height = canvas.height;
-            const tctx = tempCanvas.getContext('2d');
-            tctx.font = ctx.font;
-            tctx.fillStyle = '#FFD700';
-            tctx.textAlign = 'center';
-            tctx.textBaseline = 'middle';
-            tctx.fillText(text, canvas.width / 2, rect.top + rect.height / 2);
-
-            const imageData = tctx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imageData.data;
-
-            particles = [];
-
-            for(let y = 0; y < canvas.height; y += 4) { // نمونه‌برداری دقیق‌تر
-                for(let x = 0; x < canvas.width; x += 4) {
-                    const i = (y * canvas.width + x) * 4;
-                    if(data[i+3] > 128) {
-                        particles.push({
-                            x: canvas.width / 2 + (Math.random() - 0.5) * canvas.width * 1.5, // شروع از دورتر
-                            y: canvas.height / 2 + (Math.random() - 0.5) * canvas.height * 1.5,
-                            tx: x,
-                            ty: y,
-                            size: Math.random() * 6 + 3,
-                            finalSize: Math.random() * 5 + 3,
-                            alpha: 1
-                        });
-                    }
-                }
-            }
-        }
-
-        function checkPremium() {
-            const uploadInput = document.getElementById('upload');
-            const profileChecked = document.getElementById('profile').checked;
-            const previewContainer = document.getElementById('photo-preview-container');
-            const previewImg = document.getElementById('photo-preview');
-
-            if (uploadInput.files.length > 0) {
-                const file = uploadInput.files[0];
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    previewImg.src = e.target.result;
-                    previewContainer.style.display = 'block';
-                }
-                reader.readAsDataURL(file);
-            } else if (profileChecked && tg.initDataUnsafe.user?.photo_url) {
-                previewImg.src = tg.initDataUnsafe.user.photo_url + "?size=big";
-                previewContainer.style.display = 'block';
-            } else {
-                previewContainer.style.display = 'none';
-            }
-
-            tg.HapticFeedback.selectionChanged();
-        }
-
-        async function mint() {
-            const hasPhoto = document.getElementById('upload').files.length > 0 || document.getElementById('profile').checked;
-            if(!hasPhoto) {
-                tg.showAlert("Divine ascension requires your soul image.\nChoose photo or profile to continue.");
-                return;
-            }
-
-            tg.MainButton.showProgress(true);
-            const sacrifice = document.getElementById('sacrifice').value.trim();
-            const file = document.getElementById('upload').files[0];
-            let photo = null;
-            if(file) {
-                photo = await new Promise(r => {
-                    const reader = new FileReader();
-                    reader.onload = e => r(e.target.result);
-                    reader.readAsDataURL(file);
-                });
-            }
-
-            const payloadObj = { 
-                u: tg.initDataUnsafe.user?.id || 0, 
-                b: sacrifice, 
-                p: photo, 
-                prof: document.getElementById('profile').checked 
-            };
-
-            try {
-                const res = await fetch('/create_stars_invoice', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(payloadObj)
-                });
-                const data = await res.json();
-                if(data.url) {
-                    tg.openInvoice(data.url, s => {
-                        if(s === 'paid') {
-                            tg.showAlert("🔱 DIVINE ASCENSION COMPLETE\nYour crowned soul is eternal.");
-                            tg.close();
-                        }
+            state = 'imploding';
+            document.getElementById('step1').style.display = 'none';
+            document.getElementById('step2').style.display = 'flex';
+            
+            // شبیه‌سازی متن KING'S LUCK با ذرات در مرکز
+            const text = "KING'S LUCK";
+            ctx.font = "bold 40px Cinzel";
+            const tw = ctx.measureText(text).width;
+            const startX = (canvas.width - tw) / 2;
+            
+            for(let i=0; i<text.length; i++) {
+                for(let j=0; j<5; j++) {
+                    particles.push({
+                        x: Math.random()*canvas.width, y: Math.random()*canvas.height,
+                        tx: startX + (i*30), ty: 100 + (Math.random()*20),
+                        size: Math.random()*4+1, alpha: 1
                     });
-                } else if(data.free) {
-                    tg.showAlert("🔱 DIVINE GIFT GRANTED");
-                    tg.close();
-                } else {
-                    tg.showAlert(data.error || "The Void rejects this offering.");
                 }
-            } catch(e) {
-                tg.showAlert("The connection to the Void was severed.");
-                console.error(e);
             }
-            tg.MainButton.hideProgress();
+            setTimeout(() => {
+                document.getElementById('step2').style.opacity = 1;
+                document.getElementById('step2').style.pointerEvents = 'auto';
+            }, 1000);
+        }
+
+        async function mint(type) {
+            const sacrifice = document.getElementById('sacrifice').value;
+            const res = await fetch('/create_invoice', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({u: urlParams.get('u'), type: type, b: sacrifice, d: urlParams.get('d')})
+            });
+            const data = await res.json();
+            if(data.url) tg.openInvoice(data.url);
         }
     </script>
 </body>
