@@ -29,7 +29,7 @@ PRICE_CELESTIAL = 299
 PRICE_LEGENDARY = 499
 PRICE_KINGS_LUCK = 199
 
-# دیتابیس‌های موقت (در تولید واقعی از Redis یا DB استفاده کن)
+# دیتابیس‌های موقت
 REFERRALS = {}  # {user_id: count}
 DAILY_FREE = {}  # {user_id: {"count": int, "date": str}}
 HALL_OF_FAME = []  # list of dicts
@@ -65,7 +65,6 @@ async def send_certificate(uid, burden, level="Eternal", photo_path=None):
     if photo_path and os.path.exists(photo_path):
         os.remove(photo_path)
 
-    # Hall of Fame (فقط Celestial و Legendary)
     if level in ["Celestial", "Legendary"]:
         HALL_OF_FAME.append({
             "user": f"User_{str(uid)[-4:]}",
@@ -77,17 +76,22 @@ async def send_certificate(uid, burden, level="Eternal", photo_path=None):
         if len(HALL_OF_FAME) > 50:
             HALL_OF_FAME = HALL_OF_FAME[-50:]
 
-# /start با رفرال
-@dp.message(F.text.startswith("/start"))
+# /start – حالا کامل کار می‌کنه (با یا بدون payload رفرال)
+@dp.message(Command("start"))
 async def start(message: types.Message):
     payload = message.text.split(maxsplit=1)[1] if len(message.text.split()) > 1 else None
     ref_id = None
     if payload and payload.startswith("ref_"):
-        ref_id = int(payload[4:])
-        if ref_id != message.from_user.id:
-            REFERRALS[ref_id] = REFERRALS.get(ref_id, 0) + 1
+        try:
+            ref_id = int(payload[4:])
+            if ref_id != message.from_user.id:
+                REFERRALS[ref_id] = REFERRALS.get(ref_id, 0) + 1
+        except:
+            pass
 
-    welcome = """
+    bot_username = (await bot.get_me()).username
+
+    welcome = f"""
 🌌 <b>WELCOME TO THE ETERNAL VOID</b> 🌌
 
 The ancient gates have opened.
@@ -101,7 +105,7 @@ Your referral link:
 Bring 5 souls → 50% eternal discount on all purchases
 
 The Void awaits your offering.
-    """.strip().format(bot_username= (await bot.get_me()).username)
+    """.strip()
 
     kb = InlineKeyboardMarkup(inline_keyboard=[[
         InlineKeyboardButton(text="🔱 ENTER THE VOID", web_app=WebAppInfo(url=f"{os.getenv('WEBHOOK_URL')}/static/index.html"))
