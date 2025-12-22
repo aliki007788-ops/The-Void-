@@ -5,314 +5,142 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>THE VOID</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            overflow: hidden;
-            background: #000;
-            color: #FFD700;
-            font-family: 'Cinzel', serif;
-        }
-        canvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
-            pointer-events: none;
-        }
-        .container {
-            position: relative;
-            z-index: 10;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-        .main-title {
-            font-size: 4.5rem;
-            letter-spacing: 25px;
-            margin: 0 0 60px;
-            text-shadow: 0 0 60px #FFD700;
-            opacity: 1;
-            transition: opacity 1s ease;
-        }
-        input[type="text"] {
-            width: 90%;
-            max-width: 400px;
-            padding: 18px;
-            margin: 40px 0;
-            background: rgba(255, 215, 0, 0.1);
-            border: 2px solid #FFD700;
-            color: #FFFFFF;
-            font-size: 20px;
-            text-align: center;
-            border-radius: 12px;
-            box-shadow: 0 0 30px rgba(255, 215, 0, 0.4);
-        }
-        .btn {
-            width: 90%;
-            max-width: 350px;
-            padding: 22px;
-            margin: 20px 0;
-            background: transparent;
-            border: 3px solid #FFD700;
-            color: #FFD700;
-            font-size: 24px;
-            font-weight: bold;
-            border-radius: 15px;
-            cursor: pointer;
-            transition: all 0.4s;
-            box-shadow: 0 0 40px rgba(255, 215, 0, 0.6);
-        }
-        .btn:hover {
-            background: rgba(255, 215, 0, 0.3);
-            transform: scale(1.1);
-            box-shadow: 0 0 60px rgba(255, 215, 0, 0.9);
-        }
-        .kings-luck {
-            background: linear-gradient(45deg, #8B00FF, #FF00FF, #FFD700);
-            background-size: 200%;
-            animation: pulse 2.5s infinite;
-            border: none;
-            color: white;
-            font-size: 28px;
-            box-shadow: 0 0 70px rgba(255, 0, 255, 0.9);
-        }
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.12); }
-            100% { transform: scale(1); }
-        }
-        .preview-circle {
-            width: 280px;
-            height: 280px;
-            border-radius: 50%;
-            border: 10px solid #FFD700;
-            overflow: hidden;
-            margin: 50px 0;
-            box-shadow: 0 0 80px #FFD700, inset 0 0 60px rgba(255, 215, 0, 0.4);
-            background: #000;
-            position: relative;
-            cursor: pointer;
-        }
-        .preview-circle img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        #particles-title {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 4.5rem;
-            font-weight: 900;
-            letter-spacing: 25px;
-            opacity: 0;
-            text-shadow: 0 0 80px #FFD700;
-            z-index: 20;
-            pointer-events: none;
-            transition: opacity 2s ease;
-        }
-        #diamond {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 100px;
-            height: 100px;
-            background: linear-gradient(45deg, #00FFFF, #FFFFFF, #00FFFF);
-            clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-            transform: translate(-50%, -50%);
-            opacity: 0;
-            animation: diamondRotate 15s linear infinite, diamondGlow 3s infinite alternate;
-            z-index: 15;
-            pointer-events: none;
-            box-shadow: 0 0 80px #00FFFF, 0 0 120px #00FFFF;
-        }
-        @keyframes diamondRotate {
-            from { transform: translate(-50%, -50%) rotate(0deg); }
-            to { transform: translate(-50%, -50%) rotate(360deg); }
-        }
-        @keyframes diamondGlow {
-            0% { box-shadow: 0 0 80px #00FFFF, 0 0 120px #00FFFF; }
-            100% { box-shadow: 0 0 120px #00FFFF, 0 0 180px #00FFFF; }
-        }
-        #step1, #step2 {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            opacity: 0;
-            transition: opacity 1s ease;
-        }
-        #step1.active, #step2.active {
-            opacity: 1;
-        }
-        .share-btn {
-            margin-top: 40px;
-            border-color: #00FF7F;
-            color: #00FF7F;
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap');
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; color: #FFD700; font-family: 'Cinzel', serif; }
+        canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+        .stage { position: relative; z-index: 10; height: 100vh; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; padding-top: 40px; transition: opacity 1s ease; box-sizing: border-box; overflow-y: auto; }
+      
+        .main-title { font-size: 2.8rem; letter-spacing: 18px; margin-bottom: 80px; white-space: nowrap; text-shadow: 0 0 30px rgba(255,215,0,0.6); }
+        input[type="text"] { background: transparent; border: none; border-bottom: 2px solid #333; color: #FFD700; font-size: 1.4rem; text-align: center; width: 85%; margin: 60px 0; outline: none; }
+        .btn { background: none; border: 1px solid #FFD700; color: #FFD700; padding: 15px 30px; margin: 5px; cursor: pointer; font-size: 1.2rem; }
+        .btn-luck { background: linear-gradient(45deg, #6200ea, #d500f9); animation: pulse 1.5s infinite; border: none; color: white; font-weight: bold; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        .glass-card { background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255,215,0,0.2); padding: 20px; border-radius: 15px; margin: 10px; width: 90%; max-width: 400px; }
+        .preview-circle { width: 200px; height: 200px; border-radius: 50%; border: 5px solid #FFD700; overflow: hidden; margin: 20px 0; box-shadow: 0 0 40px #FFD700; }
+        .preview-circle img { width: 100%; height: 100%; object-fit: cover; }
+        #particles-title { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 3rem; letter-spacing: 20px; opacity: 0; z-index: 20; text-shadow: 0 0 40px #FFD700; }
+        #step1, #step2 { opacity: 0; transition: opacity 1s; }
+        #step1.active, #step2.active { opacity: 1; }
     </style>
 </head>
 <body>
-    <canvas id="particles-canvas"></canvas>
+    <canvas id="canvas"></canvas>
     <div id="particles-title">KING'S LUCK</div>
-    <div id="diamond"></div>
 
-    <div id="step1" class="container active">
+    <div id="step1" class="stage active">
         <h1 class="main-title">THE VOID</h1>
-        <input type="text" id="burden" placeholder="YOUR ETERNAL BURDEN...">
-        <button class="btn" onclick="ascend()">ASCEND</button>
+        <input type="text" id="burden" placeholder="YOUR BURDEN...">
+        <button class="btn" onclick="explodeAndShowStep2()">ASCEND</button>
     </div>
 
-    <div id="step2" class="container">
-        <div class="preview-circle" onclick="document.getElementById('photo-upload').click()">
-            <img id="preview-img" src="" alt="" style="display:none;">
+    <div id="step2" class="stage">
+        <div class="preview-circle">
+            <img id="preview-img" src="" style="display:none;">
         </div>
         <input type="file" id="photo-upload" accept="image/*" style="display:none;" onchange="previewPhoto(event)">
 
-        <button class="btn kings-luck" onclick="buy('kings-luck')">
-            👑 KING'S LUCK – 199 ⭐
-            <br><small>Chance for Legendary!</small>
-        </button>
+        <div class="glass-card">
+            <button class="btn btn-luck" onclick="buy('kings-luck')">KING'S LUCK – 199 ⭐</button>
+        </div>
 
-        <button class="btn" onclick="buy('divine')">💎 DIVINE – 150 ⭐</button>
-        <button class="btn" onclick="buy('celestial')">🌟 CELESTIAL – 299 ⭐</button>
-        <button class="btn" onclick="buy('legendary')">🔥 LEGENDARY – 499 ⭐</button>
+        <div class="glass-card">
+            <button class="btn" onclick="buy('divine')">DIVINE – 150 ⭐</button>
+        </div>
 
-        <button class="btn share-btn" onclick="shareToStory()">
-            ✨ SHARE MY FATE TO STORY
-        </button>
+        <div class="glass-card">
+            <button class="btn" onclick="buy('celestial')">CELESTIAL – 299 ⭐</button>
+        </div>
+
+        <div class="glass-card">
+            <button class="btn" onclick="buy('legendary')">LEGENDARY – 499 ⭐</button>
+        </div>
+
+        <button class="btn" onclick="shareToStory()">SHARE TO STORY</button>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
-        tg.ready();
 
-        const canvas = document.getElementById('particles-canvas');
+        const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
-        // ذرات معلق در بک‌گراند
-        let floatingParticles = [];
-        class FloatingParticle {
-            constructor() {
-                this.x = Math.random() * canvas.width;
-                this.y = Math.random() * canvas.height;
+        let particles = [];
+
+        class Particle {
+            constructor(x, y) {
+                this.x = x || canvas.width / 2;
+                this.y = y || canvas.height / 2;
+                this.vx = (Math.random() - 0.5) * 10;
+                this.vy = (Math.random() - 0.5) * 10;
                 this.size = Math.random() * 3 + 1;
-                this.speedX = Math.random() * 0.5 - 0.25;
-                this.speedY = Math.random() * 0.5 - 0.25;
-                this.color = ['#FFD700', '#FF00FF', '#00FFFF'][Math.floor(Math.random() * 3)];
-                this.opacity = Math.random() * 0.6 + 0.2;
-            }
-            update() {
-                this.x += this.speedX;
-                this.y += this.speedY;
-                if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
-                if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
-            }
-            draw() {
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fillStyle = this.color.replace(')', `, ${this.opacity})`).replace('rgb', 'rgba');
-                ctx.fill();
-            }
-        }
-
-        for (let i = 0; i < 150; i++) floatingParticles.push(new FloatingParticle());
-
-        function animateFloating() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            floatingParticles.forEach(p => {
-                p.update();
-                p.draw();
-            });
-            requestAnimationFrame(animateFloating);
-        }
-        animateFloating();
-
-        // انفجار و بازگشت ذرات برای تشکیل عنوان
-        let explosionParticles = [];
-        class ExplosionParticle {
-            constructor() {
-                this.x = canvas.width / 2;
-                this.y = canvas.height / 2;
-                this.vx = (Math.random() - 0.5) * 20;
-                this.vy = (Math.random() - 0.5) * 20;
-                this.size = Math.random() * 5 + 2;
-                this.color = ['#FFD700', '#FF00FF', '#00FFFF'][Math.floor(Math.random() * 3)];
-                this.life = 150;
+                this.color = '#FFFFFF'; // ذرات سفید
+                this.alpha = 1;
             }
             update() {
                 this.x += this.vx;
                 this.y += this.vy;
-                this.vx *= 0.98;
-                this.vy *= 0.98;
-                this.life -= 2;
+                this.alpha -= 0.01;
             }
             draw() {
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fillStyle = this.color;
-                ctx.globalAlpha = this.life / 150;
+                ctx.fillStyle = `rgba(255,255,255,${this.alpha})`;
                 ctx.fill();
-                ctx.globalAlpha = 1;
             }
         }
 
-        function ascend() {
+        // ذرات معلق سفید در بک‌گراند
+        for (let i = 0; i < 100; i++) {
+            particles.push(new Particle(Math.random() * canvas.width, Math.random() * canvas.height));
+        }
+
+        function animate() {
+            ctx.fillStyle = 'rgba(0,0,0,0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            particles.forEach((p, i) => {
+                p.update();
+                p.draw();
+                if (p.alpha <= 0) {
+                    particles.splice(i, 1);
+                    particles.push(new Particle());
+                }
+            });
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        function explodeAndShowStep2() {
             const burden = document.getElementById('burden').value.trim();
-            if (!burden || burden.length < 3) {
-                tg.showAlert("Your burden must be at least 3 characters.");
-                return;
-            }
+            if (!burden) return tg.showAlert("Enter your burden.");
+
             window.currentBurden = burden;
 
-            document.getElementById('main-title').style.opacity = 0;
+            // انفجار ذرات سفید
+            for (let i = 0; i < 300; i++) {
+                particles.push(new Particle(canvas.width / 2, canvas.height / 2));
+            }
+
             document.getElementById('step1').classList.remove('active');
 
-            // انفجار
-            for (let i = 0; i < 600; i++) explosionParticles.push(new ExplosionParticle());
-
-            function animateExplosion() {
-                explosionParticles.forEach((p, i) => {
-                    p.update();
-                    p.draw();
-                    if (p.life <= 0) explosionParticles.splice(i, 1);
-                });
-                if (explosionParticles.length > 0) {
-                    requestAnimationFrame(animateExplosion);
-                } else {
-                    // تشکیل عنوان + نمایش الماس
-                    document.getElementById('particles-title').style.opacity = 1;
-                    document.getElementById('diamond').style.opacity = 1;
-                    setTimeout(() => {
-                        document.getElementById('step2').classList.add('active');
-                    }, 2500);
-                }
-            }
-            animateExplosion();
+            setTimeout(() => {
+                document.getElementById('particles-title').style.opacity = 1;
+                setTimeout(() => {
+                    document.getElementById('step2').classList.add('active');
+                }, 2000);
+            }, 1000);
         }
 
-        // پیش‌نمایش عکس
         function previewPhoto(event) {
             const file = event.target.files[0];
             if (file) {
                 const reader = new FileReader();
-                reader.onload = function(e) {
-                    const img = document.getElementById('preview-img');
-                    img.src = e.target.result;
-                    img.style.display = 'block';
+                reader.onload = e => {
+                    document.getElementById('preview-img').src = e.target.result;
+                    document.getElementById('preview-img').style.display = 'block';
                     window.currentPhoto = e.target.result;
                 };
                 reader.readAsDataURL(file);
@@ -320,34 +148,26 @@
         }
 
         function buy(type) {
-            const burden = window.currentBurden || "Eternal Sovereign";
             const payload = {
-                u: tg.initDataUnsafe.user?.id,
-                b: burden,
+                u: tg.initDataUnsafe.user.id,
+                b: window.currentBurden || "Eternal Sovereign",
                 type: type,
                 p: window.currentPhoto || null
             };
-
             fetch('/create_stars_invoice', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(payload)
             }).then(res => res.json()).then(data => {
                 if (data.url) tg.openInvoice(data.url);
-                else if (data.free) tg.showAlert("Your ascension has been granted by the Void.");
             });
         }
 
         function shareToStory() {
-            const text = "I ascended in THE VOID and claimed my eternal fate! 🌌 Join the eternal archive:";
+            const text = "I ascended in THE VOID! 🌌 Join me:";
             const url = "https://t.me/YOUR_BOT_USERNAME";
             tg.shareToStory(url, { text: text });
         }
-
-        window.addEventListener('resize', () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        });
     </script>
 </body>
 </html>
