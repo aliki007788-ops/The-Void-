@@ -2,123 +2,488 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-    <meta http-equiv="Content-Security-Policy"
-          content="default-src 'self' https://t.me wss://*.t.me;
-                   script-src 'self' 'unsafe-inline' https://telegram.org;
-                   style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-                   font-src https://fonts.gstatic.com;
-                   img-src 'self' data: blob:;
-                   connect-src 'self' https://api.telegram.org;">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>THE VOID</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body,html{margin:0;padding:0;height:100%;overflow:hidden;background:#000;color:#FFD700;font-family:'Cinzel',serif}
-        canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:none}
-        .page{position:absolute;width:100%;height:100%;opacity:0;transition:opacity 1.5s ease;display:flex;flex-direction:column;align-items:center;padding:20px;box-sizing:border-box;overflow-y:auto}
-        .page.active{opacity:1;z-index:10}
-        .main-title{font-size:3.5rem;letter-spacing:20px;margin:60px 0;text-shadow:0 0 50px #FFD700;border-bottom:3px solid #FFD700;padding-bottom:20px}
-        input[type=text]{background:transparent;border:none;border-bottom:2px solid #FFD700;color:#FFD700;font-size:1.6rem;text-align:center;width:90%;margin:50px 0;outline:none}
-        .btn{background:transparent;border:2px solid #FFD700;color:#FFD700;padding:18px 40px;margin:15px;font-size:1.4rem;cursor:pointer;border-radius:15px;transition:.4s;box-shadow:0 0 40px rgba(255,215,0,.5)}
-        .btn:hover{background:rgba(255,215,0,.2);transform:scale(1.1);box-shadow:0 0 70px rgba(255,215,0,.8)}
-        .btn-luck{background:linear-gradient(45deg,#8B00FF,#FF00FF,#FFD700);animation:pulse 2s infinite;border:none;color:#fff;font-size:1.8rem}
-        .glass-card{background:rgba(255,255,255,.05);backdrop-filter:blur(15px);border:1px solid rgba(255,215,0,.3);padding:30px;border-radius:20px;margin:20px;width:90%;max-width:450px;text-align:center;box-shadow:0 0 50px rgba(255,215,0,.3)}
-        .preview-circle{width:300px;height:300px;border-radius:50%;border:10px solid #FFD700;overflow:hidden;margin:40px 0;box-shadow:0 0 100px #FFD700,inset 0 0 80px rgba(255,215,0,.4);cursor:pointer}
-        .preview-circle img{width:100%;height:100%;object-fit:cover}
-        .hall-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;width:90%;max-width:1200px;margin:40px 0}
-        .hall-item{border:2px solid #FFD700;border-radius:15px;overflow:hidden;box-shadow:0 0 40px rgba(255,215,0,.5);transition:.4s}
-        .hall-item:hover{transform:scale(1.05);box-shadow:0 0 80px rgba(255,215,0,.9)}
-        .hall-item img{width:100%;height:300px;object-fit:cover}
-        .nav-btn{position:fixed;bottom:30px;background:rgba(255,215,0,.2);border:1px solid #FFD700;color:#FFD700;padding:12px 25px;border-radius:30px;z-index:100}
-        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body, html {
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+            color: #FFD700;
+            font-family: 'Cinzel', serif;
+            position: relative;
+        }
+        
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+        
+        .page {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 1s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            overflow-y: auto;
+            z-index: 2;
+        }
+        
+        .page.active {
+            opacity: 1;
+            z-index: 10;
+        }
+        
+        /* منوی بالا */
+        .top-menu {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            padding: 12px 25px;
+            border-radius: 50px;
+            z-index: 1000;
+            box-shadow: 0 0 40px rgba(255, 215, 0, 0.2);
+        }
+        
+        .menu-btn {
+            background: transparent;
+            border: none;
+            color: #FFD700;
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 8px 20px;
+            border-radius: 25px;
+            transition: 0.3s;
+            font-family: 'Cinzel', serif;
+        }
+        
+        .menu-btn:hover {
+            background: rgba(255, 215, 0, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        .menu-btn.active {
+            background: rgba(255, 215, 0, 0.2);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+        }
+        
+        /* عنوان اصلی */
+        .main-title {
+            font-size: 3rem;
+            letter-spacing: 15px;
+            margin: 40px 0 30px;
+            text-align: center;
+            text-shadow: 0 0 40px #FFD700;
+            padding: 20px;
+            animation: title-glow 3s infinite alternate;
+        }
+        
+        @keyframes title-glow {
+            0% { text-shadow: 0 0 20px #FFD700; }
+            100% { text-shadow: 0 0 50px #FFD700, 0 0 80px #FF4500; }
+        }
+        
+        /* فیلد ورودی */
+        .burden-input {
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid #FFD700;
+            color: #FFD700;
+            font-size: 1.5rem;
+            text-align: center;
+            width: 90%;
+            max-width: 500px;
+            margin: 30px 0;
+            padding: 15px;
+            outline: none;
+            font-family: 'Cinzel', serif;
+        }
+        
+        .burden-input::placeholder {
+            color: rgba(255, 215, 0, 0.5);
+        }
+        
+        /* دکمه‌ها */
+        .btn {
+            background: rgba(255, 215, 0, 0.1);
+            border: 2px solid #FFD700;
+            color: #FFD700;
+            padding: 15px 35px;
+            margin: 10px;
+            font-size: 1.3rem;
+            cursor: pointer;
+            border-radius: 12px;
+            transition: 0.3s;
+            font-family: 'Cinzel', serif;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn:hover {
+            background: rgba(255, 215, 0, 0.2);
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+        }
+        
+        .btn:active {
+            transform: scale(0.98);
+        }
+        
+        .btn-ascend {
+            background: linear-gradient(45deg, #8B0000, #FF4500, #FFD700);
+            border: none;
+            font-size: 1.5rem;
+            padding: 18px 50px;
+            margin-top: 30px;
+            animation: ascend-pulse 2s infinite;
+        }
+        
+        @keyframes ascend-pulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(255, 69, 0, 0.5); }
+            50% { box-shadow: 0 0 40px rgba(255, 69, 0, 0.8); }
+        }
+        
+        .btn-luck {
+            background: linear-gradient(45deg, #4B0082, #8B00FF, #9370DB);
+            border: none;
+            color: white;
+            font-size: 1.4rem;
+            padding: 16px 40px;
+        }
+        
+        /* کارت‌ها */
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            padding: 25px;
+            border-radius: 15px;
+            margin: 15px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.1);
+            transition: 0.3s;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0 40px rgba(255, 215, 0, 0.2);
+        }
+        
+        /* دایره عکس */
+        .photo-circle {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            border: 3px solid #FFD700;
+            overflow: hidden;
+            margin: 20px auto;
+            position: relative;
+            cursor: pointer;
+            background: rgba(255, 215, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .photo-circle i {
+            font-size: 3rem;
+            color: rgba(255, 215, 0, 0.5);
+        }
+        
+        .photo-circle img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        /* گرید گالری */
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+            width: 90%;
+            max-width: 1000px;
+            margin: 20px 0;
+        }
+        
+        .gallery-item {
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+            transition: 0.3s;
+        }
+        
+        .gallery-item:hover {
+            transform: scale(1.03);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+        }
+        
+        .gallery-item img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+        }
+        
+        /* وضعیت لودینگ */
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+        
+        .loading.active {
+            opacity: 1;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255, 215, 0, 0.3);
+            border-radius: 50%;
+            border-top-color: #FFD700;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* صفحه انفجار */
+        #explosion-title {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 4rem;
+            opacity: 0;
+            animation: title-appear 0.5s ease-out 1.5s forwards;
+        }
+        
+        @keyframes title-appear {
+            to { opacity: 1; }
+        }
+        
+        /* پیام‌ها */
+        .message {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #FFD700;
+            color: #FFD700;
+            padding: 15px 25px;
+            border-radius: 10px;
+            z-index: 1001;
+            animation: fade-up 0.3s ease-out;
+            max-width: 90%;
+            text-align: center;
+        }
+        
+        @keyframes fade-up {
+            from { opacity: 0; transform: translate(-50%, 20px); }
+            to { opacity: 1; transform: translate(-50%, 0); }
+        }
+        
+        /* موبایل */
+        @media (max-width: 768px) {
+            .main-title { font-size: 2rem; letter-spacing: 10px; }
+            .top-menu { padding: 10px 20px; }
+            .menu-btn { padding: 6px 15px; font-size: 1rem; }
+            .btn { padding: 12px 25px; font-size: 1.1rem; }
+            .card { padding: 20px; }
+            .gallery-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+        }
     </style>
 </head>
 <body>
+    <!-- کانواس ذرات -->
     <canvas id="particles-canvas"></canvas>
-
+    
+    <!-- کانواس انفجار -->
+    <canvas id="explosion-canvas"></canvas>
+    
+    <!-- منوی بالا -->
+    <div class="top-menu">
+        <button class="menu-btn active" onclick="goToMain()"><i class="fas fa-crown"></i> VOID</button>
+        <button class="menu-btn" onclick="goToPlans()"><i class="fas fa-star"></i> ASCEND</button>
+        <button class="menu-btn" onclick="goToHall()"><i class="fas fa-trophy"></i> HALL</button>
+        <button class="menu-btn" onclick="goToMarket()"><i class="fas fa-store"></i> MARKET</button>
+        <button class="menu-btn" onclick="goToPanel()"><i class="fas fa-user"></i> PROFILE</button>
+    </div>
+    
     <!-- صفحه اصلی -->
     <div id="page-main" class="page active">
         <h1 class="main-title">THE VOID</h1>
-        <input type="text" id="burden" placeholder="YOUR ETERNAL BURDEN...">
-        <button class="btn" onclick="goToPlans()">ASCEND</button>
+        <input type="text" id="burden" class="burden-input" placeholder="YOUR ETERNAL BURDEN...">
+        <button class="btn btn-ascend" onclick="startAscend()">
+            <i class="fas fa-fire"></i> ASCEND <i class="fas fa-fire"></i>
+        </button>
     </div>
-
+    
+    <!-- صفحه انفجار -->
+    <div id="page-explosion" class="page">
+        <h1 id="explosion-title">KING'S LUCK</h1>
+    </div>
+    
     <!-- صفحه پلن‌ها -->
     <div id="page-plans" class="page">
-        <div class="preview-circle" onclick="document.getElementById('photo-upload').click()">
-            <img id="preview-img" src="" style="display:none;" alt="preview">
+        <h2 class="main-title">CHOOSE YOUR ASCENSION</h2>
+        
+        <div class="photo-circle" onclick="document.getElementById('photo-upload').click()">
+            <i class="fas fa-camera" id="camera-icon"></i>
+            <img id="preview-img" style="display:none;">
         </div>
         <input type="file" id="photo-upload" accept="image/*" style="display:none;" onchange="previewPhoto(event)">
-
-        <div class="glass-card">
-            <button class="btn btn-luck" onclick="buy('kings-luck')">KING'S LUCK – 199 ⭐</button>
+        
+        <div class="card">
+            <button class="btn btn-luck" onclick="buy('kings-luck')">
+                <i class="fas fa-dice"></i> KING'S LUCK – 199 ⭐
+            </button>
+            <p style="margin-top:10px; color:#888; font-size:0.9rem;">Chance: Legendary 1% | Celestial 9% | Divine 30%</p>
         </div>
-        <div class="glass-card">
-            <button class="btn" onclick="buy('divine')">DIVINE – 150 ⭐</button>
+        
+        <div class="card">
+            <button class="btn" onclick="buy('divine')">
+                <i class="fas fa-gem"></i> DIVINE – 150 ⭐
+            </button>
         </div>
-        <div class="glass-card">
-            <button class="btn" onclick="buy('celestial')">CELESTIAL – 299 ⭐</button>
+        
+        <div class="card">
+            <button class="btn" onclick="buy('celestial')">
+                <i class="fas fa-star"></i> CELESTIAL – 299 ⭐
+            </button>
         </div>
-        <div class="glass-card">
-            <button class="btn" onclick="buy('legendary')">LEGENDARY – 499 ⭐</button>
+        
+        <div class="card">
+            <button class="btn" onclick="buy('legendary')">
+                <i class="fas fa-crown"></i> LEGENDARY – 499 ⭐
+            </button>
         </div>
-
-        <button class="btn" onclick="shareToStory()">SHARE TO STORY</button>
-        <button class="nav-btn" style="left:30px;" onclick="goToHall()">HALL OF FAME</button>
-        <button class="nav-btn" style="right:30px;" onclick="goToMarket()">MARKETPLACE</button>
-        <button class="nav-btn" style="left:50%;transform:translateX(-50%);" onclick="goToPanel()">MY PANEL</button>
+        
+        <button class="btn" onclick="shareToStory()" style="margin-top:20px;">
+            <i class="fas fa-share"></i> SHARE TO STORY
+        </button>
     </div>
-
-    <!-- صفحه Hall of Fame -->
+    
+    <!-- صفحه تالار -->
     <div id="page-hall" class="page">
         <h1 class="main-title">HALL OF ETERNITY</h1>
-        <div class="hall-grid" id="hall-grid"></div>
-        <button class="nav-btn" onclick="goToPlans()">BACK</button>
+        <div class="gallery-grid" id="hall-grid">
+            <!-- گواهی‌ها لود می‌شوند -->
+        </div>
     </div>
-
-    <!-- صفحه Marketplace -->
+    
+    <!-- صفحه بازار -->
     <div id="page-market" class="page">
         <h1 class="main-title">VOID MARKETPLACE</h1>
-        <div class="glass-card">
-            <p>List your Legendary for sale</p>
-            <input type="number" id="sale-price" placeholder="Price in ⭐">
-            <button class="btn" onclick="listForSale()">LIST FOR SALE</button>
+        <div class="card">
+            <h3><i class="fas fa-tag"></i> SELL YOUR LEGENDARY</h3>
+            <input type="text" id="sale-price" class="burden-input" placeholder="Price in ⭐" style="margin:15px 0;">
+            <button class="btn" onclick="listForSale()">
+                <i class="fas fa-gavel"></i> LIST FOR SALE
+            </button>
         </div>
-        <div class="hall-grid" id="market-grid"></div>
-        <button class="nav-btn" onclick="goToPlans()">BACK</button>
+        <div class="gallery-grid" id="market-grid">
+            <!-- لیست فروش -->
+        </div>
     </div>
-
-    <!-- صفحه پنل کاربری -->
+    
+    <!-- صفحه پروفایل -->
     <div id="page-panel" class="page">
-        <h1 class="main-title">YOUR ETERNAL ARCHIVE</h1>
-        <div class="glass-card">
-            <p>Referrals: <span id="ref-count">0</span> (Discount: <span id="discount">0%</span>)</p>
-            <p>Your DNA Codes:</p>
-            <div id="user-dna-list"></div>
+        <h1 class="main-title">YOUR ARCHIVE</h1>
+        <div class="card">
+            <p><i class="fas fa-users"></i> Referrals: <span id="ref-count">0</span></p>
+            <p><i class="fas fa-percentage"></i> Discount: <span id="discount">0%</span></p>
+            <p><i class="fas fa-dna"></i> Your DNA Codes:</p>
+            <div id="user-dna-list" style="margin-top:10px;"></div>
         </div>
-        <div class="hall-grid" id="user-collection"></div>
-        <button class="nav-btn" onclick="goToPlans()">BACK</button>
+        <div class="gallery-grid" id="user-collection">
+            <!-- مجموعه شخصی -->
+        </div>
     </div>
+    
+    <!-- لودینگ -->
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>FORGING ETERNITY...</p>
+    </div>
+    
+    <!-- پیام -->
+    <div class="message" id="message" style="display:none;"></div>
 
     <script>
+        // تلگرام
         const tg = window.Telegram.WebApp;
         tg.expand();
-
-        // ---------- particles ----------
+        tg.BackButton.hide();
+        
+        // متغیرها
+        let particles = [];
+        let explosionParticles = [];
+        let currentPhoto = null;
+        let userData = null;
+        
+        // المان‌ها
+        const pages = document.querySelectorAll('.page');
+        const menuBtns = document.querySelectorAll('.menu-btn');
+        const loading = document.getElementById('loading');
+        const messageEl = document.getElementById('message');
+        
+        // کانواس ذرات
         const canvas = document.getElementById('particles-canvas');
         const ctx = canvas.getContext('2d');
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
-        const particles = [];
+        
+        // کانواس انفجار
+        const expCanvas = document.getElementById('explosion-canvas');
+        const expCtx = expCanvas.getContext('2d');
+        expCanvas.width = window.innerWidth;
+        expCanvas.height = window.innerHeight;
+        
+        // ========== PARTICLE SYSTEM ==========
         class Particle {
             constructor() {
                 this.x = Math.random() * canvas.width;
                 this.y = Math.random() * canvas.height;
-                this.size = Math.random() * 2 + 1;
-                this.speedX = Math.random() * 0.4 - 0.2;
-                this.speedY = Math.random() * 0.4 - 0.2;
-                this.opacity = Math.random() * 0.5 + 0.3;
+                this.size = Math.random() * 1.5 + 0.5;
+                this.speedX = Math.random() * 0.3 - 0.15;
+                this.speedY = Math.random() * 0.3 - 0.15;
+                this.opacity = Math.random() * 0.4 + 0.1;
             }
             update() {
                 this.x += this.speedX;
@@ -129,103 +494,333 @@
             draw() {
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(255,255,255,${this.opacity})`;
+                ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
                 ctx.fill();
             }
         }
-        for (let i = 0; i < 150; i++) particles.push(new Particle());
+        
+        class ExplosionParticle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.size = Math.random() * 8 + 2;
+                this.speedX = Math.random() * 8 - 4;
+                this.speedY = Math.random() * 8 - 4;
+                this.color = `hsl(${Math.random() * 60 + 20}, 100%, 50%)`;
+                this.life = 1;
+                this.decay = Math.random() * 0.02 + 0.01;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                this.size *= 0.97;
+                this.life -= this.decay;
+                this.speedX *= 0.98;
+                this.speedY *= 0.98;
+            }
+            draw() {
+                expCtx.globalAlpha = this.life;
+                expCtx.fillStyle = this.color;
+                expCtx.beginPath();
+                expCtx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                expCtx.fill();
+                expCtx.globalAlpha = 1;
+            }
+        }
+        
+        // ایجاد ذرات زمینه
+        for (let i = 0; i < 80; i++) particles.push(new Particle());
+        
         function animateParticles() {
-            ctx.fillStyle = 'rgba(0,0,0,.05)';
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            particles.forEach(p => { p.update(); p.draw(); });
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
             requestAnimationFrame(animateParticles);
         }
         animateParticles();
-
-        // ---------- navigation ----------
-        function goTo(id) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
+        
+        // ========== ANIMATIONS ==========
+        function showMessage(text, duration=3000) {
+            messageEl.textContent = text;
+            messageEl.style.display = 'block';
+            setTimeout(() => {
+                messageEl.style.display = 'none';
+            }, duration);
         }
-        function goToPlans() { goTo('page-plans'); }
-        function goToHall() { goTo('page-hall'); loadHall(); }
-        function goToMarket() { goTo('page-market'); loadMarket(); }
-        function goToPanel() { goTo('page-panel'); loadPanel(); }
-
-        // ---------- photo ----------
-        let currentPhoto = null;
-        function previewPhoto(e) {
-            const file = e.target.files[0];
+        
+        function showLoading(show) {
+            if (show) {
+                loading.classList.add('active');
+            } else {
+                setTimeout(() => {
+                    loading.classList.remove('active');
+                }, 500);
+            }
+        }
+        
+        function createExplosion() {
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight / 2;
+            
+            explosionParticles = [];
+            for (let i = 0; i < 150; i++) {
+                explosionParticles.push(new ExplosionParticle(centerX, centerY));
+            }
+            
+            // صدا (استفاده از صداهای آنلاین)
+            const audio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-arcade-game-explosion-2759.mp3');
+            audio.volume = 0.3;
+            audio.play().catch(e => console.log("Audio blocked"));
+            
+            function animateExplosion() {
+                expCtx.clearRect(0, 0, expCanvas.width, expCanvas.height);
+                
+                let alive = 0;
+                explosionParticles.forEach(p => {
+                    if (p.life > 0) {
+                        p.update();
+                        p.draw();
+                        alive++;
+                    }
+                });
+                
+                if (alive > 0) {
+                    requestAnimationFrame(animateExplosion);
+                } else {
+                    setTimeout(() => {
+                        showPage('page-plans');
+                        updateMenu('page-plans');
+                    }, 500);
+                }
+            }
+            animateExplosion();
+        }
+        
+        // ========== PAGE NAVIGATION ==========
+        function showPage(pageId) {
+            pages.forEach(page => page.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            
+            if (pageId === 'page-hall') loadHall();
+            if (pageId === 'page-market') loadMarket();
+            if (pageId === 'page-panel') loadPanel();
+        }
+        
+        function updateMenu(activePage) {
+            menuBtns.forEach(btn => btn.classList.remove('active'));
+            
+            const pageMap = {
+                'page-main': 0,
+                'page-plans': 1,
+                'page-hall': 2,
+                'page-market': 3,
+                'page-panel': 4
+            };
+            
+            if (pageMap[activePage] !== undefined) {
+                menuBtns[pageMap[activePage]].classList.add('active');
+            }
+        }
+        
+        function goToMain() {
+            showPage('page-main');
+            updateMenu('page-main');
+        }
+        
+        function goToPlans() {
+            showPage('page-plans');
+            updateMenu('page-plans');
+        }
+        
+        function goToHall() {
+            showPage('page-hall');
+            updateMenu('page-hall');
+        }
+        
+        function goToMarket() {
+            showPage('page-market');
+            updateMenu('page-market');
+        }
+        
+        function goToPanel() {
+            showPage('page-panel');
+            updateMenu('page-panel');
+        }
+        
+        function startAscend() {
+            const burden = document.getElementById('burden').value.trim();
+            if (!burden) {
+                showMessage('Enter your burden first!');
+                document.getElementById('burden').focus();
+                return;
+            }
+            
+            // صدای کلیک
+            const clickSound = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-select-click-1109.mp3');
+            clickSound.volume = 0.3;
+            clickSound.play();
+            
+            // انیمیشن
+            showPage('page-explosion');
+            setTimeout(() => {
+                createExplosion();
+            }, 300);
+        }
+        
+        // ========== PHOTO UPLOAD ==========
+        function previewPhoto(event) {
+            const file = event.target.files[0];
             if (!file) return;
+            
+            // بررسی سایز
+            if (file.size > 5 * 1024 * 1024) {
+                showMessage('Image too large (max 5MB)');
+                return;
+            }
+            
+            // بررسی فرمت
+            if (!file.type.startsWith('image/')) {
+                showMessage('Please upload an image');
+                return;
+            }
+            
             const reader = new FileReader();
-            reader.onload = ev => {
+            reader.onload = e => {
                 const img = document.getElementById('preview-img');
-                img.src = ev.target.result;
+                img.src = e.target.result;
                 img.style.display = 'block';
-                currentPhoto = ev.target.result;
+                document.getElementById('camera-icon').style.display = 'none';
+                currentPhoto = e.target.result;
             };
             reader.readAsDataURL(file);
         }
-
-        // ---------- api ----------
-        async function buy(type) {
-            const burden = document.getElementById('burden').value || 'Eternal Sovereign';
-            const body = {
-                u: tg.initDataUnsafe.user.id,
+        
+        // ========== PAYMENT ==========
+        function buy(type) {
+            const burden = document.getElementById('burden').value.trim() || "Eternal Sovereign";
+            
+            // محدودیت burden
+            if (burden.length > 50) {
+                showMessage('Burden too long (max 50 chars)');
+                return;
+            }
+            
+            // کاراکترهای خطرناک
+            const dangerousChars = /[<>'"&]/;
+            if (dangerousChars.test(burden)) {
+                showMessage('Invalid characters in burden');
+                return;
+            }
+            
+            showLoading(true);
+            
+            const payload = {
+                u: tg.initDataUnsafe.user?.id || 0,
                 b: burden,
                 type: type,
-                p: currentPhoto
+                p: currentPhoto || null
             };
-            const res = await fetch('/create_stars_invoice', {
+            
+            fetch('/create_stars_invoice', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                showLoading(false);
+                if (data.url) {
+                    tg.openInvoice(data.url);
+                } else if (data.error) {
+                    showMessage(data.error);
+                } else {
+                    showMessage('Payment initiated');
+                }
+            })
+            .catch(err => {
+                showLoading(false);
+                showMessage('Connection error');
+                console.error(err);
             });
-            const data = await res.json();
-            if (data.url) tg.openInvoice(data.url);
         }
-
+        
+        // ========== SHARE ==========
         function shareToStory() {
-            const text = "I ascended in THE VOID and forged an eternal masterpiece! 🌌";
-            const url = `https://t.me/${tg.initDataUnsafe.user.username}?start=ref_${tg.initDataUnsafe.user.id}`;
-            tg.shareToStory(url, { text });
+            const text = "I ascended in THE VOID and claimed an eternal masterpiece! 🌌";
+            const url = `https://t.me/${tg.initDataUnsafe.user?.username || 'void_bot'}?start=ref_${tg.initDataUnsafe.user?.id}`;
+            
+            if (tg.shareToStory) {
+                tg.shareToStory(url, { text: text });
+            } else {
+                showMessage('Sharing not available');
+            }
         }
-
-        async function loadHall() {
-            const res = await fetch('/api/hall-of-fame');
-            const data = await res.json();
-            const grid = document.getElementById('hall-grid');
-            grid.innerHTML = '';
-            data.winners.forEach(w => {
-                const item = document.createElement('div');
-                item.className = 'hall-item';
-                item.innerHTML = `
-                    <img src="/static/placeholder.png" alt="cert">
-                    <div style="padding:10px;">
-                        <div>${w.level}</div>
-                        <div>${w.burden}</div>
-                    </div>
-                `;
-                grid.appendChild(item);
-            });
+        
+        // ========== API LOADERS ==========
+        function loadHall() {
+            fetch('/api/hall-of-fame')
+                .then(res => res.json())
+                .then(data => {
+                    const grid = document.getElementById('hall-grid');
+                    grid.innerHTML = '';
+                    
+                    data.winners?.forEach(item => {
+                        const div = document.createElement('div');
+                        div.className = 'gallery-item';
+                        div.innerHTML = `
+                            <img src="${item.image_url || 'https://via.placeholder.com/180x180/000/FFD700?text=VOID'}" alt="${item.burden}">
+                            <div style="padding:10px; text-align:center;">
+                                <small>${item.level}</small><br>
+                                <strong>${item.burden?.substring(0, 20) || 'Unknown'}</strong>
+                            </div>
+                        `;
+                        grid.appendChild(div);
+                    });
+                })
+                .catch(() => {
+                    document.getElementById('hall-grid').innerHTML = '<p style="color:#888; text-align:center;">Hall is empty</p>';
+                });
         }
-        async function loadMarket() {
-            // نمونه static
-            document.getElementById('market-grid').innerHTML = '<div class="hall-item"><img src="/static/placeholder.png" alt="sale"><div style="padding:10px;">Coming Soon</div></div>';
+        
+        function loadMarket() {
+            document.getElementById('market-grid').innerHTML = 
+                '<p style="color:#888; text-align:center;">Marketplace coming soon</p>';
         }
-        async function loadPanel() {
-            // نمونه static
-            document.getElementById('ref-count').innerText = '0';
-            document.getElementById('discount').innerText = '0%';
+        
+        function loadPanel() {
+            document.getElementById('ref-count').textContent = '0';
+            document.getElementById('discount').textContent = '0%';
+            document.getElementById('user-dna-list').innerHTML = '<small>No DNA codes yet</small>';
+            document.getElementById('user-collection').innerHTML = 
+                '<p style="color:#888; text-align:center;">Your collection is empty</p>';
         }
+        
         function listForSale() {
-            alert('Listing will be available soon!');
+            const price = document.getElementById('sale-price').value;
+            if (!price || isNaN(price) || price < 10) {
+                showMessage('Enter valid price (min 10 ⭐)');
+                return;
+            }
+            showMessage('Listing feature coming soon!');
         }
-
+        
+        // ========== INITIALIZE ==========
         window.addEventListener('resize', () => {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
+            expCanvas.width = window.innerWidth;
+            expCanvas.height = window.innerHeight;
         });
+        
+        // بارگذاری اولیه
+        setTimeout(() => {
+            if (tg.initDataUnsafe.user) {
+                loadPanel();
+            }
+        }, 1000);
     </script>
 </body>
 </html>
