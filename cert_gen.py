@@ -1,15 +1,17 @@
 import os
 import random
 import requests
+import hashlib
+from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageOps
 import io
 
-# Hugging Face API
 HF_TOKEN = os.getenv("HF_API_TOKEN")
-API_URL = "https://api-inference.huggingface.co/models/runwayml/stable-diffusion-v1-5"  # بهترین img2img رایگان
+API_URL = "https://api-inference.huggingface.co/models/runwayml/stable-diffusion-v1-5"
+
 headers = {"Authorization": f"Bearer {HF_TOKEN}"}
 
-# ۵۰ پرامپت Eternal (رایگان – لوکس و حرفه‌ای)
+# ۵۰ پرامپت سطح Eternal (رایگان – لوکس و حرفه‌ای)
 eternal_styles = [
     "luxurious dark royal portrait certificate with ornate golden arabesque frame, intricate diamonds and jewels, cosmic nebula background, sacred geometry mandala, elegant ancient gold font, ultra-detailed masterpiece cinematic lighting",
     "imperial Byzantine icon divine portrait with golden halo and intricate sacred geometry, dark cosmic void with stars, eternal light rays, ultra-detailed",
@@ -175,24 +177,28 @@ legendary_styles = [
     "infinite sacred geometry cosmic gold flower life harmony masterpiece"
 ]
 
+def generate_dna(user_id, burden, level):
+    data = f"{user_id}{burden}{level}{datetime.now().isoformat()}"
+    return hashlib.sha256(data.encode()).hexdigest()[:16].upper()
+
 def generate_img2img(prompt, init_image_path):
     with open(init_image_path, "rb") as f:
         init_image = f.read()
-   
+    
     payload = {
         "prompt": prompt,
         "init_image": init_image,
-        "strength": 0.5,  # چهره واقعی حفظ بشه
+        "strength": 0.5,
         "guidance_scale": 9,
         "num_inference_steps": 50
     }
-   
+    
     response = requests.post(API_URL, headers=headers, json=payload)
     if response.status_code == 200:
         return Image.open(io.BytesIO(response.content))
     return None
 
-def overlay_text(img, burden, user_id, level):
+def overlay_text(img, burden, user_id, level, dna):
     draw = ImageDraw.Draw(img)
     w, h = img.size
     try:
@@ -201,15 +207,18 @@ def overlay_text(img, burden, user_id, level):
         info_font = ImageFont.truetype("arial.ttf", 45)
     except:
         title_font = burden_font = info_font = ImageFont.load_default()
+
     gold = "#FFD700"
     white = "#FFFFFF"
     shadow = "#000000"
+
     draw.text((w//2, 200), "VOID ASCENSION", fill=gold, font=title_font, anchor="mm", stroke_width=5, stroke_fill=shadow)
     draw.text((w//2, h//2), f"“{burden.upper()}”", fill=white, font=burden_font, anchor="mm", stroke_width=4, stroke_fill=shadow)
     draw.text((w//2, h//2 + 150), f"LEVEL: {level}", fill=gold, font=info_font, anchor="mm")
     draw.text((w//2, h - 300), "Style: Eternal Void", fill=gold, font=info_font, anchor="mm")
     draw.text((w//2, h - 200), f"Holder ID: {user_id}", fill=gold, font=info_font, anchor="mm")
-    draw.text((w//2, h - 100), "2025.VO-ID", fill="#888888", font=info_font, anchor="mm")
+    draw.text((w//2, h - 100), f"DNA: {dna}", fill="#888888", font=info_font, anchor="mm")
+
     return img
 
 def create_certificate(user_id, burden, level="Eternal", photo_path=None):
@@ -221,24 +230,27 @@ def create_certificate(user_id, burden, level="Eternal", photo_path=None):
         style_prompt = random.choice(celestial_styles)
     else:
         style_prompt = random.choice(legendary_styles)
-   
-    full_prompt = f"{style_prompt}, burden \"{burden.upper()}\", level {level}, ultra-detailed masterpiece, cinematic lighting, dark luxury royal portrait certificate"
     
+    full_prompt = f"{style_prompt}, burden \"{burden.upper()}\", level {level}, ultra-detailed masterpiece, cinematic lighting, dark luxury royal portrait certificate"
+
+    dna = generate_dna(user_id, burden, level)
+
     if photo_path:
         img = generate_img2img(full_prompt, photo_path)
     else:
-        # fallback text-to-image (اگر عکس نبود)
+        # fallback text-to-image
         payload = {"inputs": full_prompt, "parameters": {"num_inference_steps": 50}}
         response = requests.post(API_URL, headers=headers, json=payload)
         if response.status_code == 200:
             img = Image.open(io.BytesIO(response.content))
         else:
             img = Image.new('RGB', (1000, 1414), '#000000')
-    
+
     if img:
         img = img.resize((1000, 1414))
-        img = overlay_text(img, burden, user_id, level)
-        path = f"cert_{user_id}_{random.randint(10000,99999)}.png"
-        img.save(path, "PNG", quality=95)
+        img = overlay_text(img, burden, user_id, level, dna)
+        path = f"outputs/cert_{user_id}_{dna}.png"
+        os.makedirs("outputs", exist_ok=True)
+        img.save(path)
         return path, level
     return None, "Error"
