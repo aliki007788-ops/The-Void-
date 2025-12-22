@@ -2,315 +2,230 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src 'self' https://t.me wss://*.t.me;
+                   script-src 'self' 'unsafe-inline' https://telegram.org;
+                   style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+                   font-src https://fonts.gstatic.com;
+                   img-src 'self' data: blob:;
+                   connect-src 'self' https://api.telegram.org;">
     <title>THE VOID</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000000; color: #FFD700; font-family: 'Cinzel', serif; user-select: none; }
-        canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
-        
-        .page-container {
-            position: relative; z-index: 10; width: 100%; height: 100%; display: flex; flex-direction: column; 
-            align-items: center; justify-content: center; transition: opacity 0.8s ease; opacity: 0; pointer-events: none;
-        }
-        .page-container.active { opacity: 1; pointer-events: all; }
-
-        /* --- PAGE 1 ELEMENTS --- */
-        .input-group { width: 70%; text-align: center; margin-top: 50px; }
-        input[type="text"] {
-            background: transparent; border: none; border-bottom: 1px solid rgba(255, 215, 0, 0.4); 
-            color: #fff; font-size: 1.3rem; text-align: center; width: 100%; padding: 10px 0; outline: none; 
-            font-family: 'Cinzel'; transition: 0.3s; letter-spacing: 3px;
-        }
-        input[type="text"]:focus { border-bottom: 1px solid #FFD700; }
-
-        .btn-ascend {
-            margin-top: 80px; padding: 20px 80px; font-size: 1.5rem; color: #FFD700; background: transparent;
-            border: 1px solid rgba(255, 215, 0, 0.3); border-radius: 60px; cursor: pointer; transition: all 0.5s ease;
-            letter-spacing: 5px; font-weight: 100; text-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
-        }
-        .btn-ascend:hover { 
-            background: rgba(255, 215, 0, 0.05); border-color: #FFD700; 
-            box-shadow: 0 0 40px rgba(255, 215, 0, 0.3); transform: scale(1.02); 
-        }
-
-        /* --- PAGE 2: GLASS CARD & TABS --- */
-        .glass-card {
-            background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 215, 0, 0.1); border-radius: 20px; padding: 20px; width: 85%; max-width: 380px;
-            box-shadow: 0 0 30px rgba(0, 0, 0, 0.8); display: flex; flex-direction: column; align-items: center; margin-bottom: 15px;
-            margin-top: 60px; /* Space for particles text */
-        }
-
-        .tabs-header { display: flex; width: 100%; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .tab-btn {
-            background: transparent; border: none; color: #555; font-family: 'Cinzel'; font-size: 0.8rem; padding: 10px 5px; cursor: pointer; transition: 0.3s;
-        }
-        .tab-btn.active-tab { color: #FFD700; border-bottom: 2px solid #FFD700; }
-        
-        .tab-content { display: none; width: 100%; flex-direction: column; align-items: center; animation: fadeIn 0.5s; }
-        .tab-content.active-content { display: flex; }
-
-        /* Rotating Star 3D */
-        .scene { width: 60px; height: 60px; perspective: 600px; margin-bottom: 10px; }
-        .star-3d { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; animation: rotateStar 4s infinite linear; color: #FFD700; font-size: 3rem; text-align: center; line-height: 60px; }
-        @keyframes rotateStar { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
-
-        .upload-circle {
-            width: 140px; height: 140px; border-radius: 50%; border: 1px solid rgba(255, 215, 0, 0.4);
-            display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; transition: 0.3s; margin: 10px 0;
-            background: rgba(0,0,0,0.2); position: relative;
-        }
-        .upload-circle img { width: 100%; height: 100%; object-fit: cover; display: none; }
-        .upload-label { font-size: 0.6rem; color: #666; position: absolute; }
-
-        /* KING'S LUCK BUTTON */
-        .btn-luck {
-            background: linear-gradient(90deg, #FFD700, #FDB931, #FFD700); background-size: 200% auto;
-            color: #000; border: none; padding: 16px 0; font-size: 1.1rem; font-weight: 900; letter-spacing: 2px; border-radius: 12px;
-            cursor: pointer; margin: 10px 0; width: 85%; max-width: 380px;
-            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3); animation: blinkGold 2s infinite, shine 3s linear infinite; font-family: 'Cinzel';
-        }
-        @keyframes blinkGold { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.9; transform: scale(0.99); } }
-        @keyframes shine { to { background-position: 200% center; } }
-
-        .btn-mint {
-            background: transparent; border: 1px solid rgba(255,215,0,0.5); color: #FFD700; padding: 12px 0; margin-top: 10px;
-            font-size: 0.9rem; cursor: pointer; transition: 0.3s; letter-spacing: 3px; width: 100%;
-        }
-        .btn-mint:hover { background: #FFD700; color: #000; }
-
-        /* BOTTOM NAV */
-        .bottom-nav {
-            position: fixed; bottom: 20px; width: 90%; max-width: 400px; display: flex; justify-content: space-around; z-index: 100;
-            background: rgba(10,10,10,0.9); border: 1px solid #333; padding: 12px 0; border-radius: 30px;
-        }
-        .nav-item { color: #555; font-size: 0.7rem; cursor: pointer; transition: 0.3s; letter-spacing: 1px; }
-        .nav-item:hover, .nav-item.active { color: #FFD700; text-shadow: 0 0 5px #FFD700; }
-
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        input[type="file"] { display: none; }
-
-        /* Grid for content */
-        .grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 90%; max-width: 400px; padding-top: 100px; padding-bottom: 80px; }
-        .grid-item { background: rgba(255,255,255,0.05); border: 1px solid #333; border-radius: 5px; height: 150px; }
-
+        body,html{margin:0;padding:0;height:100%;overflow:hidden;background:#000;color:#FFD700;font-family:'Cinzel',serif}
+        canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:none}
+        .page{position:absolute;width:100%;height:100%;opacity:0;transition:opacity 1.5s ease;display:flex;flex-direction:column;align-items:center;padding:20px;box-sizing:border-box;overflow-y:auto}
+        .page.active{opacity:1;z-index:10}
+        .main-title{font-size:3.5rem;letter-spacing:20px;margin:60px 0;text-shadow:0 0 50px #FFD700;border-bottom:3px solid #FFD700;padding-bottom:20px}
+        input[type=text]{background:transparent;border:none;border-bottom:2px solid #FFD700;color:#FFD700;font-size:1.6rem;text-align:center;width:90%;margin:50px 0;outline:none}
+        .btn{background:transparent;border:2px solid #FFD700;color:#FFD700;padding:18px 40px;margin:15px;font-size:1.4rem;cursor:pointer;border-radius:15px;transition:.4s;box-shadow:0 0 40px rgba(255,215,0,.5)}
+        .btn:hover{background:rgba(255,215,0,.2);transform:scale(1.1);box-shadow:0 0 70px rgba(255,215,0,.8)}
+        .btn-luck{background:linear-gradient(45deg,#8B00FF,#FF00FF,#FFD700);animation:pulse 2s infinite;border:none;color:#fff;font-size:1.8rem}
+        .glass-card{background:rgba(255,255,255,.05);backdrop-filter:blur(15px);border:1px solid rgba(255,215,0,.3);padding:30px;border-radius:20px;margin:20px;width:90%;max-width:450px;text-align:center;box-shadow:0 0 50px rgba(255,215,0,.3)}
+        .preview-circle{width:300px;height:300px;border-radius:50%;border:10px solid #FFD700;overflow:hidden;margin:40px 0;box-shadow:0 0 100px #FFD700,inset 0 0 80px rgba(255,215,0,.4);cursor:pointer}
+        .preview-circle img{width:100%;height:100%;object-fit:cover}
+        .hall-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;width:90%;max-width:1200px;margin:40px 0}
+        .hall-item{border:2px solid #FFD700;border-radius:15px;overflow:hidden;box-shadow:0 0 40px rgba(255,215,0,.5);transition:.4s}
+        .hall-item:hover{transform:scale(1.05);box-shadow:0 0 80px rgba(255,215,0,.9)}
+        .hall-item img{width:100%;height:300px;object-fit:cover}
+        .nav-btn{position:fixed;bottom:30px;background:rgba(255,215,0,.2);border:1px solid #FFD700;color:#FFD700;padding:12px 25px;border-radius:30px;z-index:100}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
     </style>
 </head>
 <body>
-    <canvas id="particleCanvas"></canvas>
+    <canvas id="particles-canvas"></canvas>
 
-    <div id="step1" class="page-container active">
-        <div class="input-group">
-            <input type="text" id="burden" placeholder="NAME YOUR BURDEN" maxlength="40">
-        </div>
-        <button class="btn-ascend" onclick="ascend()">ASCEND</button>
+    <!-- صفحه اصلی -->
+    <div id="page-main" class="page active">
+        <h1 class="main-title">THE VOID</h1>
+        <input type="text" id="burden" placeholder="YOUR ETERNAL BURDEN...">
+        <button class="btn" onclick="goToPlans()">ASCEND</button>
     </div>
 
-    <div id="step2" class="page-container">
+    <!-- صفحه پلن‌ها -->
+    <div id="page-plans" class="page">
+        <div class="preview-circle" onclick="document.getElementById('photo-upload').click()">
+            <img id="preview-img" src="" style="display:none;" alt="preview">
+        </div>
+        <input type="file" id="photo-upload" accept="image/*" style="display:none;" onchange="previewPhoto(event)">
+
         <div class="glass-card">
-            <div class="tabs-header">
-                <div class="tab-btn active-tab" onclick="switchTab('free')">FREE</div>
-                <div class="tab-btn" onclick="switchTab('divine')">150 ⭐</div>
-                <div class="tab-btn" onclick="switchTab('celestial')">299 ⭐</div>
-                <div class="tab-btn" onclick="switchTab('legendary')">499 ⭐</div>
-            </div>
-
-            <div id="tab-free" class="tab-content active-content">
-                <p style="font-size:0.8rem; color:#888;">Limited: 3 Ascensions / Day</p>
-                <button class="btn-mint" onclick="processPayment('free')">MINT ETERNAL</button>
-            </div>
-
-            <div id="tab-divine" class="tab-content">
-                <div class="scene"><div class="star-3d">★</div></div>
-                <div class="upload-circle" onclick="triggerUpload()">
-                    <span class="upload-label">UPLOAD SOUL IMAGE</span>
-                    <img id="preview-divine" src="">
-                </div>
-                <button class="btn-mint" onclick="processPayment('divine')">MINT DIVINE</button>
-            </div>
-
-            <div id="tab-celestial" class="tab-content">
-                <div class="scene"><div class="star-3d" style="color:#b19cd9;">✦</div></div>
-                <div class="upload-circle" onclick="triggerUpload()" style="border-color:#b19cd9;">
-                    <span class="upload-label">UPLOAD SOUL IMAGE</span>
-                    <img id="preview-celestial" src="">
-                </div>
-                <button class="btn-mint" style="border-color:#b19cd9; color:#b19cd9;" onclick="processPayment('celestial')">MINT CELESTIAL</button>
-            </div>
-
-            <div id="tab-legendary" class="tab-content">
-                <div class="scene"><div class="star-3d" style="color:#ff4d4d;">☀</div></div>
-                <div class="upload-circle" onclick="triggerUpload()" style="border-color:#ff4d4d;">
-                    <span class="upload-label">UPLOAD SOUL IMAGE</span>
-                    <img id="preview-legendary" src="">
-                </div>
-                <button class="btn-mint" style="border-color:#ff4d4d; color:#ff4d4d;" onclick="processPayment('legendary')">MINT LEGENDARY</button>
-            </div>
+            <button class="btn btn-luck" onclick="buy('kings-luck')">KING'S LUCK – 199 ⭐</button>
+        </div>
+        <div class="glass-card">
+            <button class="btn" onclick="buy('divine')">DIVINE – 150 ⭐</button>
+        </div>
+        <div class="glass-card">
+            <button class="btn" onclick="buy('celestial')">CELESTIAL – 299 ⭐</button>
+        </div>
+        <div class="glass-card">
+            <button class="btn" onclick="buy('legendary')">LEGENDARY – 499 ⭐</button>
         </div>
 
-        <button class="btn-luck" onclick="processPayment('kings-luck')">KING'S LUCK (199 ⭐)</button>
-        <input type="file" id="global-upload" accept="image/*" onchange="handleFile(event)">
+        <button class="btn" onclick="shareToStory()">SHARE TO STORY</button>
+        <button class="nav-btn" style="left:30px;" onclick="goToHall()">HALL OF FAME</button>
+        <button class="nav-btn" style="right:30px;" onclick="goToMarket()">MARKETPLACE</button>
+        <button class="nav-btn" style="left:50%;transform:translateX(-50%);" onclick="goToPanel()">MY PANEL</button>
     </div>
 
-    <div id="step-content" class="page-container">
-        <div class="grid-container" id="content-grid"></div>
+    <!-- صفحه Hall of Fame -->
+    <div id="page-hall" class="page">
+        <h1 class="main-title">HALL OF ETERNITY</h1>
+        <div class="hall-grid" id="hall-grid"></div>
+        <button class="nav-btn" onclick="goToPlans()">BACK</button>
     </div>
 
-    <div class="bottom-nav" id="nav-bar" style="display:none;">
-        <div class="nav-item" onclick="navigate('panel')">MY PANEL</div>
-        <div class="nav-item" onclick="navigate('hall')">HALL OF FAME</div>
-        <div class="nav-item" onclick="navigate('market')">MARKET</div>
+    <!-- صفحه Marketplace -->
+    <div id="page-market" class="page">
+        <h1 class="main-title">VOID MARKETPLACE</h1>
+        <div class="glass-card">
+            <p>List your Legendary for sale</p>
+            <input type="number" id="sale-price" placeholder="Price in ⭐">
+            <button class="btn" onclick="listForSale()">LIST FOR SALE</button>
+        </div>
+        <div class="hall-grid" id="market-grid"></div>
+        <button class="nav-btn" onclick="goToPlans()">BACK</button>
+    </div>
+
+    <!-- صفحه پنل کاربری -->
+    <div id="page-panel" class="page">
+        <h1 class="main-title">YOUR ETERNAL ARCHIVE</h1>
+        <div class="glass-card">
+            <p>Referrals: <span id="ref-count">0</span> (Discount: <span id="discount">0%</span>)</p>
+            <p>Your DNA Codes:</p>
+            <div id="user-dna-list"></div>
+        </div>
+        <div class="hall-grid" id="user-collection"></div>
+        <button class="nav-btn" onclick="goToPlans()">BACK</button>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // --- PARTICLE ENGINE ---
-        const canvas = document.getElementById('particleCanvas');
+        // ---------- particles ----------
+        const canvas = document.getElementById('particles-canvas');
         const ctx = canvas.getContext('2d');
-        let w, h, particles = [];
-        let phase = 'forming'; // forming, explode
-        
-        function resize() { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; }
-        window.addEventListener('resize', resize); resize();
-
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        const particles = [];
         class Particle {
             constructor() {
-                this.x = Math.random() * w; this.y = Math.random() * h;
-                this.tx = this.x; this.ty = this.y;
-                this.vx = 0; this.vy = 0;
-                this.size = Math.random() * 1.5 + 0.2; // Small particles
-                this.color = `rgba(255, 215, 0, ${Math.random()*0.6+0.2})`;
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2 + 1;
+                this.speedX = Math.random() * 0.4 - 0.2;
+                this.speedY = Math.random() * 0.4 - 0.2;
+                this.opacity = Math.random() * 0.5 + 0.3;
             }
             update() {
-                if(phase === 'explode') {
-                    this.x += this.vx; this.y += this.vy;
-                    this.vx *= 0.98; this.vy *= 0.98;
-                } else if(phase === 'forming') {
-                    const dx = this.tx - this.x; const dy = this.ty - this.y;
-                    this.x += dx * 0.08; this.y += dy * 0.08;
-                }
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+                if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
             }
             draw() {
-                ctx.fillStyle = this.color;
-                ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255,255,255,${this.opacity})`;
+                ctx.fill();
             }
         }
-        
-        for(let i=0; i<1000; i++) particles.push(new Particle());
-
-        function getTextPoints(text) {
-            const tmpC = document.createElement('canvas'); const tCtx = tmpC.getContext('2d');
-            tmpC.width = w; tmpC.height = h;
-            tCtx.font = '900 3rem Cinzel'; tCtx.fillStyle = 'white'; tCtx.textAlign = 'center'; tCtx.textBaseline = 'middle';
-            tCtx.fillText(text, w/2, h*0.25); // Position top center
-            const data = tCtx.getImageData(0,0,w,h).data;
-            let points = [];
-            for(let y=0; y<h; y+=3) {
-                for(let x=0; x<w; x+=3) {
-                    if(data[(y*w+x)*4+3] > 128) points.push({x,y});
-                }
-            }
-            return points;
-        }
-
-        function setParticles(text) {
-            const points = getTextPoints(text);
-            phase = 'forming';
-            particles.forEach((p, i) => {
-                if(i < points.length) { p.tx = points[i].x; p.ty = points[i].y; p.color = '#FFD700'; }
-                else { p.tx = Math.random()*w; p.ty = Math.random()*h; p.color = 'rgba(255,215,0,0.1)'; }
-            });
-        }
-
-        function explode() {
-            phase = 'explode';
-            particles.forEach(p => {
-                const angle = Math.random() * Math.PI * 2;
-                const speed = Math.random() * 10 + 2;
-                p.vx = Math.cos(angle) * speed; p.vy = Math.sin(angle) * speed;
-            });
-        }
-
-        function animate() {
-            ctx.clearRect(0,0,w,h);
+        for (let i = 0; i < 150; i++) particles.push(new Particle());
+        function animateParticles() {
+            ctx.fillStyle = 'rgba(0,0,0,.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
             particles.forEach(p => { p.update(); p.draw(); });
-            requestAnimationFrame(animate);
+            requestAnimationFrame(animateParticles);
         }
-        animate();
-        setParticles("THE VOID");
+        animateParticles();
 
-        // --- APP LOGIC ---
-        function ascend() {
-            const b = document.getElementById('burden').value;
-            if(!b) return tg.showAlert("State your burden.");
-            
-            document.getElementById('step1').classList.remove('active');
-            explode();
-            
-            setTimeout(() => {
-                setParticles("CHOOSE FATE"); // Title for Page 2
-                document.getElementById('step2').classList.add('active');
-                document.getElementById('nav-bar').style.display = 'flex';
-            }, 1000);
+        // ---------- navigation ----------
+        function goTo(id) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
         }
+        function goToPlans() { goTo('page-plans'); }
+        function goToHall() { goTo('page-hall'); loadHall(); }
+        function goToMarket() { goTo('page-market'); loadMarket(); }
+        function goToPanel() { goTo('page-panel'); loadPanel(); }
 
-        function switchTab(t) {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active-tab'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active-content'));
-            event.target.classList.add('active-tab');
-            document.getElementById(`tab-${t}`).classList.add('active-content');
-        }
-
-        function triggerUpload() { document.getElementById('global-upload').click(); }
-        function handleFile(e) {
-            const f = e.target.files[0];
-            if(f) {
-                const r = new FileReader();
-                r.onload = ev => {
-                    window.imgData = ev.target.result;
-                    ['preview-divine','preview-celestial','preview-legendary'].forEach(id=> {
-                        const img = document.getElementById(id); img.src=window.imgData; img.style.display='block';
-                    });
-                };
-                r.readAsDataURL(f);
-            }
+        // ---------- photo ----------
+        let currentPhoto = null;
+        function previewPhoto(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = ev => {
+                const img = document.getElementById('preview-img');
+                img.src = ev.target.result;
+                img.style.display = 'block';
+                currentPhoto = ev.target.result;
+            };
+            reader.readAsDataURL(file);
         }
 
-        function navigate(page) {
-            document.getElementById('step2').classList.remove('active');
-            document.getElementById('step-content').classList.remove('active');
-            explode();
-            
-            let t = "";
-            if(page==='panel') t="MY PANEL";
-            if(page==='hall') t="HALL OF FAME";
-            if(page==='market') t="MARKETPLACE";
-            
-            setTimeout(() => {
-                setParticles(t);
-                document.getElementById('step-content').classList.add('active');
-            }, 800);
-        }
-
-        function processPayment(type) {
-            fetch('/create_stars_invoice', {
+        // ---------- api ----------
+        async function buy(type) {
+            const burden = document.getElementById('burden').value || 'Eternal Sovereign';
+            const body = {
+                u: tg.initDataUnsafe.user.id,
+                b: burden,
+                type: type,
+                p: currentPhoto
+            };
+            const res = await fetch('/create_stars_invoice', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    u: tg.initDataUnsafe.user?.id || 0,
-                    b: document.getElementById('burden').value,
-                    type: type,
-                    p: window.imgData || null
-                })
-            }).then(r=>r.json()).then(d=>{
-                if(d.url) tg.openInvoice(d.url);
-                else if(d.free) tg.showAlert("Eternal Ascension Granted.");
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            const data = await res.json();
+            if (data.url) tg.openInvoice(data.url);
+        }
+
+        function shareToStory() {
+            const text = "I ascended in THE VOID and forged an eternal masterpiece! 🌌";
+            const url = `https://t.me/${tg.initDataUnsafe.user.username}?start=ref_${tg.initDataUnsafe.user.id}`;
+            tg.shareToStory(url, { text });
+        }
+
+        async function loadHall() {
+            const res = await fetch('/api/hall-of-fame');
+            const data = await res.json();
+            const grid = document.getElementById('hall-grid');
+            grid.innerHTML = '';
+            data.winners.forEach(w => {
+                const item = document.createElement('div');
+                item.className = 'hall-item';
+                item.innerHTML = `
+                    <img src="/static/placeholder.png" alt="cert">
+                    <div style="padding:10px;">
+                        <div>${w.level}</div>
+                        <div>${w.burden}</div>
+                    </div>
+                `;
+                grid.appendChild(item);
             });
         }
+        async function loadMarket() {
+            // نمونه static
+            document.getElementById('market-grid').innerHTML = '<div class="hall-item"><img src="/static/placeholder.png" alt="sale"><div style="padding:10px;">Coming Soon</div></div>';
+        }
+        async function loadPanel() {
+            // نمونه static
+            document.getElementById('ref-count').innerText = '0';
+            document.getElementById('discount').innerText = '0%';
+        }
+        function listForSale() {
+            alert('Listing will be available soon!');
+        }
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
     </script>
 </body>
 </html>
