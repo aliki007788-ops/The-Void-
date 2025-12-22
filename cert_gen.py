@@ -2,21 +2,17 @@ import os
 import random
 import requests
 import hashlib
-import re
 from datetime import datetime
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageOps
 import io
 
-# ========== CONFIG ==========
 HF_TOKEN = os.getenv("HF_API_TOKEN")
 API_URL = "https://api-inference.huggingface.co/models/runwayml/stable-diffusion-v1-5"
 
 headers = {"Authorization": f"Bearer {HF_TOKEN}"}
 
-# ========== 150 STYLE PROMPTS ==========
-
-# سطح ۱: Eternal (۵۰ پرامپت)
-ETERNAL_PROMPTS = [
+# ۵۰ پرامپت سطح Eternal (رایگان – لوکس و حرفه‌ای)
+eternal_styles = [
     "luxurious dark royal portrait certificate with ornate golden arabesque frame, intricate diamonds and jewels, cosmic nebula background, sacred geometry mandala, elegant ancient gold font, ultra-detailed masterpiece cinematic lighting",
     "imperial Byzantine icon divine portrait with golden halo and intricate sacred geometry, dark cosmic void with stars, eternal light rays, ultra-detailed",
     "Fabergé egg luxury royal portrait with golden enamel jewels plasma glow, cosmic void, divine aura, intricate details, 8K masterpiece",
@@ -69,8 +65,8 @@ ETERNAL_PROMPTS = [
     "Philosopher's stone alchemical gold transmutation portrait with cosmic halo"
 ]
 
-# سطح ۲: Divine (۴۰ پرامپت)
-DIVINE_PROMPTS = [
+# ۴۰ پرامپت Divine
+divine_styles = [
     "absolute masterpiece divine portrait in Fabergé imperial egg style, golden enamel jewels plasma crown halo, cosmic void sacred geometry, ultra-detailed 8K cinematic",
     "Byzantine holy icon divine portrait with golden halo and sacred mandala jewels, eternal light rays masterpiece",
     "Persian shah miniature royal portrait with intricate gold illumination, cosmic nebula jewels divine aura",
@@ -113,8 +109,8 @@ DIVINE_PROMPTS = [
     "Agartha inner earth crystal core golden portrait with eternal harmony"
 ]
 
-# سطح ۳: Celestial (۳۰ پرامپت)
-CELESTIAL_PROMPTS = [
+# ۳۰ پرامپت Celestial
+celestial_styles = [
     "celestial phoenix rebirth wings portrait with golden eternal flame cosmic fire divine aura masterpiece",
     "sacred geometry infinite flower of life golden portrait with cosmic harmony mandala ultra-detailed",
     "sovereign imperial diamond plasma crown portrait with eternal sovereign glow cosmic jewels",
@@ -147,8 +143,8 @@ CELESTIAL_PROMPTS = [
     "infinite sacred geometry portrait with flower life cosmic gold"
 ]
 
-# سطح ۴: Legendary (۳۰ پرامپت)
-LEGENDARY_PROMPTS = [
+# ۳۰ پرامپت Legendary
+legendary_styles = [
     "legendary void emperor infinite darkness throne with cosmic plasma jewels eternal crown masterpiece ultra-detailed",
     "ultimate divine phoenix eternal rebirth with golden wings cosmic fire halo infinite power",
     "legendary sacred geometry flower of life infinite golden mandala with divine light rays masterpiece",
@@ -181,317 +177,80 @@ LEGENDARY_PROMPTS = [
     "infinite sacred geometry cosmic gold flower life harmony masterpiece"
 ]
 
-# ========== HELPER FUNCTIONS ==========
+def generate_dna(user_id, burden, level):
+    data = f"{user_id}{burden}{level}{datetime.now().isoformat()}"
+    return hashlib.sha256(data.encode()).hexdigest()[:16].upper()
 
-def sanitize_burden(text: str) -> str:
-    """پاکسازی ورودی burden از کاراکترهای خطرناک"""
-    if not text or not isinstance(text, str):
-        return "Eternal Sovereign"
+def generate_img2img(prompt, init_image_path):
+    with open(init_image_path, "rb") as f:
+        init_image = f.read()
     
-    # حذف کاراکترهای خطرناک
-    clean = re.sub(r'[<>"\'\&;\\/\[\]{}()|`~]', '', text)
+    payload = {
+        "prompt": prompt,
+        "init_image": init_image,
+        "strength": 0.5,
+        "guidance_scale": 9,
+        "num_inference_steps": 50
+    }
     
-    # محدودیت طول (۵۰ کاراکتر)
-    clean = clean[:50]
-    
-    # جایگزینی چند فاصله با یک فاصله
-    clean = ' '.join(clean.split())
-    
-    return clean.strip() or "Eternal Sovereign"
+    response = requests.post(API_URL, headers=headers, json=payload)
+    if response.status_code == 200:
+        return Image.open(io.BytesIO(response.content))
+    return None
 
-def validate_image(file_path: str) -> bool:
-    """اعتبارسنجی عکس آپلودشده"""
+def overlay_text(img, burden, user_id, level, dna):
+    draw = ImageDraw.Draw(img)
+    w, h = img.size
     try:
-        with Image.open(file_path) as img:
-            # بررسی فرمت
-            if img.format not in ['JPEG', 'PNG', 'WEBP']:
-                return False
-            
-            # بررسی سایز (حداکثر 10 مگاپیکسل)
-            if img.size[0] * img.size[1] > 10000000:
-                return False
-            
-            # بررسی corrupt نبودن
-            img.verify()
-            return True
-            
-    except Exception as e:
-        print(f"Image validation error: {e}")
-        return False
+        title_font = ImageFont.truetype("arial.ttf", 90)
+        burden_font = ImageFont.truetype("arial.ttf", 70)
+        info_font = ImageFont.truetype("arial.ttf", 45)
+    except:
+        title_font = burden_font = info_font = ImageFont.load_default()
 
-def generate_dna(user_id: int, burden: str, level: str) -> str:
-    """تولید کد DNA منحصربه‌فرد برای هر گواهی"""
-    seed = f"{user_id}{burden}{level}{datetime.now().isoformat()}{random.randint(1000, 9999)}"
-    hash_obj = hashlib.sha256(seed.encode())
-    return hash_obj.hexdigest()[:16].upper()
+    gold = "#FFD700"
+    white = "#FFFFFF"
+    shadow = "#000000"
 
-def generate_ai_image(prompt: str, init_image_path: str = None):
-    """تولید تصویر با هوش مصنوعی"""
-    try:
-        if init_image_path and os.path.exists(init_image_path):
-            # حالت img2img - با عکس کاربر
-            with open(init_image_path, "rb") as f:
-                image_data = f.read()
-            
-            payload = {
-                "inputs": prompt,
-                "parameters": {
-                    "strength": 0.5,
-                    "guidance_scale": 8,
-                    "num_inference_steps": 45,
-                    "negative_prompt": "blurry, distorted, ugly, bad quality, watermark, text"
-                }
-            }
-            
-            response = requests.post(
-                API_URL,
-                headers=headers,
-                files={"image": image_data},
-                data=payload,
-                timeout=60
-            )
-            
-        else:
-            # حالت text-to-image - بدون عکس
-            payload = {
-                "inputs": prompt,
-                "parameters": {
-                    "guidance_scale": 8,
-                    "num_inference_steps": 45,
-                    "negative_prompt": "blurry, distorted, ugly, bad quality, watermark, text"
-                }
-            }
-            
-            response = requests.post(
-                API_URL,
-                headers=headers,
-                json=payload,
-                timeout=60
-            )
-        
-        if response.status_code == 200:
-            return Image.open(io.BytesIO(response.content))
-        else:
-            print(f"AI API Error: {response.status_code}")
-            print(f"Response: {response.text[:200]}")
-            return None
-            
-    except requests.exceptions.Timeout:
-        print("AI API timeout")
-        return None
-    except Exception as e:
-        print(f"AI generation error: {e}")
-        return None
+    draw.text((w//2, 200), "VOID ASCENSION", fill=gold, font=title_font, anchor="mm", stroke_width=5, stroke_fill=shadow)
+    draw.text((w//2, h//2), f"“{burden.upper()}”", fill=white, font=burden_font, anchor="mm", stroke_width=4, stroke_fill=shadow)
+    draw.text((w//2, h//2 + 150), f"LEVEL: {level}", fill=gold, font=info_font, anchor="mm")
+    draw.text((w//2, h - 300), "Style: Eternal Void", fill=gold, font=info_font, anchor="mm")
+    draw.text((w//2, h - 200), f"Holder ID: {user_id}", fill=gold, font=info_font, anchor="mm")
+    draw.text((w//2, h - 100), f"DNA: {dna}", fill="#888888", font=info_font, anchor="mm")
 
-def add_text_to_image(img, burden: str, user_id: int, level: str, dna: str):
-    """افزودن متن روی تصویر گواهی"""
-    try:
-        draw = ImageDraw.Draw(img)
-        width, height = img.size
-        
-        # تلاش برای بارگذاری فونت‌ها
-        try:
-            # ابتدا فونت‌های سیستم را امتحان کن
-            font_paths = [
-                "arial.ttf",
-                "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-                "/System/Library/Fonts/Helvetica.ttc",
-                "C:\\Windows\\Fonts\\arial.ttf"
-            ]
-            
-            title_font = None
-            for path in font_paths:
-                if os.path.exists(path):
-                    try:
-                        title_font = ImageFont.truetype(path, 80)
-                        break
-                    except:
-                        continue
-            
-            if title_font is None:
-                title_font = ImageFont.load_default()
-                
-            burden_font = ImageFont.truetype(path, 60) if title_font != ImageFont.load_default() else ImageFont.load_default()
-            info_font = ImageFont.truetype(path, 35) if title_font != ImageFont.load_default() else ImageFont.load_default()
-            
-        except:
-            # فونت پیش‌فرض
-            title_font = burden_font = info_font = ImageFont.load_default()
-        
-        # رنگ‌ها
-        gold = "#FFD700"
-        gold_light = "#FFEC8B"
-        white = "#FFFFFF"
-        shadow = "#000000"
-        gray = "#888888"
-        
-        # سایه برای متن
-        def draw_text_with_shadow(x, y, text, font, fill, shadow_fill, shadow_offset=3):
-            draw.text((x + shadow_offset, y + shadow_offset), text, font=font, fill=shadow_fill, anchor="mm")
-            draw.text((x, y), text, font=font, fill=fill, anchor="mm")
-        
-        # عنوان اصلی
-        draw_text_with_shadow(
-            width // 2, 180,
-            "VOID ASCENSION",
-            title_font, gold, shadow, 4
-        )
-        
-        # Burden
-        draw_text_with_shadow(
-            width // 2, height // 2,
-            f"\"{burden.upper()}\"",
-            burden_font, white, shadow, 3
-        )
-        
-        # سطح
-        draw_text_with_shadow(
-            width // 2, height // 2 + 130,
-            f"LEVEL: {level}",
-            info_font, gold_light, shadow, 2
-        )
-        
-        # استایل
-        draw_text_with_shadow(
-            width // 2, height - 280,
-            "Style: Eternal Void",
-            info_font, gold, shadow, 2
-        )
-        
-        # شناسه کاربر
-        draw_text_with_shadow(
-            width // 2, height - 220,
-            f"Holder ID: {user_id}",
-            info_font, gold, shadow, 2
-        )
-        
-        # DNA
-        draw.text(
-            (width // 2, height - 160),
-            f"DNA: {dna}",
-            font=info_font,
-            fill=gray,
-            anchor="mm"
-        )
-        
-        # تاریخ
-        draw.text(
-            (width // 2, height - 100),
-            f"Date: {datetime.now().strftime('%Y.%m.%d')}",
-            font=info_font,
-            fill=gray,
-            anchor="mm"
-        )
-        
-        # کپی رایت
-        draw.text(
-            (width // 2, height - 40),
-            "2025.VO-ID | THE ETERNAL ARCHIVE",
-            font=info_font,
-            fill="#555555",
-            anchor="mm"
-        )
-        
-        return img
-        
-    except Exception as e:
-        print(f"Text overlay error: {e}")
-        return img
+    return img
 
-def create_certificate(user_id: int, burden: str, level: str = "Eternal", photo_path: str = None):
-    """تابع اصلی ایجاد گواهینامه"""
-    try:
-        print(f"Creating certificate for user {user_id}, level {level}")
-        
-        # ۱. پاکسازی burden
-        burden = sanitize_burden(burden)
-        print(f"Sanitized burden: {burden}")
-        
-        # ۲. تولید DNA
-        dna = generate_dna(user_id, burden, level)
-        print(f"Generated DNA: {dna}")
-        
-        # ۳. انتخاب پرامپت بر اساس سطح
-        if level == "Eternal":
-            style_prompt = random.choice(ETERNAL_PROMPTS)
-        elif level == "Divine":
-            style_prompt = random.choice(DIVINE_PROMPTS)
-        elif level == "Celestial":
-            style_prompt = random.choice(CELESTIAL_PROMPTS)
-        else:  # Legendary
-            style_prompt = random.choice(LEGENDARY_PROMPTS)
-        
-        # ۴. ساخت پرامپت نهایی
-        full_prompt = f"{style_prompt}, burden: \"{burden}\", level: {level}, royal portrait certificate, ultra detailed, masterpiece, cinematic lighting, dark luxury, 8K, professional"
-        print(f"Full prompt length: {len(full_prompt)}")
-        
-        # ۵. اعتبارسنجی عکس
-        if photo_path and not validate_image(photo_path):
-            print("Invalid photo, using text-to-image")
-            photo_path = None
-        
-        # ۶. تولید تصویر با AI
-        print("Generating AI image...")
-        img = generate_ai_image(full_prompt, photo_path)
-        
-        if img is None:
-            print("AI generation failed, creating fallback image")
-            # تصویر fallback
-            img = Image.new('RGB', (1000, 1400), color='#0A0A0A')
-            
-            # اضافه کردن gradient ساده
-            from PIL import ImageDraw
-            draw = ImageDraw.Draw(img)
-            for i in range(1400):
-                color_value = int(10 + (i / 1400 * 50))
-                draw.line([(0, i), (1000, i)], fill=(color_value, color_value, color_value))
-        
-        # ۷. تغییر سایز به استاندارد
-        img = img.resize((1000, 1400), Image.Resampling.LANCZOS)
-        print(f"Image resized to: {img.size}")
-        
-        # ۸. افزودن متن
-        print("Adding text overlay...")
-        img = add_text_to_image(img, burden, user_id, level, dna)
-        
-        # ۹. ذخیره فایل
-        os.makedirs("temp_certs", exist_ok=True)
-        output_path = f"temp_certs/cert_{user_id}_{dna}.png"
-        
-        # ذخیره با کیفیت بالا
-        img.save(output_path, "PNG", optimize=True, quality=95)
-        print(f"Certificate saved to: {output_path}")
-        
-        # ۱۰. بررسی سایز فایل
-        file_size = os.path.getsize(output_path) / 1024  # KB
-        print(f"File size: {file_size:.1f} KB")
-        
-        if file_size > 5000:  # بیشتر از ۵ مگابایت
-            print("File too large, re-saving with compression...")
-            img.save(output_path, "PNG", optimize=True, quality=85)
-        
-        return output_path, level
-        
-    except Exception as e:
-        print(f"Error in create_certificate: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return None, "Error"
-
-# ========== TEST FUNCTION ==========
-if __name__ == "__main__":
-    # تست تابع
-    print("Testing certificate generation...")
-    
-    # ایجاد یک گواهی تست
-    test_path, test_level = create_certificate(
-        user_id=123456,
-        burden="Test Eternal Burden",
-        level="Eternal"
-    )
-    
-    if test_path:
-        print(f"✓ Test successful! Certificate created at: {test_path}")
-        print(f"✓ Level: {test_level}")
+def create_certificate(user_id, burden, level="Eternal", photo_path=None):
+    if level == "Eternal":
+        style_prompt = random.choice(eternal_styles)
+    elif level == "Divine":
+        style_prompt = random.choice(divine_styles)
+    elif level == "Celestial":
+        style_prompt = random.choice(celestial_styles)
     else:
-        print("✗ Test failed!")
+        style_prompt = random.choice(legendary_styles)
+    
+    full_prompt = f"{style_prompt}, burden \"{burden.upper()}\", level {level}, ultra-detailed masterpiece, cinematic lighting, dark luxury royal portrait certificate"
+
+    dna = generate_dna(user_id, burden, level)
+
+    if photo_path:
+        img = generate_img2img(full_prompt, photo_path)
+    else:
+        # fallback text-to-image
+        payload = {"inputs": full_prompt, "parameters": {"num_inference_steps": 50}}
+        response = requests.post(API_URL, headers=headers, json=payload)
+        if response.status_code == 200:
+            img = Image.open(io.BytesIO(response.content))
+        else:
+            img = Image.new('RGB', (1000, 1414), '#000000')
+
+    if img:
+        img = img.resize((1000, 1414))
+        img = overlay_text(img, burden, user_id, level, dna)
+        path = f"outputs/cert_{user_id}_{dna}.png"
+        os.makedirs("outputs", exist_ok=True)
+        img.save(path)
+        return path, level
+    return None, "Error"
