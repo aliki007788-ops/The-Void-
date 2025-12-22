@@ -3,190 +3,348 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>THE VOID - Eternal Ascension</title>
+    <title>THE VOID</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Noto+Sans+JP&family=Amiri&display=swap');
-
-        :root { 
-            --gold: #FFD700; --gold-glow: rgba(255, 215, 0, 0.7); --glass: rgba(255, 255, 255, 0.03); 
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+            color: #FFD700;
+            font-family: 'Cinzel', serif;
         }
-
-        body, html { margin: 0; padding: 0; height: 100%; background: #000; color: var(--gold); font-family: 'Cinzel', serif; overflow-x: hidden; }
-        canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
-
-        .stage { position: relative; z-index: 10; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; transition: opacity 1.8s ease; }
-
-        .lang-container { position: fixed; bottom: 20px; left: 20px; z-index: 100; }
-        #langSelect { background: rgba(0,0,0,0.7); border: 1px solid var(--gold); color: var(--gold); padding: 5px; border-radius: 5px; cursor: pointer; }
-
-        .main-title { font-size: 3.2rem; letter-spacing: 18px; margin-top: 20vh; text-shadow: 0 0 40px var(--gold-glow); opacity: 0; animation: titleGlow 5s infinite alternate; }
-        @keyframes titleGlow { 0% { text-shadow: 0 0 20px var(--gold-glow); } 100% { text-shadow: 0 0 80px var(--gold-glow); } }
-
-        input[type="text"] { background: transparent; border: none; border-bottom: 2px solid #333; color: var(--gold); font-size: 1.3rem; text-align: center; width: 85%; padding: 18px; margin: 50px 0; outline: none; transition: 0.4s; }
-        input[type="text"]:focus { border-bottom-color: var(--gold); box-shadow: 0 8px 25px -8px var(--gold-glow); }
-
-        .btn { background: transparent; border: 1px solid var(--gold); color: var(--gold); padding: 18px 50px; font-size: 1.1rem; cursor: pointer; transition: 0.5s; text-transform: uppercase; letter-spacing: 4px; box-shadow: 0 0 15px rgba(255,215,0,0.2); }
-        .btn:hover { background: var(--gold); color: #000; box-shadow: 0 0 40px var(--gold); transform: translateY(-4px); }
-
-        .btn-luck { border: 3px solid var(--gold); animation: pulse-gold 1.8s infinite; font-weight: bold; background: rgba(255,215,0,0.08); }
-        @keyframes pulse-gold { 0% { box-shadow: 0 0 15px var(--gold); } 50% { box-shadow: 0 0 45px var(--gold); } 100% { box-shadow: 0 0 15px var(--gold); } }
-
-        .plans-container { display: flex; flex-direction: column; gap: 20px; width: 100%; max-width: 420px; margin-top: 40px; }
-        .plan-card { background: var(--glass); backdrop-filter: blur(12px); border: 1px solid transparent; padding: 25px; border-radius: 18px; cursor: pointer; transition: 0.6s; text-align: center; }
-        .plan-card.active { border-color: var(--gold); background: rgba(255,215,0,0.08); transform: scale(1.05); box-shadow: 0 0 30px rgba(255,215,0,0.3); }
-        .plan-title { font-size: 1.6rem; letter-spacing: 6px; margin-bottom: 10px; }
-        .plan-price { font-size: 1.2rem; opacity: 0.9; }
-        .plan-content { margin-top: 20px; }
-
-        .preview-circle { width: 140px; height: 140px; border-radius: 50%; border: 4px solid var(--gold); object-fit: cover; margin: 20px 0; display: none; box-shadow: 0 0 40px var(--gold-glow); }
-
-        #step2, .features-scroll { display: none; opacity: 0; }
-        .features-scroll { margin-top: 120px; padding-bottom: 60px; }
-        .feature-box { background: var(--glass); padding: 35px; margin: 25px 0; border-radius: 18px; border-left: 5px solid var(--gold); text-align: center; }
-
-        #t-title2 { font-size: 2.5rem; letter-spacing: 12px; opacity: 0; transform: scale(0.7); text-shadow: 0 0 40px var(--gold-glow); transition: all 2.5s cubic-bezier(0.22, 1, 0.36, 1); }
-        #t-title2.visible { opacity: 1; transform: scale(1); text-shadow: 0 0 80px var(--gold-glow), 0 0 120px var(--gold); }
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+        .page {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 1.5s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        .page.active {
+            opacity: 1;
+            z-index: 10;
+        }
+        .main-title {
+            font-size: 3.5rem;
+            letter-spacing: 20px;
+            margin: 60px 0;
+            text-shadow: 0 0 50px #FFD700;
+            border-bottom: 3px solid #FFD700;
+            padding-bottom: 20px;
+        }
+        input[type="text"] {
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid #FFD700;
+            color: #FFD700;
+            font-size: 1.6rem;
+            text-align: center;
+            width: 90%;
+            margin: 50px 0;
+            outline: none;
+        }
+        .btn {
+            background: transparent;
+            border: 2px solid #FFD700;
+            color: #FFD700;
+            padding: 18px 40px;
+            margin: 15px;
+            font-size: 1.4rem;
+            cursor: pointer;
+            border-radius: 15px;
+            transition: 0.4s;
+            box-shadow: 0 0 40px rgba(255,215,0,0.5);
+        }
+        .btn:hover {
+            background: rgba(255,215,0,0.2);
+            transform: scale(1.1);
+            box-shadow: 0 0 70px rgba(255,215,0,0.8);
+        }
+        .btn-luck {
+            background: linear-gradient(45deg, #8B00FF, #FF00FF, #FFD700);
+            animation: pulse 2s infinite;
+            border: none;
+            color: white;
+            font-size: 1.8rem;
+        }
+        .glass-card {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255,215,0,0.3);
+            padding: 30px;
+            border-radius: 20px;
+            margin: 20px;
+            width: 90%;
+            max-width: 450px;
+            text-align: center;
+            box-shadow: 0 0 50px rgba(255,215,0,0.3);
+        }
+        .preview-circle {
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            border: 10px solid #FFD700;
+            overflow: hidden;
+            margin: 40px 0;
+            box-shadow: 0 0 100px #FFD700, inset 0 0 80px rgba(255,215,0,0.4);
+            cursor: pointer;
+        }
+        .preview-circle img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .hall-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            width: 90%;
+            max-width: 1200px;
+            margin: 40px 0;
+        }
+        .hall-item {
+            border: 2px solid #FFD700;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 0 40px rgba(255,215,0,0.5);
+            transition: 0.4s;
+        }
+        .hall-item:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 80px rgba(255,215,0,0.9);
+        }
+        .hall-item img {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+        }
+        .nav-btn {
+            position: fixed;
+            bottom: 30px;
+            background: rgba(255,215,0,0.2);
+            border: 1px solid #FFD700;
+            color: #FFD700;
+            padding: 12px 25px;
+            border-radius: 30px;
+            z-index: 100;
+        }
     </style>
 </head>
 <body>
-    <div class="lang-container">
-        <select id="langSelect" onchange="changeLang(this.value)">
-            <option value="en">English</option>
-            <option value="fa">فارسی</option>
-            <option value="ru">Русский</option>
-            <option value="ar">العربية</option>
-            <option value="es">Español</option>
-            <option value="fr">Français</option>
-            <option value="zh">中文</option>
-        </select>
+    <canvas id="particles-canvas"></canvas>
+
+    <!-- صفحه اصلی -->
+    <div id="page-main" class="page active">
+        <h1 class="main-title">THE VOID</h1>
+        <input type="text" id="burden" placeholder="YOUR ETERNAL BURDEN...">
+        <button class="btn" onclick="goToPlans()">ASCEND</button>
     </div>
-    <canvas id="canvas"></canvas>
-    <div id="step1" class="stage">
-        <h1 class="main-title" id="t-title">THE VOID</h1>
-        <input type="text" id="sacrifice" placeholder="WHAT DO YOU SACRIFICE?" maxlength="50">
-        <button class="btn" onclick="triggerExplosion()" id="t-btn-ascend">ASCEND</button>
+
+    <!-- صفحه پلن‌ها -->
+    <div id="page-plans" class="page">
+        <div class="preview-circle" onclick="document.getElementById('photo-upload').click()">
+            <img id="preview-img" src="" style="display:none;">
+        </div>
+        <input type="file" id="photo-upload" accept="image/*" style="display:none;" onchange="previewPhoto(event)">
+
+        <div class="glass-card">
+            <button class="btn btn-luck" onclick="buy('kings-luck')">KING'S LUCK – 199 ⭐</button>
+        </div>
+
+        <div class="glass-card">
+            <button class="btn" onclick="buy('divine')">DIVINE – 150 ⭐</button>
+        </div>
+
+        <div class="glass-card">
+            <button class="btn" onclick="buy('celestial')">CELESTIAL – 299 ⭐</button>
+        </div>
+
+        <div class="glass-card">
+            <button class="btn" onclick="buy('legendary')">LEGENDARY – 499 ⭐</button>
+        </div>
+
+        <button class="btn" onclick="shareToStory()">SHARE TO STORY</button>
+        <button class="nav-btn" onclick="goToHall()">HALL OF FAME</button>
+        <button class="nav-btn" style="right:30px;" onclick="goToMarket()">MARKETPLACE</button>
+        <button class="nav-btn" style="left:30px;" onclick="goToPanel()">MY PANEL</button>
     </div>
-    <div id="step2" class="stage">
-        <h2 id="t-title2">ETERNAL SELECTION</h2>
-        
-        <div class="plans-container">
-            <div class="plan-card active" onclick="selectPlan('vagabond', this)">
-                <div class="plan-title">VAGABOND</div>
-                <div class="plan-price">FREE (LIMITED)</div>
-                <div class="plan-content">
-                    <p style="opacity:0.7; font-size:0.9rem;">Eternal soul imprint in the Void.</p>
-                </div>
-            </div>
-            <div class="plan-card" onclick="selectPlan('divine', this)">
-                <div class="plan-title">DIVINE</div>
-                <div class="plan-price">99 ⭐</div>
-                <div class="plan-content">
-                    <label class="btn" style="font-size:0.8rem;">UPLOAD SOUL IMAGE<input type="file" hidden onchange="handleFile(this)"></label>
-                    <img class="preview-circle" id="prev-divine">
-                </div>
-            </div>
-            <div class="plan-card" onclick="selectPlan('celestial', this)">
-                <div class="plan-title">CELESTIAL</div>
-                <div class="plan-price">299 ⭐</div>
-                <div class="plan-content">
-                    <label class="btn" style="font-size:0.8rem;">UPLOAD SOUL IMAGE<input type="file" hidden onchange="handleFile(this)"></label>
-                    <img class="preview-circle" id="prev-celestial">
-                </div>
-            </div>
-            <div class="plan-card" onclick="selectPlan('legendary', this)">
-                <div class="plan-title">LEGENDARY</div>
-                <div class="plan-price">499 ⭐</div>
-                <div class="plan-content">
-                    <label class="btn" style="font-size:0.8rem;">UPLOAD SOUL IMAGE<input type="file" hidden onchange="handleFile(this)"></label>
-                    <img class="preview-circle" id="prev-legendary">
-                </div>
-            </div>
+
+    <!-- صفحه Hall of Fame -->
+    <div id="page-hall" class="page">
+        <h1 class="main-title">HALL OF ETERNITY</h1>
+        <div class="hall-grid" id="hall-grid">
+            <!-- گواهی‌ها از API لود می‌شن -->
         </div>
-        
-        <button class="btn" style="margin-top: 40px; width: 100%; max-width: 420px;" id="payBtn" onclick="mint()">MINT ETERNAL CERTIFICATE</button>
-        
-        <div class="features-scroll" id="features">
-            <div class="feature-box">
-                <h3>REFERRAL ETERNAL</h3>
-                <p>Invite 3 souls for divine discounts.</p>
-            </div>
-            <div class="feature-box">
-                <h3>HALL OF LEGENDS</h3>
-                <p>The greatest sacrifices are forever etched.</p>
-            </div>
-            <div class="feature-box">
-                <h3>GENESIS ARTIFACT</h3>
-                <p>Each certificate is a unique eternal asset.</p>
-            </div>
+        <button class="nav-btn" onclick="goToPlans()">BACK</button>
+    </div>
+
+    <!-- صفحه Marketplace -->
+    <div id="page-market" class="page">
+        <h1 class="main-title">VOID MARKETPLACE</h1>
+        <div class="glass-card">
+            <p>List your Legendary for sale</p>
+            <input type="text" id="sale-price" placeholder="Price in ⭐">
+            <button class="btn" onclick="listForSale()">LIST FOR SALE</button>
         </div>
+        <div class="hall-grid" id="market-grid">
+            <!-- لیست فروش -->
+        </div>
+        <button class="nav-btn" onclick="goToPlans()">BACK</button>
+    </div>
+
+    <!-- صفحه پنل کاربری -->
+    <div id="page-panel" class="page">
+        <h1 class="main-title">YOUR ETERNAL ARCHIVE</h1>
+        <div class="glass-card">
+            <p>Referrals: <span id="ref-count">0</span> (Discount: <span id="discount">0%</span>)</p>
+            <p>Your DNA Codes:</p>
+            <div id="user-dna-list"></div>
+        </div>
+        <div class="hall-grid" id="user-collection">
+            <!-- مجموعه شخصی -->
+        </div>
+        <button class="nav-btn" onclick="goToPlans()">BACK</button>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
-        let currentPlan = 'vagabond';
-        let userPhoto = null;
 
-        // همان سیستم ذرات سینمایی قبلی (بدون تغییر)
-        // ... (کد ذرات همان قبلی است - برای اختصار حذف شد اما در فایل واقعی موجود است)
+        // ذرات سفید معلق (در تمام صفحات)
+        const canvas = document.getElementById('particles-canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
 
-        function triggerExplosion() {
-            if(!document.getElementById('sacrifice').value.trim()) return tg.showAlert("The Void demands a sacrifice.");
-            // ... (انفجار همان قبلی)
-            setTimeout(() => {
-                document.getElementById('step1').style.display = 'none';
-                document.getElementById('step2').style.display = 'flex';
-                document.getElementById('features').style.display = 'block';
-                setTimeout(() => {
-                    document.getElementById('step2').style.opacity = 1;
-                    document.getElementById('features').style.opacity = 1;
-                    document.getElementById('t-title2').classList.add('visible');
-                }, 100);
-            }, 1200);
+        let particles = [];
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2 + 1;
+                this.speedX = Math.random() * 0.4 - 0.2;
+                this.speedY = Math.random() * 0.4 - 0.2;
+                this.opacity = Math.random() * 0.5 + 0.3;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+                if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
+                ctx.fill();
+            }
         }
 
-        function selectPlan(plan, el) {
-            currentPlan = plan;
-            document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('active'));
-            el.classList.add('active');
-            tg.HapticFeedback.selectionChanged();
+        for (let i = 0; i < 150; i++) particles.push(new Particle());
+
+        function animateParticles() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(animateParticles);
+        }
+        animateParticles();
+
+        function goToPlans() {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById('page-plans').classList.add('active');
         }
 
-        function handleFile(input) {
-            if (input.files && input.files[0]) {
+        function goToHall() {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById('page-hall').classList.add('active');
+            loadHall();
+        }
+
+        function goToMarket() {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById('page-market').classList.add('active');
+            loadMarket();
+        }
+
+        function goToPanel() {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById('page-panel').classList.add('active');
+            loadPanel();
+        }
+
+        function previewPhoto(event) {
+            const file = event.target.files[0];
+            if (file) {
                 const reader = new FileReader();
                 reader.onload = e => {
-                    userPhoto = e.target.result;
-                    document.querySelectorAll('.preview-circle').forEach(p => {
-                        p.src = userPhoto;
-                        p.style.display = 'block';
-                    });
+                    document.getElementById('preview-img').src = e.target.result;
+                    document.getElementById('preview-img').style.display = 'block';
+                    window.currentPhoto = e.target.result;
                 };
-                reader.readAsDataURL(input.files[0]);
+                reader.readAsDataURL(file);
             }
         }
 
-        async function mint() {
-            const res = await fetch('/create_stars_invoice', {
+        function buy(type) {
+            const payload = {
+                u: tg.initDataUnsafe.user.id,
+                b: document.getElementById('burden').value || "Eternal Sovereign",
+                type: type,
+                p: window.currentPhoto || null
+            };
+            fetch('/create_stars_invoice', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    u: tg.initDataUnsafe.user?.id,
-                    b: document.getElementById('sacrifice').value,
-                    p: userPhoto,
-                    rank: currentPlan
-                })
+                body: JSON.stringify(payload)
+            }).then(res => res.json()).then(data => {
+                if (data.url) tg.openInvoice(data.url);
             });
-            const data = await res.json();
-            if(data.url) {
-                tg.openInvoice(data.url, status => { if(status === 'paid') tg.close(); });
-            } else if(data.free) {
-                tg.close();
-            }
         }
 
-        setTimeout(() => document.querySelector('.main-title').style.opacity = 1, 500);
+        function shareToStory() {
+            const text = "I ascended in THE VOID and claimed an eternal masterpiece! 🌌\n\nJoin the eternal archive and forge your own legend:";
+            const url = "https://t.me/YOUR_BOT_USERNAME?start=ref_" + tg.initDataUnsafe.user.id;
+            tg.shareToStory(url, { text: text });
+        }
+
+        function loadHall() {
+            // لود از API
+        }
+
+        function loadMarket() {
+            // لود مزایده
+        }
+
+        function loadPanel() {
+            // لود پنل
+        }
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
     </script>
 </body>
 </html>
