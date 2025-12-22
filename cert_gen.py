@@ -1,61 +1,51 @@
-import os, requests, base64, time, io
+import os, random
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageOps
 
-# تنظیمات Hugging Face برای Stable Diffusion img2img
-HF_API_URL = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0"
-HF_TOKEN = os.getenv("HF_TOKEN") # توکن خود را در رندر تنظیم کنید
-
-def query_stable_diffusion(image_base64, prompt):
-    headers = {"Authorization": f"Bearer {HF_TOKEN}"}
-    # تبدیل تصویر به فرمت مورد نیاز API
-    payload = {
-        "inputs": prompt,
-        "image": image_base64.split(",")[-1], # حذف پیشوند data:image...
-        "parameters": {"strength": 0.65, "num_inference_steps": 30}
-    }
-    response = requests.post(HF_API_URL, headers=headers, json=payload)
-    return response.content
-
-def create_certificate(user_id, burden, photo_base64=None, rank='free'):
-    w, h = 1024, 1024
-    img = Image.new('RGB', (w, h), '#000000')
+def create_certificate(user_id, burden, photo_path=None, rank='free'):
+    # تنظیمات ابعاد و رنگ
+    w, h = 1000, 1414
+    bg_color = "#000000"
+    gold = "#FFD700"
+    
+    img = Image.new('RGB', (w, h), bg_color)
     draw = ImageDraw.Draw(img)
-
-    # پردازش تصویر با Stable Diffusion در صورت آپلود
-    final_soul_img = None
-    if photo_base64 and rank != 'free':
-        try:
-            ai_data = query_stable_diffusion(photo_base64, f"A divine mystical cosmic version of this person, {burden}, cinematic lighting, gold and cyan aura, 8k resolution")
-            final_soul_img = Image.open(io.BytesIO(ai_data)).convert('RGB')
-        except:
-            # Fallback در صورت خطای API
-            final_soul_img = Image.open(io.BytesIO(base64.b64decode(photo_base64.split(",")[-1]))).convert('RGB')
     
-    # طراحی قاب گواهی
-    if final_soul_img:
-        final_soul_img = ImageOps.fit(final_soul_img, (600, 600))
-        mask = Image.new('L', (600, 600), 0)
-        ImageDraw.Draw(mask).ellipse((0, 0, 600, 600), fill=255)
+    # رسم خطوط هندسی مقدس (Sacred Geometry) در پس‌زمینه
+    for i in range(5):
+        r = 200 + i*50
+        draw.ellipse((w//2-r, h//2-r-200, w//2+r, h//2+r-200), outline="#1a1a1a", width=2)
+
+    # پردازش تصویر کاربر
+    y_offset = 350
+    if photo_path and os.path.exists(photo_path):
+        user_img = Image.open(photo_path).convert('RGB')
+        user_img = ImageOps.fit(user_img, (400, 400))
         
-        # افکت درخشش فیروزه‌ای/طلایی دور تصویر
-        aura_color = "#00f2ff" if rank == 'legendary' else "#FFD700"
-        glow = Image.new('RGBA', (660, 660), (0,0,0,0))
-        ImageDraw.Draw(glow).ellipse((0,0,660,660), outline=aura_color, width=15)
-        glow = glow.filter(ImageFilter.GaussianBlur(20))
-        img.paste(glow, (w//2-330, 120), glow)
-        img.paste(final_soul_img, (w//2-300, 150), mask)
+        # ماسک دایره‌ای
+        mask = Image.new('L', (400, 400), 0)
+        ImageDraw.Draw(mask).ellipse((0, 0, 400, 400), fill=255)
+        
+        # افکت درخشش دور عکس برای رتبه‌های بالا
+        if rank != 'free':
+            glow = Image.new('RGBA', (460, 460), (0,0,0,0))
+            ImageDraw.Draw(glow).ellipse((10, 10, 450, 450), outline=gold, width=10)
+            glow = glow.filter(ImageFilter.GaussianBlur(15))
+            img.paste(glow, (w//2-230, y_offset-30), glow)
+            
+        img.paste(user_img, (w//2-200, y_offset), mask)
+        draw.ellipse((w//2-205, y_offset-5, w//2+205, y_offset+405), outline=gold, width=5)
 
-    # متون نهایی
-    try: font_b = ImageFont.truetype("arial.ttf", 60); font_s = ImageFont.truetype("arial.ttf", 35)
-    except: font_b = font_s = ImageFont.load_default()
+    # متون
+    try:
+        font_title = ImageFont.truetype("arial.ttf", 80)
+        font_text = ImageFont.truetype("arial.ttf", 40)
+    except:
+        font_title = font_text = ImageFont.load_default()
 
-    draw.text((w//2, 820), burden.upper(), fill="white", font=font_b, anchor="mm")
-    draw.text((w//2, 900), f"LEVEL: {rank.upper()}", fill="#FFD700", font=font_s, anchor="mm")
-    
-    # DNA Code منحصر‌به‌فرد
-    dna = f"VOID-{int(time.time())}-{user_id}"
-    draw.text((w//2, 970), dna, fill="#222", font=font_s, anchor="mm")
+    draw.text((w//2, y_offset+500), burden.upper(), fill="white", font=font_title, anchor="mm")
+    draw.text((w//2, y_offset+600), f"RANK: {rank.upper()}", fill=gold, font=font_text, anchor="mm")
+    draw.text((w//2, h-100), f"VERIFIED BY THE VOID | ID: {user_id}", fill="#333", font=font_text, anchor="mm")
 
-    path = f"static/outputs/void_{user_id}_{int(time.time())}.png"
-    img.save(path)
-    return path
+    output = f"void_{user_id}.png"
+    img.save(output)
+    return output
