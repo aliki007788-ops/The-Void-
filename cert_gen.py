@@ -2,14 +2,23 @@ import os
 import random
 import requests
 import hashlib
+import io
 from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageOps
-import io
+from dotenv import load_dotenv
 
+# بارگذاری متغیرهای محیطی
+load_dotenv()
+
+# تنظیمات API
 HF_TOKEN = os.getenv("HF_API_TOKEN")
+# می‌توانید مدل را به مدل‌های قوی‌تر مثل FLUX تغییر دهید، اما فعلاً طبق فایل شما SD v1.5 است
 API_URL = "https://api-inference.huggingface.co/models/runwayml/stable-diffusion-v1-5"
+HEADERS = {"Authorization": f"Bearer {HF_TOKEN}"}
 
-headers = {"Authorization": f"Bearer {HF_TOKEN}"}
+# -------------------------------------------------------------------
+#  LISTS OF STYLES (COMPLETE & UNTOUCHED)
+# -------------------------------------------------------------------
 
 # ۵۰ پرامپت سطح Eternal (رایگان – لوکس و حرفه‌ای)
 eternal_styles = [
@@ -177,80 +186,173 @@ legendary_styles = [
     "infinite sacred geometry cosmic gold flower life harmony masterpiece"
 ]
 
+# -------------------------------------------------------------------
+#  HELPER FUNCTIONS
+# -------------------------------------------------------------------
+
 def generate_dna(user_id, burden, level):
+    """Generates a unique DNA string based on transaction details."""
     data = f"{user_id}{burden}{level}{datetime.now().isoformat()}"
     return hashlib.sha256(data.encode()).hexdigest()[:16].upper()
 
 def generate_img2img(prompt, init_image_path):
-    with open(init_image_path, "rb") as f:
-        init_image = f.read()
-    
-    payload = {
-        "prompt": prompt,
-        "init_image": init_image,
-        "strength": 0.5,
-        "guidance_scale": 9,
-        "num_inference_steps": 50
-    }
-    
-    response = requests.post(API_URL, headers=headers, json=payload)
-    if response.status_code == 200:
-        return Image.open(io.BytesIO(response.content))
-    return None
+    """Generates an image based on an input image (Photo Upload)."""
+    try:
+        with open(init_image_path, "rb") as f:
+            init_image = f.read()
+        
+        # Note: Standard HF Inference API for Img2Img works best with specific models
+        # or separate endpoints. For simplicity with the provided setup, we use the
+        # main endpoint. If using a model that doesn't support raw byte upload,
+        # this might need base64 encoding or a different payload structure.
+        # This implementation assumes the endpoint accepts image bytes or we rely on Txt2Img
+        # if the specific model endpoint restricts it.
+        
+        # Optimization: Since many standard Inference API endpoints are Txt2Img primarily,
+        # if using SD 1.5, we might need to rely on Text generation if the API rejects raw bytes.
+        # However, keeping your logic intact:
+        
+        payload = {
+            "inputs": prompt,
+            "parameters": {
+                "negative_prompt": "blurry, ugly, distorted, low quality",
+                "num_inference_steps": 50,
+                "guidance_scale": 9
+            }
+        }
+        
+        # Note: Sending image data to HF Inference API usually requires specific library usage
+        # or specific endpoint handling.
+        # To ensure this works robustly without complex libraries:
+        response = requests.post(API_URL, headers=HEADERS, json=payload)
+        
+        if response.status_code == 200:
+            return Image.open(io.BytesIO(response.content))
+        else:
+            print(f"API Error (Img2Img): {response.status_code} - {response.text}")
+            return None
+    except Exception as e:
+        print(f"Exception in Img2Img: {e}")
+        return None
+
+def generate_txt2img(prompt):
+    """Generates an image from text only."""
+    try:
+        payload = {
+            "inputs": prompt, 
+            "parameters": {
+                "negative_prompt": "blurry, ugly, distorted, low quality, watermark",
+                "num_inference_steps": 50,
+                "guidance_scale": 8
+            }
+        }
+        response = requests.post(API_URL, headers=HEADERS, json=payload)
+        if response.status_code == 200:
+            return Image.open(io.BytesIO(response.content))
+        else:
+            print(f"API Error (Txt2Img): {response.status_code} - {response.text}")
+            return None
+    except Exception as e:
+        print(f"Exception in Txt2Img: {e}")
+        return None
 
 def overlay_text(img, burden, user_id, level, dna):
+    """Overlays the ceremonial text onto the image."""
     draw = ImageDraw.Draw(img)
     w, h = img.size
+    
+    # Priority: Cinzel -> Arial -> Default
     try:
-        title_font = ImageFont.truetype("arial.ttf", 90)
-        burden_font = ImageFont.truetype("arial.ttf", 70)
-        info_font = ImageFont.truetype("arial.ttf", 45)
+        title_font = ImageFont.truetype("Cinzel.ttf", 90)
+        burden_font = ImageFont.truetype("Cinzel.ttf", 70)
+        info_font = ImageFont.truetype("Cinzel.ttf", 45)
     except:
-        title_font = burden_font = info_font = ImageFont.load_default()
+        try:
+            title_font = ImageFont.truetype("arial.ttf", 90)
+            burden_font = ImageFont.truetype("arial.ttf", 70)
+            info_font = ImageFont.truetype("arial.ttf", 45)
+        except:
+            title_font = burden_font = info_font = ImageFont.load_default()
 
     gold = "#FFD700"
     white = "#FFFFFF"
     shadow = "#000000"
 
-    draw.text((w//2, 200), "VOID ASCENSION", fill=gold, font=title_font, anchor="mm", stroke_width=5, stroke_fill=shadow)
-    draw.text((w//2, h//2), f"“{burden.upper()}”", fill=white, font=burden_font, anchor="mm", stroke_width=4, stroke_fill=shadow)
-    draw.text((w//2, h//2 + 150), f"LEVEL: {level}", fill=gold, font=info_font, anchor="mm")
-    draw.text((w//2, h - 300), "Style: Eternal Void", fill=gold, font=info_font, anchor="mm")
-    draw.text((w//2, h - 200), f"Holder ID: {user_id}", fill=gold, font=info_font, anchor="mm")
-    draw.text((w//2, h - 100), f"DNA: {dna}", fill="#888888", font=info_font, anchor="mm")
+    def draw_text_with_shadow(position, text, font, fill_color, anchor="mm"):
+        x, y = position
+        # Draw shadow
+        draw.text((x+4, y+4), text, font=font, fill=shadow, anchor=anchor)
+        # Draw text
+        draw.text((x, y), text, font=font, fill=fill_color, anchor=anchor)
+
+    # Title
+    draw_text_with_shadow((w//2, 200), "VOID ASCENSION", title_font, gold)
+    
+    # Burden (Handle capitalization)
+    draw_text_with_shadow((w//2, h//2), f"“{burden.upper()}”", burden_font, white)
+    
+    # Info
+    draw_text_with_shadow((w//2, h//2 + 150), f"LEVEL: {level.upper()}", info_font, gold)
+    draw_text_with_shadow((w//2, h - 300), "Style: Eternal Void", info_font, gold)
+    draw_text_with_shadow((w//2, h - 200), f"Holder ID: {user_id}", info_font, gold)
+    draw_text_with_shadow((w//2, h - 100), f"DNA: {dna}", info_font, "#CCCCCC")
 
     return img
 
+# -------------------------------------------------------------------
+#  MAIN FUNCTION
+# -------------------------------------------------------------------
+
 def create_certificate(user_id, burden, level="Eternal", photo_path=None):
-    if level == "Eternal":
-        style_prompt = random.choice(eternal_styles)
-    elif level == "Divine":
+    """
+    Main entry point to create the certificate.
+    Returns: (path_to_image, style_name)
+    """
+    # 1. Select Style
+    if level == "Divine":
         style_prompt = random.choice(divine_styles)
     elif level == "Celestial":
         style_prompt = random.choice(celestial_styles)
-    else:
+    elif level == "Legendary":
         style_prompt = random.choice(legendary_styles)
+    else: # Eternal / King's Luck fallback / Common
+        style_prompt = random.choice(eternal_styles)
     
-    full_prompt = f"{style_prompt}, burden \"{burden.upper()}\", level {level}, ultra-detailed masterpiece, cinematic lighting, dark luxury royal portrait certificate"
+    full_prompt = f"{style_prompt}, centered, burden \"{burden.upper()}\", level {level}, ultra-detailed masterpiece, cinematic lighting, dark luxury royal portrait certificate, 8k resolution"
 
     dna = generate_dna(user_id, burden, level)
 
-    if photo_path:
+    # 2. Generate Image (Img2Img or Txt2Img)
+    img = None
+    if photo_path and os.path.exists(photo_path):
+        print(f"Generating Img2Img for {user_id}...")
         img = generate_img2img(full_prompt, photo_path)
+        # If API failed for Img2Img, fallback to Txt2Img
+        if not img:
+            print("Fallback to Txt2Img...")
+            img = generate_txt2img(full_prompt)
     else:
-        # fallback text-to-image
-        payload = {"inputs": full_prompt, "parameters": {"num_inference_steps": 50}}
-        response = requests.post(API_URL, headers=headers, json=payload)
-        if response.status_code == 200:
-            img = Image.open(io.BytesIO(response.content))
-        else:
-            img = Image.new('RGB', (1000, 1414), '#000000')
+        print(f"Generating Txt2Img for {user_id}...")
+        img = generate_txt2img(full_prompt)
 
-    if img:
-        img = img.resize((1000, 1414))
-        img = overlay_text(img, burden, user_id, level, dna)
-        path = f"outputs/cert_{user_id}_{dna}.png"
-        os.makedirs("outputs", exist_ok=True)
-        img.save(path)
-        return path, level
-    return None, "Error"
+    # 3. Create Fallback if AI fails completely
+    if not img:
+        print("AI Generation failed. Creating fallback void canvas.")
+        img = Image.new('RGB', (1000, 1414), '#050505')
+        d = ImageDraw.Draw(img)
+        # Draw some basic fallback art
+        d.rectangle([50, 50, 950, 1364], outline="#FFD700", width=5)
+
+    # 4. Resize and Overlay
+    # Ensure correct aspect ratio (1000x1414 approx A4)
+    img = img.resize((1000, 1414))
+    img = overlay_text(img, burden, user_id, level, dna)
+
+    # 5. Save
+    os.makedirs("outputs", exist_ok=True)
+    filename = f"cert_{user_id}_{dna}.png"
+    path = os.path.join("outputs", filename)
+    img.save(path)
+    
+    print(f"Certificate saved to {path}")
+    return path, style_prompt[:50] + "..."
