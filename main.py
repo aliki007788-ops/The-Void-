@@ -1,4 +1,8 @@
-import os, base64, tempfile
+import os
+import base64
+import tempfile
+import requests
+from io import BytesIO
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from aiogram import Bot, Dispatcher, types, F
@@ -9,43 +13,46 @@ app = FastAPI()
 bot = Bot(token=os.getenv("BOT_TOKEN"))
 dp = Dispatcher()
 
-# قیمت پلن‌ها به ستاره تلگرام
+# Hugging Face API (Stable Diffusion XL img2img)
+HF_API_URL = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0"
+HF_HEADERS = {"Authorization": f"Bearer {os.getenv('HF_TOKEN')}"}
+
+# قیمت پلن‌ها
 PRICES = {
-    'free': 0,
-    'rare': 120,
-    'legendary': 299,
-    'luck': 30
+    'vagabond': 0,      # رایگان - سطح 1
+    'divine': 99,       # سطح 2
+    'celestial': 299,   # سطح 3
+    'legendary': 499    # سطح 4
 }
 
 @app.post("/create_stars_invoice")
 async def create_invoice(request: Request):
     data = await request.json()
     uid = data['u']
-    rank = data.get('rank', 'free')
+    rank = data.get('rank', 'vagabond')
     price = PRICES.get(rank, 0)
     
-    # ذخیره تصویر موقت در صورت وجود
     photo_path = "none"
     if data.get('p'):
         img_data = base64.b64decode(data['p'].split(',')[1])
         with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
             tmp.write(img_data)
             photo_path = tmp.name
-
+    
     if price == 0:
-        # هندل کردن پلن رایگان (محدودیت ۳ تصویر در دیتابیس باید چک شود)
-        path = create_certificate(uid, data['b'], None, 'free')
-        await bot.send_document(uid, FSInputFile(path), caption="Your Vagabond Soul is recorded.")
+        path = create_certificate(uid, data['b'], None if photo_path == "none" else photo_path, rank)
+        await bot.send_document(uid, FSInputFile(path), caption="Your Vagabond Soul is recorded in the Eternal Void.")
+        if photo_path != "none": os.remove(photo_path)
         return {"free": True}
-
-    # ایجاد لینک پرداخت ستاره
+    
     invoice_link = await bot.create_invoice_link(
         title=f"ASCENSION TO {rank.upper()}",
-        description=f"Sacrifice for the {rank} rank certificate.",
+        description=f"Sacrifice for the {rank.upper()} eternal certificate.",
         payload=f"{uid}:{data['b']}:{photo_path}:{rank}",
         currency="XTR",
         prices=[LabeledPrice(label="Stars", amount=price)]
     )
+    
     return {"url": invoice_link}
 
 @dp.message(F.successful_payment)
@@ -56,7 +63,7 @@ async def on_payment(message: types.Message):
     actual_photo = None if photo == "none" else photo
     path = create_certificate(uid, burden, actual_photo, rank)
     
-    await bot.send_document(uid, FSInputFile(path), caption="The Void has accepted your offering.")
-    if actual_photo: os.remove(actual_photo)
+    await bot.send_document(uid, FSInputFile(path), caption="The Void has accepted your eternal offering.")
+    if actual_photo and actual_photo != "none": os.remove(actual_photo)
 
 app.mount("/static", StaticFiles(directory="static"))
