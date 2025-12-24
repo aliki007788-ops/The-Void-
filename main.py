@@ -2,125 +2,91 @@ import os
 import json
 import random
 import sqlite3
-import base64
-import tempfile
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from aiogram import Bot, Dispatcher, types, F
-from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
+from aiogram.filters import CommandStart, Command
+from aiogram.types import WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.types import LabeledPrice, WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup
-from cert_gen import create_certificate
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# --- پیکربندی اصلی ---
-ADMIN_ID = int(os.getenv("ADMIN_ID", "0")) # آیدی عددی خود را در فایل .env وارد کنید
+# --- تنظیمات ---
+ADMIN_ID = int(os.getenv("ADMIN_ID", "0"))
 bot = Bot(token=os.getenv("BOT_TOKEN"))
 dp = Dispatcher(storage=MemoryStorage())
 app = FastAPI()
 
-SETTINGS_FILE = "settings_void.json"
-
-def get_settings():
-    if os.path.exists(SETTINGS_FILE):
-        with open(SETTINGS_FILE, "r") as f:
-            return json.load(f)
-    return {
-        "prices": {"Vagabond": 139, "Imperial": 299, "Eternal": 499, "Luck": 249},
-        "stats": {"income": 0, "total_nfts": 0}
-    }
-
-config = get_settings()
-
-class VoidAdmin(StatesGroup):
-    waiting_for_price = State()
-
-# --- دیتابیس ---
+# --- دیتابیس رفرال و کاربران ---
 def init_db():
     conn = sqlite3.connect("void_core.db")
     c = conn.cursor()
-    c.execute("CREATE TABLE IF NOT EXISTS gallery (id INTEGER PRIMARY KEY, dna TEXT, path TEXT, level TEXT, user_id INTEGER)")
-    c.execute("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, refs INTEGER DEFAULT 0)")
+    c.execute("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, refs INTEGER DEFAULT 0, referred_by INTEGER)")
     conn.commit()
     conn.close()
 
 init_db()
 
-# --- پنل مدیریت تلگرام ---
-@dp.message(F.text == "/admin", F.from_user.id == ADMIN_ID)
-async def admin_main(message: types.Message):
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="💰 ویرایش قیمت‌ها", callback_data="set_prices")],
-        [InlineKeyboardButton(text="📊 آمار حراجی", callback_data="view_auction")]
-    ])
-    await message.answer("🔱 پنل مدیریت مرکز کنترل خلأ", reply_markup=kb)
+# --- هندلر دستور استارت (Telegram Start Handler) ---
+@dp.message(CommandStart())
+async def cmd_start(message: types.Message):
+    user_id = message.from_user.id
+    args = message.text.split()
+    inviter_id = int(args[1]) if len(args) > 1 and args[1].isdigit() else None
 
-@dp.callback_query(F.data == "set_prices", F.from_user.id == ADMIN_ID)
-async def ask_price(callback: types.CallbackQuery, state: FSMContext):
-    await callback.message.answer("نام پلن و قیمت جدید (مثال: Luck:250):")
-    await state.set_state(VoidAdmin.waiting_for_price)
+    conn = sqlite3.connect("void_core.db")
+    c = conn.cursor()
+    c.execute("SELECT id FROM users WHERE id = ?", (user_id,))
+    user_exists = c.fetchone()
 
-@dp.message(VoidAdmin.waiting_for_price, F.from_user.id == ADMIN_ID)
-async def save_price(message: types.Message, state: FSMContext):
-    try:
-        plan, price = message.text.split(":")
-        if plan in config['prices']:
-            config['prices'][plan] = int(price)
-            with open(SETTINGS_FILE, "w") as f: json.dump(config, f)
-            await message.answer(f"✅ قیمت {plan} آپدیت شد.")
-        else: await message.answer("❌ پلن نامعتبر.")
-    except: await message.answer("❌ فرمت غلط.")
-    await state.clear()
+    if not user_exists:
+        c.execute("INSERT INTO users (id, referred_by) VALUES (?, ?)", (user_id, inviter_id))
+        if inviter_id:
+            c.execute("UPDATE users SET refs = refs + 1 WHERE id = ?", (inviter_id,))
+        conn.commit()
+    conn.close()
 
-# --- API برای وب‌اپ ---
-@app.get("/api/config")
-async def get_app_config():
-    return config["prices"]
-
-@app.post("/api/create_invoice")
-async def create_invoice(data: dict):
-    uid = data.get('u')
-    lvl = data.get('level')
-    price = config['prices'].get(lvl, 139)
+    # دکمه ورود به وب‌اپ (آدرس دامنه خود را جایگزین کنید)
+    web_app_url = "https://your-domain.com" # <--- آدرس سایت خود را اینجا بگذارید
     
-    if lvl == "Luck":
-        rnd = random.random() * 100
-        if rnd <= 1: lvl = "Legendary"
-        elif rnd <= 10: lvl = "Celestial"
-        elif rnd <= 40: lvl = "Divine"
-        else: lvl = "Eternal"
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔱 ENTER THE VOID", web_app=WebAppInfo(url=web_app_url))],
+        [InlineKeyboardButton(text="👥 دعوت از برادران (Referral)", callback_data="ref_link")]
+    ])
 
-    payload = f"{uid}:{data['b']}:{lvl}:{data.get('p', 'none')}"
-    link = await bot.create_invoice_link(
-        title=f"VOID: {lvl}",
-        description="Ascending to the void...",
-        payload=payload,
-        currency="XTR",
-        prices=[LabeledPrice(label="Offering", amount=price)]
+    await message.answer(
+        "The Void calls. Will you answer?\nConsume your burden. Ascend to the Void.\n\n"
+        "🔱 ورود به خلأ و دریافت گواهینامه ابدی:",
+        reply_markup=kb
     )
-    return {"url": link}
 
-# --- بخش حیاتی: رفع خطای Not Found ---
-# ترتیب قرارگیری این بخش بسیار مهم است. ابتدا فایل‌های استاتیک را سوار می‌کنیم.
+@dp.callback_query(F.data == "ref_link")
+async def send_ref_link(callback: types.CallbackQuery):
+    ref_link = f"https://t.me/{(await bot.get_me()).username}?start={callback.from_user.id}"
+    await callback.message.answer(f"لینک دعوت شما:\n`{ref_link}`\n\nبا دعوت ۶ نفر، صعود شما رایگان خواهد بود.", parse_mode="Markdown")
 
-# اطمینان از وجود پوشه استاتیک
-if not os.path.exists("static"):
-    os.makedirs("static")
+# --- تنظیمات وب‌سرور (FastAPI) ---
+# این بخش برای نمایش فایل‌های استاتیک و حل خطای Not Found است
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# سوار کردن پوشه static روی مسیر اصلی /
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
-
-# اگر باز هم با آدرس مستقیم مشکل داشتید، این روت را فعال کنید:
 @app.get("/", response_class=HTMLResponse)
-async def read_index():
+async def serve_index():
     with open("static/index.html", "r", encoding="utf-8") as f:
         return f.read()
 
-# --- اجرای نهایی ---
-if __name__ == "__main__":
+# --- بخش نهایی برای اجرای همزمان بات و سرور ---
+import asyncio
+
+async def main():
+    # شروع پولینگ تلگرام در پس‌زمینه
+    asyncio.create_task(dp.start_polling(bot))
+    # اجرای سرور FastAPI
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    config = uvicorn.Config(app, host="0.0.0.0", port=8000)
+    server = uvicorn.Server(config)
+    await server.serve()
+
+if __name__ == "__main__":
+    asyncio.run(main())
