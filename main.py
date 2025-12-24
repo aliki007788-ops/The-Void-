@@ -6,6 +6,7 @@ import base64
 import tempfile
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -16,131 +17,110 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# --- تنظیمات سیستمی ---
-ADMIN_ID = int(os.getenv("ADMIN_ID", "آیدی_عددی_تلگرام_شما")) # حتما آیدی خود را بگذارید
+# --- پیکربندی اصلی ---
+ADMIN_ID = int(os.getenv("ADMIN_ID", "0")) # آیدی عددی خود را در فایل .env وارد کنید
 bot = Bot(token=os.getenv("BOT_TOKEN"))
-storage = MemoryStorage()
-dp = Dispatcher(storage=storage)
+dp = Dispatcher(storage=MemoryStorage())
 app = FastAPI()
 
-# فایل ذخیره تنظیمات برای ماندگاری قیمت‌ها
-SETTINGS_FILE = "settings.json"
+SETTINGS_FILE = "settings_void.json"
 
-def load_settings():
+def get_settings():
     if os.path.exists(SETTINGS_FILE):
         with open(SETTINGS_FILE, "r") as f:
             return json.load(f)
     return {
         "prices": {"Vagabond": 139, "Imperial": 299, "Eternal": 499, "Luck": 249},
-        "stats": {"total_stars": 0, "total_ascensions": 0}
+        "stats": {"income": 0, "total_nfts": 0}
     }
 
-def save_settings(data):
-    with open(SETTINGS_FILE, "w") as f:
-        json.dump(data, f)
+config = get_settings()
 
-settings = load_settings()
-
-# --- کلاس حالات ادمین (FSM) ---
-class AdminStates(StatesGroup):
+class VoidAdmin(StatesGroup):
     waiting_for_price = State()
-    waiting_for_vip = State()
-    waiting_for_manual_gen = State()
 
 # --- دیتابیس ---
 def init_db():
-    conn = sqlite3.connect("void_pro.db")
+    conn = sqlite3.connect("void_core.db")
     c = conn.cursor()
+    c.execute("CREATE TABLE IF NOT EXISTS gallery (id INTEGER PRIMARY KEY, dna TEXT, path TEXT, level TEXT, user_id INTEGER)")
     c.execute("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, refs INTEGER DEFAULT 0)")
-    c.execute("CREATE TABLE IF NOT EXISTS gallery (path TEXT, dna TEXT, level TEXT, user_id INTEGER)")
     conn.commit()
     conn.close()
 
 init_db()
 
-# --- منوی مدیریت (فارسی) ---
-def get_admin_kb():
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="💰 ویرایش قیمت‌ها", callback_data="adm_prices")],
-        [InlineKeyboardButton(text="📊 آمار و دخل", callback_data="adm_stats")],
-        [InlineKeyboardButton(text="🎁 صدور گواهینامه رایگان (ادمین)", callback_data="adm_free_gen")],
-        [InlineKeyboardButton(text="🧹 پاکسازی گالری", callback_data="adm_clear_hall")]
-    ])
-
-# --- هندلرهای بخش ادمین ---
-
+# --- پنل مدیریت تلگرام ---
 @dp.message(F.text == "/admin", F.from_user.id == ADMIN_ID)
-async def admin_panel(message: types.Message):
-    await message.answer("🔱 به مرکز کنترل خلأ خوش آمدید، عالیجناب.", reply_markup=get_admin_kb())
+async def admin_main(message: types.Message):
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="💰 ویرایش قیمت‌ها", callback_data="set_prices")],
+        [InlineKeyboardButton(text="📊 آمار حراجی", callback_data="view_auction")]
+    ])
+    await message.answer("🔱 پنل مدیریت مرکز کنترل خلأ", reply_markup=kb)
 
-@dp.callback_query(F.data == "adm_prices", F.from_user.id == ADMIN_ID)
-async def view_prices(callback: types.CallbackQuery):
-    p = settings['prices']
-    text = f"قیمت‌های فعلی:\nVagabond: {p['Vagabond']}\nImperial: {p['Imperial']}\nEternal: {p['Eternal']}\nLuck: {p['Luck']}\n\nبرای تغییر، نام پلن و قیمت را بفرستید (مثال: Luck:200)"
-    await callback.message.edit_text(text, reply_markup=get_admin_kb())
-    await dp.fsm.get_context(callback.message).set_state(AdminStates.waiting_for_price)
+@dp.callback_query(F.data == "set_prices", F.from_user.id == ADMIN_ID)
+async def ask_price(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.answer("نام پلن و قیمت جدید (مثال: Luck:250):")
+    await state.set_state(VoidAdmin.waiting_for_price)
 
-@dp.message(AdminStates.waiting_for_price, F.from_user.id == ADMIN_ID)
-async def update_price_logic(message: types.Message, state: FSMContext):
+@dp.message(VoidAdmin.waiting_for_price, F.from_user.id == ADMIN_ID)
+async def save_price(message: types.Message, state: FSMContext):
     try:
         plan, price = message.text.split(":")
-        if plan in settings['prices']:
-            settings['prices'][plan] = int(price)
-            save_settings(settings)
-            await message.answer(f"✅ قیمت {plan} به {price} تغییر یافت.")
-        else:
-            await message.answer("❌ نام پلن اشتباه است.")
-    except:
-        await message.answer("❌ فرمت اشتباه. مثال: Vagabond:150")
+        if plan in config['prices']:
+            config['prices'][plan] = int(price)
+            with open(SETTINGS_FILE, "w") as f: json.dump(config, f)
+            await message.answer(f"✅ قیمت {plan} آپدیت شد.")
+        else: await message.answer("❌ پلن نامعتبر.")
+    except: await message.answer("❌ فرمت غلط.")
     await state.clear()
 
-@dp.callback_query(F.data == "adm_stats", F.from_user.id == ADMIN_ID)
-async def show_stats(callback: types.CallbackQuery):
-    s = settings['stats']
-    text = f"📊 آمار کل:\n✨ مجموع ستاره‌ها: {s['total_stars']}\n🔥 تعداد صعودها: {s['total_ascensions']}"
-    await callback.message.edit_text(text, reply_markup=get_admin_kb())
-
-# --- منطق اصلی برنامه (API) ---
+# --- API برای وب‌اپ ---
+@app.get("/api/config")
+async def get_app_config():
+    return config["prices"]
 
 @app.post("/api/create_invoice")
 async def create_invoice(data: dict):
     uid = data.get('u')
-    level = data.get('level')
-    price = settings['prices'].get(level, 139)
+    lvl = data.get('level')
+    price = config['prices'].get(lvl, 139)
     
-    # منطق شانس پادشاه (۶۰-۳۰-۹-۱)
-    final_level = level
-    if level == "Luck":
-        chance = random.random() * 100
-        if chance <= 1: final_level = "Legendary"
-        elif chance <= 10: final_level = "Celestial"
-        elif chance <= 40: final_level = "Divine"
-        else: final_level = "Eternal"
+    if lvl == "Luck":
+        rnd = random.random() * 100
+        if rnd <= 1: lvl = "Legendary"
+        elif rnd <= 10: lvl = "Celestial"
+        elif rnd <= 40: lvl = "Divine"
+        else: lvl = "Eternal"
 
-    payload = f"{uid}:{data['b']}:{final_level}:{data.get('p', 'none')}"
+    payload = f"{uid}:{data['b']}:{lvl}:{data.get('p', 'none')}"
     link = await bot.create_invoice_link(
-        title=f"ASCENSION: {final_level}",
-        description="Fading into the void...",
+        title=f"VOID: {lvl}",
+        description="Ascending to the void...",
         payload=payload,
         currency="XTR",
         prices=[LabeledPrice(label="Offering", amount=price)]
     )
     return {"url": link}
 
-@dp.message(F.successful_payment)
-async def on_payment(message: types.Message):
-    # آپدیت آمار بعد از پرداخت
-    settings['stats']['total_stars'] += message.successful_payment.total_amount
-    settings['stats']['total_ascensions'] += 1
-    save_settings(settings)
-    
-    # تولید تصویر (در اینجا تابع cert_gen فراخوانی می‌شود)
-    # ... کدهای مربوط به ارسال فایل برای کاربر
-    await message.answer("🔱 پرداخت تایید شد. روح شما در حال صعود است...")
+# --- بخش حیاتی: رفع خطای Not Found ---
+# ترتیب قرارگیری این بخش بسیار مهم است. ابتدا فایل‌های استاتیک را سوار می‌کنیم.
 
-# --- اجرای وب‌اپ و سرور ---
+# اطمینان از وجود پوشه استاتیک
+if not os.path.exists("static"):
+    os.makedirs("static")
+
+# سوار کردن پوشه static روی مسیر اصلی /
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
+# اگر باز هم با آدرس مستقیم مشکل داشتید، این روت را فعال کنید:
+@app.get("/", response_class=HTMLResponse)
+async def read_index():
+    with open("static/index.html", "r", encoding="utf-8") as f:
+        return f.read()
+
+# --- اجرای نهایی ---
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
