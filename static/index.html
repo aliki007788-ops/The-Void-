@@ -2,178 +2,129 @@
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>THE VOID</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap');
+        body, html { margin: 0; padding: 0; background: #000; color: #fff; font-family: 'Cinzel', serif; overflow: hidden; height: 100%; }
         
-        :root { --gold: #D4AF37; --glass: rgba(255, 255, 255, 0.1); }
-
-        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; color: #fff; font-family: 'Cinzel', serif; }
+        canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
         
-        /* پس‌زمینه ذرات معلق */
-        canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
-
-        .container { position: relative; z-index: 10; height: 100vh; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 1s ease; }
-
-        /* صفحه اول: آستانه */
-        #stage1 { opacity: 1; display: flex; flex-direction: column; align-items: center; }
-        .main-title { font-size: 3rem; letter-spacing: 15px; color: var(--gold); text-shadow: 0 0 20px rgba(212, 175, 55, 0.5); margin-bottom: 50px; }
+        .stage { position: relative; z-index: 10; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 1s; }
         
-        .sacrifice-box { background: rgba(20, 20, 20, 0.8); border: 1px solid var(--gold); color: #fff; padding: 20px; width: 280px; height: 120px; border-radius: 5px; font-family: 'Cinzel'; margin-bottom: 40px; text-align: center; resize: none; }
-
-        .explode-btn { background: none; border: 2px solid var(--gold); color: var(--gold); padding: 20px 60px; font-size: 1.5rem; letter-spacing: 5px; cursor: pointer; transition: 0.5s; position: relative; overflow: hidden; }
-        .explode-btn:hover { background: var(--gold); color: #000; box-shadow: 0 0 50px var(--gold); }
+        /* صفحه اول */
+        .main-title { font-size: 3.5rem; letter-spacing: 15px; color: #D4AF37; text-shadow: 0 0 20px #D4AF37; margin-bottom: 40px; }
+        .sacrifice-area { width: 85%; height: 120px; background: rgba(10,10,10,0.8); border: 1px solid #D4AF37; color: #fff; padding: 15px; border-radius: 10px; font-family: 'Tahoma'; margin-bottom: 40px; resize: none; text-align: center; }
+        
+        .explode-btn { background: none; border: 2px solid #D4AF37; color: #D4AF37; padding: 20px 80px; font-size: 1.8rem; cursor: pointer; transition: 0.5s; letter-spacing: 5px; }
+        .explode-btn:hover { background: #D4AF37; color: #000; box-shadow: 0 0 40px #D4AF37; }
 
         /* صفحه دوم: کارت‌های شیشه‌ای */
-        #stage2 { display: none; opacity: 0; width: 100%; max-width: 400px; padding: 20px; box-sizing: border-box; }
-        .dynamic-title { color: var(--gold); font-size: 1.5rem; letter-spacing: 5px; margin-bottom: 30px; }
-
-        .plans-wrapper { display: flex; flex-direction: column; gap: 20px; width: 100%; }
+        .glass-container { display: none; opacity: 0; width: 90%; max-width: 400px; text-align: center; transition: 1s; }
+        .glass-card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(20px); border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 20px; padding: 25px; margin-bottom: 20px; position: relative; }
         
-        .glass-card { background: var(--glass); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.1); border-radius: 15px; padding: 20px; position: relative; transition: 0.3s; }
+        .tab-price { color: #D4AF37; font-size: 1.4rem; margin-top: 5px; }
+        .preview-circle { width: 70px; height: 70px; border-radius: 50%; border: 2px solid #D4AF37; margin: 15px auto; background-size: cover; background-position: center; display: none; box-shadow: 0 0 15px #D4AF37; }
         
-        /* هاور طلایی دور دکمه‌های انتخاب */
-        .select-btn { background: transparent; border: 1px solid var(--gold); color: var(--gold); padding: 10px 30px; border-radius: 20px; cursor: pointer; transition: 0.3s; margin-top: 15px; }
-        .select-btn:hover { background: var(--gold); color: #000; box-shadow: 0 0 15px var(--gold); }
+        .select-btn { background: transparent; border: 1px solid #D4AF37; color: #D4AF37; padding: 12px 40px; border-radius: 25px; cursor: pointer; transition: 0.3s; margin-top: 10px; }
+        .select-btn:hover { background: #D4AF37; color: #000; box-shadow: 0 0 20px #D4AF37; }
 
-        /* بخش آپلود و پیش‌نمایش دایره‌ای */
-        .upload-area { margin: 15px 0; display: flex; align-items: center; justify-content: center; gap: 15px; }
-        .preview-circle { width: 60px; height: 60px; border-radius: 50%; border: 2px solid var(--gold); background-size: cover; background-position: center; display: none; box-shadow: 0 0 10px var(--gold); }
-
-        .luck-special-btn { margin-top: 30px; background: linear-gradient(45deg, #000, #1a1a1a); border: 1px solid var(--gold); color: var(--gold); padding: 15px; width: 100%; border-radius: 10px; animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { box-shadow: 0 0 5px var(--gold); } 50% { box-shadow: 0 0 20px var(--gold); } 100% { box-shadow: 0 0 5px var(--gold); } }
-
+        .luck-btn { background: linear-gradient(45deg, #000, #1a1a1a); border: 2px solid #D4AF37; color: #D4AF37; padding: 15px; width: 100%; border-radius: 15px; font-weight: bold; animation: pulse 2s infinite; cursor: pointer; }
+        @keyframes pulse { 0% { box-shadow: 0 0 5px #D4AF37; } 50% { box-shadow: 0 0 25px #D4AF37; } 100% { box-shadow: 0 0 5px #D4AF37; } }
     </style>
 </head>
 <body>
+    <canvas id="canvas"></canvas>
 
-    <canvas id="particleCanvas"></canvas>
+    <div id="stage1" class="stage">
+        <h1 class="main-title">THE VOID</h1>
+        <textarea id="burden" class="sacrifice-area" placeholder="بار خود را اینجا بنویسید..."></textarea>
+        <button class="explode-btn" onclick="goExplode()">ASCEND</button>
+    </div>
 
-    <div class="container">
-        <section id="stage1">
-            <h1 class="main-title">THE VOID</h1>
-            <textarea id="sacrificeInput" class="sacrifice-box" placeholder="سنگینیِ بار خود را بنویسید..."></textarea>
-            <button class="explode-btn" onclick="triggerExplosion()">ASCEND</button>
-        </section>
+    <div id="stage2" class="stage glass-container">
+        <h2 id="dynamicTitle" style="color:#D4AF37; letter-spacing:5px;">SELECTION</h2>
+        
+        <div class="glass-card">
+            <h3 style="margin:0;">VAGABOND</h3>
+            <div class="tab-price">139 STARS</div>
+            <div id="p1" class="preview-circle"></div>
+            <button class="select-btn" onclick="document.getElementById('f1').click()">ADD PHOTO</button>
+            <input type="file" id="f1" hidden onchange="preview(this, 'p1')">
+            <button class="select-btn" onclick="pay('Vagabond')">CHOOSE</button>
+        </div>
 
-        <section id="stage2">
-            <h2 id="page2Title" class="dynamic-title">DIVINE SELECTION</h2>
-            
-            <div class="plans-wrapper">
-                <div class="glass-card">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <div>
-                            <h3 style="margin:0;">IMPERIAL</h3>
-                            <span style="color:var(--gold)">120 STARS</span>
-                        </div>
-                        <div id="preview1" class="preview-circle"></div>
-                    </div>
-                    
-                    <div class="upload-area">
-                        <input type="file" id="file1" hidden onchange="handleFile(this, 'preview1')">
-                        <button class="select-btn" onclick="document.getElementById('file1').click()">افزودن عکس</button>
-                        <button class="select-btn" onclick="buy('Imperial')">انتخاب</button>
-                    </div>
-                </div>
+        <div class="glass-card">
+            <h3 style="margin:0;">IMPERIAL</h3>
+            <div class="tab-price">299 STARS</div>
+            <div id="p2" class="preview-circle"></div>
+            <button class="select-btn" onclick="document.getElementById('f2').click()">ADD PHOTO</button>
+            <input type="file" id="f2" hidden onchange="preview(this, 'p2')">
+            <button class="select-btn" onclick="pay('Imperial')">CHOOSE</button>
+        </div>
 
-                <button class="luck-special-btn" onclick="buy('Luck')">💥 شانس پادشاه (۳۰ ستاره)</button>
-            </div>
-        </section>
+        <button class="luck-btn" onclick="pay('Luck')">KING'S LUCK (249 STARS)</button>
     </div>
 
     <script>
-        let tg = window.Telegram.WebApp;
+        const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // منطق ذرات معلق و انفجار
-        const canvas = document.getElementById('particleCanvas');
+        // سیستم ذرات معلق
+        const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
-        let particles = [];
-        
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        let dots = [];
+        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
 
-        class Particle {
-            constructor() {
-                this.reset();
-            }
-            reset() {
-                this.x = Math.random() * canvas.width;
-                this.y = Math.random() * canvas.height;
-                this.vx = (Math.random() - 0.5) * 0.5;
-                this.vy = (Math.random() - 0.5) * 0.5;
-                this.size = Math.random() * 2;
-                this.color = 'rgba(212, 175, 55, ' + Math.random() + ')';
-            }
-            update() {
-                this.x += this.vx;
-                this.y += this.vy;
-                if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
-                if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
-            }
-            draw() {
-                ctx.fillStyle = this.color;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
+        for(let i=0; i<100; i++) dots.push({x: Math.random()*canvas.width, y: Math.random()*canvas.height, vx: Math.random()-0.5, vy: Math.random()-0.5});
 
-        for (let i = 0; i < 150; i++) particles.push(new Particle());
-
-        function animate() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            particles.forEach(p => { p.update(); p.draw(); });
-            requestAnimationFrame(animate);
-        }
-        animate();
-
-        // تابع انفجار و تغییر صفحه
-        function triggerExplosion() {
-            if(!document.getElementById('sacrificeInput').value) {
-                tg.showAlert("خلأ منتظر کلمات شماست...");
-                return;
-            }
-
-            // انیمیشن انفجار ذرات (سریع‌تر شدن موقت)
-            particles.forEach(p => {
-                p.vx *= 20;
-                p.vy *= 20;
+        function draw() {
+            ctx.clearRect(0,0,canvas.width, canvas.height);
+            ctx.fillStyle = "#D4AF37";
+            dots.forEach(d => {
+                d.x += d.vx; d.y += d.vy;
+                if(d.x<0 || d.x>canvas.width) d.vx*=-1;
+                if(d.y<0 || d.y>canvas.height) d.vy*=-1;
+                ctx.beginPath(); ctx.arc(d.x, d.y, 1.5, 0, Math.PI*2); ctx.fill();
             });
+            requestAnimationFrame(draw);
+        }
+        draw();
 
-            document.getElementById('stage1').style.opacity = '0';
+        function goExplode() {
+            if(!document.getElementById('burden').value) return tg.showAlert("کلمات شما فداکاریِ شماست...");
             
+            // انیمیشن انفجار ذرات
+            dots.forEach(d => { d.vx *= 30; d.vy *= 30; });
+            
+            document.getElementById('stage1').style.opacity = 0;
             setTimeout(() => {
                 document.getElementById('stage1').style.display = 'none';
-                document.getElementById('stage2').style.display = 'block';
+                document.getElementById('stage2').style.display = 'flex';
                 setTimeout(() => {
-                    document.getElementById('stage2').style.opacity = '1';
-                    // بازگرداندن ذرات به سرعت عادی برای پس‌زمینه صفحه دوم
-                    particles.forEach(p => { p.vx /= 20; p.vy /= 20; });
+                    document.getElementById('stage2').style.opacity = 1;
+                    // تجمع ذرات در پس‌زمینه
+                    dots.forEach(d => { d.vx /= 30; d.vy /= 30; });
                 }, 50);
-            }, 1000);
+            }, 800);
         }
 
-        // نمایش پیش‌نمایش عکس
-        function handleFile(input, previewId) {
+        function preview(input, id) {
             const file = input.files[0];
-            if (file) {
+            if(file) {
                 const reader = new FileReader();
-                reader.onload = function(e) {
-                    const preview = document.getElementById(previewId);
-                    preview.style.backgroundImage = `url(${e.target.result})`;
-                    preview.style.display = 'block';
+                reader.onload = e => {
+                    const el = document.getElementById(id);
+                    el.style.backgroundImage = `url(${e.target.result})`;
+                    el.style.display = 'block';
                 }
                 reader.readAsDataURL(file);
             }
         }
-
-        async function buy(level) {
-            tg.MainButton.showProgress();
-            // ارسال اطلاعات به main.py (کدی که قبلاً نوشتیم)
-            // ... (بخش Fetch API مشابه کدهای قبل)
+        
+        async function pay(lvl) {
+            // منطق ارسال به main.py...
         }
     </script>
 </body>
