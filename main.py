@@ -1,78 +1,99 @@
 import os
 import json
 import random
+import sqlite3
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from aiogram import Bot, Dispatcher, types, F
-from aiogram.types import Update, FSInputFile, LabeledPrice
+from aiogram.types import LabeledPrice, WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup
 from cert_gen import create_certificate
 from dotenv import load_dotenv
 
 load_dotenv()
+
+app = FastAPI()
 bot = Bot(token=os.getenv("BOT_TOKEN"))
 dp = Dispatcher()
-app = FastAPI()
 
-DB_FILE = "void_db.json"
-DB = json.load(open(DB_FILE)) if os.path.exists(DB_FILE) else {"users": {}}
+# --- دیتابیس ساده برای ذخیره رفرال‌ها و تاریخچه ---
+def init_db():
+    conn = sqlite3.connect("void_data.db")
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS users 
+                 (user_id INTEGER PRIMARY KEY, referrals INTEGER DEFAULT 0, invited_by INTEGER)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS gallery 
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, dna TEXT, path TEXT, level TEXT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)''')
+    conn.commit()
+    conn.close()
 
-def save_db():
-    with open(DB_FILE, "w") as f: json.dump(DB, f)
+init_db()
 
-@app.post("/create_stars_invoice")
-async def create_invoice(request: Request):
-    data = await request.json()
-    uid, plan, burden = data['u'], data['type'], data.get('b', 'Unknown')
+# --- متدهای کمکی ---
+def get_user_stats(user_id):
+    conn = sqlite3.connect("void_data.db")
+    c = conn.cursor()
+    c.execute("SELECT referrals FROM users WHERE user_id = ?", (user_id,))
+    res = c.fetchone()
+    conn.close()
+    return res[0] if res else 0
+
+# --- API برای فرانت‌اِند ---
+@app.get("/api/init/{user_id}")
+async def init_user(user_id: int):
+    ref_count = get_user_stats(user_id)
+    conn = sqlite3.connect("void_data.db")
+    c = conn.cursor()
+    c.execute("SELECT path, level, dna FROM gallery ORDER BY id DESC LIMIT 60")
+    top_60 = [{"path": r[0], "level": r[1], "dna": r[2]} for r in c.fetchall()]
+    conn.close()
+    return {"ref_count": ref_count, "top_60": top_60}
+
+@app.post("/api/create_invoice")
+async def create_invoice(data: dict):
+    uid = data.get('u')
+    level = data.get('level', 'Eternal')
+    is_luck = data.get('is_luck', False)
     
-    # قیمت‌ها
-    PRICES = {"divine": 150, "celestial": 299, "legendary": 499, "kings-luck": 199}
-
-    if plan == 'free':
-        # محدودیت رایگان
-        user_str = str(uid)
-        if user_str not in DB["users"]: DB["users"][user_str] = {"daily": 0}
-        if DB["users"][user_str]["daily"] >= 3:
-            return {"error": "Limit reached"}
-        
-        DB["users"][user_str]["daily"] += 1
-        save_db()
-        path, _ = create_certificate(uid, burden, "Eternal")
-        await bot.send_document(uid, FSInputFile(path), caption=f"🔱 THE VOID ACCEPTS YOUR BURDEN: {burden}")
+    # منطق قیمت‌گذاری
+    price = 30 if is_luck else 70
+    if level == "Legendary": price = 150
+    
+    # اگر ۶ نفر را دعوت کرده باشد رایگان است
+    ref_count = get_user_stats(uid)
+    if ref_count >= 6:
+        # کسر ۶ رفرال پس از استفاده
         return {"free": True}
 
-    # پرداخت پولی
     link = await bot.create_invoice_link(
-        title=f"ASCENSION: {plan.upper()}",
-        description="Access the higher realms of THE VOID",
-        payload=f"{uid}:{burden}:{plan}",
+        title=f"ASCENSION: {level.upper()}",
+        description="Fading into the void...",
+        payload=f"{uid}:{data['b']}:{level}",
+        provider_token="", # برای Telegram Stars خالی بماند
         currency="XTR",
-        prices=[LabeledPrice("Stars", PRICES.get(plan, 150))]
+        prices=[LabeledPrice(label="Offering", amount=price)]
     )
     return {"url": link}
 
-@dp.message(F.successful_payment)
-async def handle_payment(message: types.Message):
-    payload = message.successful_payment.invoice_payload
-    uid, burden, plan = payload.split(":")
+# --- هندلر تلگرام برای رفرال ---
+@dp.message(F.text.startswith("/start"))
+async def cmd_start(message: types.Message):
+    args = message.text.split()
+    uid = message.from_user.id
     
-    final_level = "Divine"
-    if plan == "kings-luck":
-        # منطق شانس پادشاه: ۵٪ لجندری، ۱۵٪ سلستیال، ۸۰٪ دیواین
-        roll = random.random()
-        if roll < 0.05: final_level = "Legendary"
-        elif roll < 0.20: final_level = "Celestial"
-        else: final_level = "Divine"
-    else:
-        final_level = plan.capitalize()
+    conn = sqlite3.connect("void_data.db")
+    c = conn.cursor()
+    c.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (uid,))
+    
+    if len(args) > 1 and args[1].isdigit():
+        inviter_id = int(args[1])
+        if inviter_id != uid:
+            c.execute("UPDATE users SET referrals = referrals + 1 WHERE user_id = ?", (inviter_id,))
+    conn.commit()
+    conn.close()
 
-    path, style = create_certificate(int(uid), burden, final_level)
-    await bot.send_document(uid, FSInputFile(path), 
-        caption=f"🌌 **THE VOID HAS SPOKEN**\n\nYour rank: **{final_level}**\nBurden: *{burden}*")
+    markup = InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="ENTER THE VOID", web_app=WebAppInfo(url=os.getenv("WEBAPP_URL")))
+    ]])
+    await message.answer("🔱 WELCOME TO THE VOID\nSacrifice your burden to become eternal.", reply_markup=markup)
 
-app.mount("/static", StaticFiles(directory="static"))
-
-@app.post("/webhook")
-async def webhook(request: Request):
-    update = Update.model_validate(await request.json(), context={"bot": bot})
-    await dp.feed_update(bot, update)
-    return {"ok": True}
+app.mount("/", StaticFiles(directory=".", html=True), name="static")
