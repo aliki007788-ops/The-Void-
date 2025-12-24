@@ -2,16 +2,18 @@ import os
 import random
 import requests
 import hashlib
+import io
 from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
-import io
 
-# تنظیمات اصلی اتصال به هوش مصنوعی
-HF_TOKEN = os.getenv("HF_API_TOKEN")
+# --- تنظیمات اتصال به هوش مصنوعی ---
+# حتماً TOKEN خود را در محیط سیستم (Environment Variable) تعریف کنید
+HF_TOKEN = os.getenv("HF_API_TOKEN", "YOUR_HF_TOKEN_HERE")
 API_URL = "https://api-inference.huggingface.co/models/runwayml/stable-diffusion-v1-5"
 headers = {"Authorization": f"Bearer {HF_TOKEN}"}
 
-# --- بخش ۵۰ پرامپت سطح ETERNAL ---
+# --- دیتابیس پرامپت‌های مهندسی شده (۱۵۰ استایل) ---
+
 eternal_styles = [
     "luxurious dark royal portrait certificate with ornate golden arabesque frame, intricate diamonds and jewels, cosmic nebula background, sacred geometry mandala, elegant ancient gold font, ultra-detailed masterpiece cinematic lighting",
     "imperial Byzantine icon divine portrait with golden halo and intricate sacred geometry, dark cosmic void with stars, eternal light rays, ultra-detailed",
@@ -65,7 +67,6 @@ eternal_styles = [
     "Philosopher's stone alchemical gold transmutation portrait with cosmic halo"
 ]
 
-# --- بخش ۴۰ پرامپت سطح DIVINE ---
 divine_styles = [
     "absolute masterpiece divine portrait in Fabergé imperial egg style, golden enamel jewels plasma crown halo, cosmic void sacred geometry, ultra-detailed 8K cinematic",
     "Byzantine holy icon divine portrait with golden halo and sacred mandala jewels, eternal light rays masterpiece",
@@ -109,7 +110,6 @@ divine_styles = [
     "Agartha inner earth crystal core golden portrait with eternal harmony"
 ]
 
-# --- بخش ۳۰ پرامپت سطح CELESTIAL ---
 celestial_styles = [
     "celestial phoenix rebirth wings portrait with golden eternal flame cosmic fire divine aura masterpiece",
     "sacred geometry infinite flower of life golden portrait with cosmic harmony mandala ultra-detailed",
@@ -143,7 +143,6 @@ celestial_styles = [
     "infinite sacred geometry portrait with flower life cosmic gold"
 ]
 
-# --- بخش ۳۰ پرامپت سطح LEGENDARY ---
 legendary_styles = [
     "legendary void emperor infinite darkness throne with cosmic plasma jewels eternal crown masterpiece ultra-detailed",
     "ultimate divine phoenix eternal rebirth with golden wings cosmic fire halo infinite power",
@@ -177,87 +176,134 @@ legendary_styles = [
     "infinite sacred geometry cosmic gold flower life harmony masterpiece"
 ]
 
+# --- توابع کمکی ---
+
 def generate_dna(user_id, burden, level):
     data = f"{user_id}{burden}{level}{datetime.now().isoformat()}"
     return hashlib.sha256(data.encode()).hexdigest()[:16].upper()
 
 def overlay_premium_text(img, burden, user_id, level, dna):
     """
-    درج متن با استایل لوکس، سایه و فونت‌های درشت برای خوانایی روی تصویر هوش مصنوعی.
+    درج متن با استایل لوکس، سایه و فونت‌های سنگین برای خوانایی روی تصویر AI.
     """
     draw = ImageDraw.Draw(img)
     w, h = img.size
     
+    # بارگذاری فونت (اطمینان حاصل کنید فایل فونت در کنار پروژه باشد یا مسیر صحیح بدهید)
     try:
-        # تنظیم فونت‌ها
-        title_f = ImageFont.truetype("arial.ttf", 85)
-        main_f = ImageFont.truetype("arial.ttf", 65)
-        sub_f = ImageFont.truetype("arial.ttf", 40)
+        # استفاده از فونت Cinzel برای حس کلاسیک و لوکس (پیشنهادی)
+        title_f = ImageFont.truetype("Cinzel-Bold.ttf", 80)
+        main_f = ImageFont.truetype("Cinzel-Regular.ttf", 55)
+        sub_f = ImageFont.truetype("Cinzel-Regular.ttf", 35)
     except:
-        title_f = main_f = sub_f = ImageFont.load_default()
+        # فونت پیش‌فرض لینوکس اگر فونت بالا پیدا نشد
+        try:
+            title_f = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 70)
+            main_f = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 45)
+            sub_f = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 30)
+        except:
+            title_f = main_f = sub_f = ImageFont.load_default()
 
-    gold = "#D4AF37"
-    white = "#F8F8F8"
-    black = "#000000"
+    gold_color = "#D4AF37"
+    white_color = "#FFFFFF"
+    shadow_color = "#000000"
 
-    # ۱. عنوان اصلی با سایه مشکی برای برجستگی
-    draw.text((w//2+4, 220+4), "VOID ASCENSION", fill=black, font=title_f, anchor="mm")
-    draw.text((w//2, 220), "VOID ASCENSION", fill=gold, font=title_f, anchor="mm")
+    # ۱. عنوان اصلی با سایه (Void Ascension)
+    draw.text((w//2 + 3, 180 + 3), "VOID ASCENSION", fill=shadow_color, font=title_f, anchor="mm")
+    draw.text((w//2, 180), "VOID ASCENSION", fill=gold_color, font=title_f, anchor="mm")
 
-    # ۲. نمایش بار (Burden) با نقل‌قول بزرگ
-    draw.text((w//2, h//2), f"“ {burden.upper()} ”", fill=white, font=main_f, anchor="mm")
+    # ۲. متن فداکاری (Burden) در مرکز
+    # پیچیدن متن اگر طولانی باشد
+    max_w = w - 200
+    words = burden.upper().split()
+    lines = []
+    current_line = ""
+    for word in words:
+        if draw.textbbox((0,0), current_line + word, font=main_f)[2] < max_w:
+            current_line += word + " "
+        else:
+            lines.append(current_line.strip())
+            current_line = word + " "
+    lines.append(current_line.strip())
 
-    # ۳. اطلاعات پایین (Level, Holder, DNA)
-    y_pos = h - 250
-    draw.text((w//2, y_pos), f"LEVEL: {level.upper()}", fill=gold, font=sub_f, anchor="mm")
-    draw.text((w//2, y_pos + 60), f"HOLDER: {user_id}", fill=white, font=sub_f, anchor="mm")
-    draw.text((w//2, y_pos + 120), f"DNA: {dna}", fill="#777777", font=sub_f, anchor="mm")
+    y_text = h // 2
+    for line in lines:
+        draw.text((w//2, y_text), f"“ {line} ”", fill=white_color, font=main_f, anchor="mm")
+        y_text += 70
+
+    # ۳. جزئیات پایین (Level, Holder, DNA)
+    footer_y = h - 220
+    draw.text((w//2, footer_y), f"LEVEL: {level.upper()}", fill=gold_color, font=sub_f, anchor="mm")
+    draw.text((w//2, footer_y + 55), f"HOLDER: {user_id}", fill=white_color, font=sub_f, anchor="mm")
+    draw.text((w//2, footer_y + 105), f"DNA: {dna}", fill="#AAAAAA", font=sub_f, anchor="mm")
 
     return img
 
 def create_certificate(user_id, burden, level="Eternal", photo_path=None):
-    # انتخاب لیست استایل متناسب با لول
+    """
+    تابع اصلی برای تولید گواهی با استفاده از Stable Diffusion 1.5
+    """
     styles_map = {
         "Eternal": eternal_styles,
         "Divine": divine_styles,
         "Celestial": celestial_styles,
         "Legendary": legendary_styles
     }
-    style_list = styles_map.get(level, eternal_styles)
-    selected_style = random.choice(style_list)
     
-    # تقویت پرامپت برای دریافت بهترین خروجی بصری
-    full_prompt = f"{selected_style}, centered portrait, ornate royal frame, 8k resolution, ultra-detailed textures, cinematic lighting, gold and dark obsidian theme"
+    style_list = styles_map.get(level, eternal_styles)
+    selected_base_prompt = random.choice(style_list)
+    
+    # تقویت پرامپت نهایی برای تضمین کیفیت
+    full_prompt = (
+        f"{selected_base_prompt}, centered artistic composition, obsidian and gold theme, "
+        f"8k resolution, cinematic lighting, sharp focus, volumetric light"
+    )
 
     dna = generate_dna(user_id, burden, level)
 
-    # فراخوانی API هوش مصنوعی برای تولید عکس
     payload = {
         "inputs": full_prompt,
-        "parameters": {"num_inference_steps": 50, "guidance_scale": 8.5}
+        "parameters": {
+            "num_inference_steps": 50, 
+            "guidance_scale": 9.0,
+            "negative_prompt": "text, watermark, logo, blurry, low resolution, distorted, ugly, deformed"
+        }
     }
     
     img = None
     try:
-        response = requests.post(API_URL, headers=headers, json=payload, timeout=40)
+        response = requests.post(API_URL, headers=headers, json=payload, timeout=60)
         if response.status_code == 200:
             img = Image.open(io.BytesIO(response.content))
         else:
-            print(f"API Error {response.status_code}: {response.text}")
+            print(f"AI API Error: {response.status_code}")
     except Exception as e:
-        print(f"Request Exception: {e}")
+        print(f"Request Error: {e}")
 
-    # اگر API پاسخ نداد، یک پس‌زمینه تیره لوکس برای جلوگیری از خرابی برنامه ساخته می‌شود
+    # ایجاد یک تصویر بک‌آپ اگر هوش مصنوعی پاسخ نداد
     if not img:
-        img = Image.new('RGB', (1000, 1414), '#050505')
+        img = Image.new('RGB', (1000, 1414), '#0a0a0a')
+        draw = ImageDraw.Draw(img)
+        # ایجاد یک گرادینت ساده یا الگو برای تصویر بک‌آپ
+        for i in range(0, 1414, 10):
+            draw.line([(0, i), (1000, i)], fill="#111", width=1)
 
-    # نهایی‌سازی: تغییر اندازه و افزودن متن
+    # تغییر اندازه به رزولوشن استاندارد چاپ
     img = img.resize((1000, 1414), Image.Resampling.LANCZOS)
+    
+    # اعمال لایه‌های متن لوکس
     img = overlay_premium_text(img, burden, user_id, level, dna)
     
-    # ذخیره فایل در پوشه outputs
+    # ذخیره‌سازی
     os.makedirs("outputs", exist_ok=True)
-    file_path = f"outputs/cert_{user_id}_{dna}.png"
+    file_path = f"outputs/void_{user_id}_{dna}.png"
     img.save(file_path, "PNG", quality=95)
     
-    return file_path, level
+    return file_path, dna
+
+# --- تست سریع (اختیاری) ---
+if __name__ == "__main__":
+    # اگر این فایل را مستقیماً اجرا کنید، یک تست می‌گیرد
+    print("Testing Divine Generation...")
+    path, dna = create_certificate(12345, "I surrender my fears to the void", "Legendary")
+    print(f"Test Completed! Image saved at: {path}")
