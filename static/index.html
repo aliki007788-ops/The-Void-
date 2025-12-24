@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -7,118 +7,174 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap');
-        :root { --gold: #D4AF37; --bg: #050505; --glass: rgba(255, 255, 255, 0.05); }
-        body { margin: 0; background: var(--bg); color: white; font-family: 'Cinzel', serif; overflow: hidden; }
         
-        /* طراحی صفحات */
-        .page { display: none; height: 100vh; padding: 20px; box-sizing: border-box; overflow-y: auto; text-align: center; padding-bottom: 100px; }
-        .active { display: block; animation: fadeIn 0.8s ease; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        :root { --gold: #D4AF37; --glass: rgba(255, 255, 255, 0.1); }
 
-        /* ناوبری پایین */
-        .nav-bar { position: fixed; bottom: 0; width: 100%; display: flex; background: rgba(0,0,0,0.9); border-top: 1px solid var(--gold); z-index: 100; }
-        .nav-item { flex: 1; padding: 15px; text-align: center; color: #666; font-size: 0.7rem; cursor: pointer; }
-        .nav-item.active-nav { color: var(--gold); text-shadow: 0 0 10px var(--gold); }
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; color: #fff; font-family: 'Cinzel', serif; }
+        
+        /* پس‌زمینه ذرات معلق */
+        canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
 
-        /* استایل‌های اختصاصی */
-        .sacrifice-input { background: transparent; border: 1px solid var(--gold); color: white; padding: 15px; width: 80%; margin: 20px 0; font-family: 'Cinzel'; }
-        .gold-btn { background: var(--gold); color: black; border: none; padding: 12px 30px; font-weight: bold; margin-top: 10px; cursor: pointer; box-shadow: 0 0 15px var(--gold); }
-        .luck-btn { background: transparent; border: 2px solid var(--gold); color: var(--gold); padding: 10px 20px; margin-top: 10px; animation: pulse 2s infinite; }
+        .container { position: relative; z-index: 10; height: 100vh; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 1s ease; }
+
+        /* صفحه اول: آستانه */
+        #stage1 { opacity: 1; display: flex; flex-direction: column; align-items: center; }
+        .main-title { font-size: 3rem; letter-spacing: 15px; color: var(--gold); text-shadow: 0 0 20px rgba(212, 175, 55, 0.5); margin-bottom: 50px; }
+        
+        .sacrifice-box { background: rgba(20, 20, 20, 0.8); border: 1px solid var(--gold); color: #fff; padding: 20px; width: 280px; height: 120px; border-radius: 5px; font-family: 'Cinzel'; margin-bottom: 40px; text-align: center; resize: none; }
+
+        .explode-btn { background: none; border: 2px solid var(--gold); color: var(--gold); padding: 20px 60px; font-size: 1.5rem; letter-spacing: 5px; cursor: pointer; transition: 0.5s; position: relative; overflow: hidden; }
+        .explode-btn:hover { background: var(--gold); color: #000; box-shadow: 0 0 50px var(--gold); }
+
+        /* صفحه دوم: کارت‌های شیشه‌ای */
+        #stage2 { display: none; opacity: 0; width: 100%; max-width: 400px; padding: 20px; box-sizing: border-box; }
+        .dynamic-title { color: var(--gold); font-size: 1.5rem; letter-spacing: 5px; margin-bottom: 30px; }
+
+        .plans-wrapper { display: flex; flex-direction: column; gap: 20px; width: 100%; }
+        
+        .glass-card { background: var(--glass); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.1); border-radius: 15px; padding: 20px; position: relative; transition: 0.3s; }
+        
+        /* هاور طلایی دور دکمه‌های انتخاب */
+        .select-btn { background: transparent; border: 1px solid var(--gold); color: var(--gold); padding: 10px 30px; border-radius: 20px; cursor: pointer; transition: 0.3s; margin-top: 15px; }
+        .select-btn:hover { background: var(--gold); color: #000; box-shadow: 0 0 15px var(--gold); }
+
+        /* بخش آپلود و پیش‌نمایش دایره‌ای */
+        .upload-area { margin: 15px 0; display: flex; align-items: center; justify-content: center; gap: 15px; }
+        .preview-circle { width: 60px; height: 60px; border-radius: 50%; border: 2px solid var(--gold); background-size: cover; background-position: center; display: none; box-shadow: 0 0 10px var(--gold); }
+
+        .luck-special-btn { margin-top: 30px; background: linear-gradient(45deg, #000, #1a1a1a); border: 1px solid var(--gold); color: var(--gold); padding: 15px; width: 100%; border-radius: 10px; animation: pulse 2s infinite; }
         @keyframes pulse { 0% { box-shadow: 0 0 5px var(--gold); } 50% { box-shadow: 0 0 20px var(--gold); } 100% { box-shadow: 0 0 5px var(--gold); } }
 
-        .grid-60 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
-        .grid-60 img { width: 100%; border: 1px solid var(--glass); }
-
-        .ref-slots { display: flex; justify-content: space-around; margin: 30px 0; }
-        .slot { width: 40px; height: 40px; border: 1px solid var(--gold); border-radius: 50%; display: flex; align-items: center; justify-content: center; opacity: 0.3; }
-        .slot.filled { opacity: 1; background: var(--gold); color: black; }
     </style>
 </head>
 <body>
-    <canvas id="stars"></canvas>
 
-    <section id="page-altar" class="page active">
-        <h1 style="color: var(--gold); margin-top: 50px;">THE VOID</h1>
-        <p>What do you surrender?</p>
-        <textarea id="sacrifice" class="sacrifice-input" placeholder="Type your burden..."></textarea>
-        <br>
-        <button class="gold-btn" onclick="ascend('Eternal')">ASCEND (70 Stars)</button>
-        <br>
-        <button class="luck-btn" onclick="ascend('Luck')">KING'S LUCK (30 Stars)</button>
-    </section>
+    <canvas id="particleCanvas"></canvas>
 
-    <section id="page-hall" class="page">
-        <h2 class="gold-text">ETERNAL HALL</h2>
-        <div id="gallery" class="grid-60"></div>
-    </section>
+    <div class="container">
+        <section id="stage1">
+            <h1 class="main-title">THE VOID</h1>
+            <textarea id="sacrificeInput" class="sacrifice-box" placeholder="سنگینیِ بار خود را بنویسید..."></textarea>
+            <button class="explode-btn" onclick="triggerExplosion()">ASCEND</button>
+        </section>
 
-    <section id="page-ref" class="page">
-        <h2>BROTHERHOOD</h2>
-        <p>Invite 6 souls for a free Divine Ascension</p>
-        <div class="ref-slots" id="ref-container"></div>
-        <button class="gold-btn" onclick="copyRef()">COPY INVITE LINK</button>
-    </section>
+        <section id="stage2">
+            <h2 id="page2Title" class="dynamic-title">DIVINE SELECTION</h2>
+            
+            <div class="plans-wrapper">
+                <div class="glass-card">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <h3 style="margin:0;">IMPERIAL</h3>
+                            <span style="color:var(--gold)">120 STARS</span>
+                        </div>
+                        <div id="preview1" class="preview-circle"></div>
+                    </div>
+                    
+                    <div class="upload-area">
+                        <input type="file" id="file1" hidden onchange="handleFile(this, 'preview1')">
+                        <button class="select-btn" onclick="document.getElementById('file1').click()">افزودن عکس</button>
+                        <button class="select-btn" onclick="buy('Imperial')">انتخاب</button>
+                    </div>
+                </div>
 
-    <nav class="nav-bar">
-        <div class="nav-item active-nav" onclick="switchPage('altar', this)">MANTRA</div>
-        <div class="nav-item" onclick="switchPage('hall', this)">HALL</div>
-        <div class="nav-item" onclick="switchPage('ref', this)">BROTHERS</div>
-    </nav>
+                <button class="luck-special-btn" onclick="buy('Luck')">💥 شانس پادشاه (۳۰ ستاره)</button>
+            </div>
+        </section>
+    </div>
 
     <script>
         let tg = window.Telegram.WebApp;
         tg.expand();
 
-        function switchPage(p, el) {
-            document.querySelectorAll('.page').forEach(s => s.classList.remove('active'));
-            document.getElementById('page-' + p).classList.add('active');
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active-nav'));
-            el.classList.add('active-nav');
+        // منطق ذرات معلق و انفجار
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        class Particle {
+            constructor() {
+                this.reset();
+            }
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.vx = (Math.random() - 0.5) * 0.5;
+                this.vy = (Math.random() - 0.5) * 0.5;
+                this.size = Math.random() * 2;
+                this.color = 'rgba(212, 175, 55, ' + Math.random() + ')';
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+                if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+            }
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
         }
 
-        async function ascend(type) {
-            const burden = document.getElementById('sacrifice').value;
-            if(!burden) return tg.showAlert("The Void requires words.");
-            
-            const payload = {
-                u: tg.initDataUnsafe.user.id,
-                b: burden,
-                level: type === 'Luck' ? 'Eternal' : type,
-                is_luck: type === 'Luck'
-            };
+        for (let i = 0; i < 150; i++) particles.push(new Particle());
 
-            const res = await fetch('/api/create_invoice', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(payload)
-            });
-            const data = await res.json();
-            if(data.url) tg.openInvoice(data.url);
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            requestAnimationFrame(animate);
         }
+        animate();
 
-        // مقداردهی اولیه رفرال‌ها و گالری
-        async function loadData() {
-            const res = await fetch(`/api/init/${tg.initDataUnsafe.user.id}`);
-            const data = await res.json();
-            
-            // نمایش اسلات‌های رفرال
-            const container = document.getElementById('ref-container');
-            for(let i=1; i<=6; i++) {
-                let div = document.createElement('div');
-                div.className = i <= data.ref_count ? 'slot filled' : 'slot';
-                div.innerText = i === 6 ? '🎁' : i;
-                container.appendChild(div);
+        // تابع انفجار و تغییر صفحه
+        function triggerExplosion() {
+            if(!document.getElementById('sacrificeInput').value) {
+                tg.showAlert("خلأ منتظر کلمات شماست...");
+                return;
             }
 
-            // نمایش تصاویر گالری
-            const gallery = document.getElementById('gallery');
-            data.top_60.forEach(item => {
-                let img = document.createElement('img');
-                img.src = item.path;
-                gallery.appendChild(img);
+            // انیمیشن انفجار ذرات (سریع‌تر شدن موقت)
+            particles.forEach(p => {
+                p.vx *= 20;
+                p.vy *= 20;
             });
+
+            document.getElementById('stage1').style.opacity = '0';
+            
+            setTimeout(() => {
+                document.getElementById('stage1').style.display = 'none';
+                document.getElementById('stage2').style.display = 'block';
+                setTimeout(() => {
+                    document.getElementById('stage2').style.opacity = '1';
+                    // بازگرداندن ذرات به سرعت عادی برای پس‌زمینه صفحه دوم
+                    particles.forEach(p => { p.vx /= 20; p.vy /= 20; });
+                }, 50);
+            }, 1000);
         }
-        loadData();
+
+        // نمایش پیش‌نمایش عکس
+        function handleFile(input, previewId) {
+            const file = input.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById(previewId);
+                    preview.style.backgroundImage = `url(${e.target.result})`;
+                    preview.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        async function buy(level) {
+            tg.MainButton.showProgress();
+            // ارسال اطلاعات به main.py (کدی که قبلاً نوشتیم)
+            // ... (بخش Fetch API مشابه کدهای قبل)
+        }
     </script>
 </body>
 </html>
