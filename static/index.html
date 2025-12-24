@@ -5,71 +5,110 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>THE VOID</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; color: #FFD700; font-family: 'Cinzel', serif; }
-        canvas { position: fixed; top: 0; left: 0; z-index: 1; pointer-events: none; }
+        :root { --gold: #FFD700; --dark-gold: #b8860b; --glass: rgba(255, 255, 255, 0.03); }
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; color: var(--gold); font-family: 'Cinzel', serif; }
         
-        .stage { position: relative; z-index: 10; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: 0.8s; }
-        .hidden { opacity: 0; pointer-events: none; transform: scale(0.9); }
+        canvas { position: fixed; top: 0; left: 0; z-index: 1; pointer-events: none; }
 
-        /* کارت شیشه‌ای [cite: 316] */
+        .container {
+            position: relative; z-index: 10; height: 100vh; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .hidden { opacity: 0; visibility: hidden; transform: scale(1.1); }
+
+        /* تایتل تک‌خطی باستانی */
+        .main-title { font-size: 2.8rem; font-weight: 900; letter-spacing: 12px; text-shadow: 0 0 20px rgba(255,215,0,0.4); margin-bottom: 40px; text-align: center; }
+
+        /* کارت شیشه‌ای پیشرفته */
         .glass-card {
-            background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 215, 0, 0.1); border-radius: 20px;
-            padding: 25px; width: 85%; max-width: 400px; text-align: center; margin: 10px;
+            background: var(--glass); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 215, 0, 0.15); border-radius: 24px; padding: 30px;
+            width: 85%; max-width: 380px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); text-align: center;
         }
 
-        /* تب‌ها */
-        .tabs { display: flex; justify-content: space-around; margin-bottom: 20px; border-bottom: 1px solid #333; }
-        .tab-btn { background: none; border: none; color: #555; padding: 10px; cursor: pointer; font-family: 'Cinzel'; }
-        .tab-btn.active { color: #FFD700; border-bottom: 2px solid #FFD700; }
-        .tab-content { display: none; animation: fadeIn 0.5s; }
-        .tab-content.active { display: block; }
+        /* اینپوت شیک */
+        input[type="text"] {
+            background: transparent; border: none; border-bottom: 1px solid rgba(255,215,0,0.3);
+            color: #fff; font-size: 1.2rem; text-align: center; width: 100%; padding: 12px;
+            outline: none; font-family: 'Cinzel'; transition: 0.3s; letter-spacing: 2px;
+        }
+        input[type="text"]:focus { border-bottom: 1px solid var(--gold); box-shadow: 0 5px 15px rgba(255,215,0,0.1); }
 
-        input[type="text"] { background: transparent; border: none; border-bottom: 2px solid #FFD700; color: #fff; font-size: 1.5rem; text-align: center; width: 80%; margin: 40px 0; outline: none; }
-        
-        .btn-ascend { padding: 15px 50px; border: 1px solid #FFD700; background: none; color: #FFD700; font-size: 1.2rem; cursor: pointer; letter-spacing: 5px; }
-        .btn-luck { background: linear-gradient(45deg, #FFD700, #b8860b); color: #000; font-weight: bold; border: none; width: 100%; margin-top: 15px; border-radius: 10px; padding: 15px; animation: pulse 1.5s infinite; }
-        
+        /* دکمه Ascend بزرگ و نرم */
+        .btn-ascend {
+            margin-top: 50px; padding: 18px 60px; font-size: 1.3rem; color: var(--gold);
+            background: transparent; border: 1px solid rgba(255,215,0,0.4); border-radius: 50px;
+            cursor: pointer; transition: 0.5s; letter-spacing: 4px; overflow: hidden; position: relative;
+        }
+        .btn-ascend:hover { background: rgba(255,215,0,0.05); border-color: var(--gold); box-shadow: 0 0 30px rgba(255,215,0,0.2); }
+
+        /* تب‌ها */
+        .tabs { display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .tab-btn { 
+            flex: 1; background: none; border: none; color: #666; padding: 12px; 
+            font-family: 'Cinzel'; cursor: pointer; transition: 0.3s; font-size: 0.7rem;
+        }
+        .tab-btn.active { color: var(--gold); border-bottom: 2px solid var(--gold); }
+
+        /* دکمه شانس پادشاه (چشمک‌زن) */
+        .btn-kings-luck {
+            background: linear-gradient(90deg, #d4af37, #f9d71c, #d4af37);
+            background-size: 200% auto; color: #000; border: none; border-radius: 15px;
+            padding: 18px; width: 100%; font-weight: 900; margin-top: 15px;
+            cursor: pointer; animation: shine 3s linear infinite, pulse 2s infinite;
+            font-family: 'Cinzel'; letter-spacing: 1px;
+        }
+        @keyframes shine { to { background-position: 200% center; } }
+        @keyframes pulse { 0%, 100% { transform: scale(1); box-shadow: 0 0 10px rgba(212,175,55,0.5); } 50% { transform: scale(1.03); box-shadow: 0 0 25px rgba(212,175,55,0.8); } }
+
+        .hidden-content { display: none; animation: fadeIn 0.5s; }
+        .active-content { display: block; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
     </style>
 </head>
 <body>
     <canvas id="voidCanvas"></canvas>
 
-    <div id="step1" class="stage">
-        <h1 style="font-size: 3rem; letter-spacing: 15px;">THE VOID</h1>
-        <input type="text" id="burden" placeholder="NAME YOUR BURDEN">
-        <button class="btn-ascend" onclick="explodeAndGo()">ASCEND</button>
+    <div id="page1" class="container">
+        <h1 class="main-title">THE VOID</h1>
+        <div class="glass-card">
+            <input type="text" id="burden" placeholder="ENTER YOUR BURDEN" maxlength="30">
+        </div>
+        <button class="btn-ascend" onclick="initiateAscension()">ASCEND</button>
     </div>
 
-    <div id="step2" class="stage hidden">
+    <div id="page2" class="container hidden">
         <div class="glass-card">
             <div class="tabs">
-                <button class="tab-btn active" onclick="showTab('free')">FREE</button>
-                <button class="tab-btn" onclick="showTab('paid')">ROYAL</button>
-            </div>
-            
-            <div id="free" class="tab-content active">
-                <p>ETERNAL GRADE</p>
-                <small>3 Daily Ascensions Left</small>
-                <button class="btn-ascend" style="width:100%; margin-top:20px;" onclick="mint('free')">MINT FREE</button>
+                <button class="tab-btn active" onclick="switchTab(event, 'free')">ETERNAL</button>
+                <button class="tab-btn" onclick="switchTab(event, 'divine')">DIVINE</button>
+                <button class="tab-btn" onclick="switchTab(event, 'celestial')">CELESTIAL</button>
+                <button class="tab-btn" onclick="switchTab(event, 'legendary')">LEGENDARY</button>
             </div>
 
-            <div id="paid" class="tab-content">
-                <div style="display:flex; flex-direction:column; gap:10px;">
-                    <button class="btn-ascend" onclick="mint('divine')">DIVINE (150 ⭐)</button>
-                    <button class="btn-ascend" onclick="mint('celestial')">CELESTIAL (299 ⭐)</button>
-                    <button class="btn-ascend" onclick="mint('legendary')">LEGENDARY (499 ⭐)</button>
-                </div>
+            <div id="free" class="hidden-content active-content">
+                <p style="font-size: 0.8rem; color: #aaa;">FREE ASCENSION<br>(3 LEFT TODAY)</p>
+                <button class="btn-ascend" style="width:100%; padding:12px;" onclick="process('free')">MINT</button>
+            </div>
+
+            <div id="divine" class="hidden-content">
+                <p>PRICE: 150 ⭐</p>
+                <button class="btn-ascend" style="width:100%; padding:12px;" onclick="process('divine')">PURCHASE</button>
+            </div>
+            <div id="celestial" class="hidden-content">
+                <p>PRICE: 299 ⭐</p>
+                <button class="btn-ascend" style="width:100%; padding:12px;" onclick="process('celestial')">PURCHASE</button>
+            </div>
+             <div id="legendary" class="hidden-content">
+                <p>PRICE: 499 ⭐</p>
+                <button class="btn-ascend" style="width:100%; padding:12px;" onclick="process('legendary')">PURCHASE</button>
             </div>
         </div>
 
-        <div class="glass-card" style="border-color: #b8860b;">
-            <button class="btn-luck" onclick="mint('kings-luck')">KING'S LUCK (199 ⭐)</button>
-            <p style="font-size: 0.7rem; color: #888;">1% Legendary | 10% Celestial | 40% Divine</p>
+        <div style="width: 85%; max-width: 380px;">
+            <button class="btn-kings-luck" onclick="process('kings-luck')">KING'S LUCK (199 ⭐)</button>
         </div>
     </div>
 
@@ -77,88 +116,122 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // --- سیستم ذرات ---
         const canvas = document.getElementById('voidCanvas');
         const ctx = canvas.getContext('2d');
         let particles = [];
-        let mode = 'float'; // float, explode, morph
+        let animationMode = 'float'; // float, explode, morph
+        let targetPoints = [];
 
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
 
         class Particle {
             constructor() {
-                this.reset();
+                this.init();
             }
-            reset() {
+            init() {
                 this.x = Math.random() * canvas.width;
                 this.y = Math.random() * canvas.height;
-                this.vx = (Math.random() - 0.5) * 1;
-                this.vy = (Math.random() - 0.5) * 1;
-                this.size = Math.random() * 2;
-                this.alpha = Math.random();
+                this.targetX = this.x;
+                this.targetY = this.y;
+                this.vx = (Math.random() - 0.5) * 0.8;
+                this.vy = (Math.random() - 0.5) * 0.8;
+                this.size = Math.random() * 1.5 + 0.5;
+                this.alpha = Math.random() * 0.5 + 0.2;
             }
             update() {
-                if(mode === 'explode') {
-                    this.x += this.vx * 20;
-                    this.y += this.vy * 20;
-                    this.alpha -= 0.01;
-                } else {
-                    this.x += this.vx;
-                    this.y += this.vy;
+                if (animationMode === 'float') {
+                    this.x += this.vx; this.y += this.vy;
+                    if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+                    if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+                } else if (animationMode === 'explode') {
+                    this.x += this.vx * 15; this.y += this.vy * 15;
+                    this.vx *= 0.95; this.vy *= 0.95;
+                } else if (animationMode === 'morph') {
+                    let dx = this.targetX - this.x;
+                    let dy = this.targetY - this.y;
+                    this.x += dx * 0.07;
+                    this.y += dy * 0.07;
                 }
-                if(this.x < 0 || this.x > canvas.width) this.vx *= -1;
-                if(this.y < 0 || this.y > canvas.height) this.vy *= -1;
             }
             draw() {
                 ctx.fillStyle = `rgba(255, 215, 0, ${this.alpha})`;
                 ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
                 ctx.fill();
             }
         }
 
-        for(let i=0; i<150; i++) particles.push(new Particle());
+        for (let i = 0; i < 600; i++) particles.push(new Particle());
+
+        function getTargetPoints(text) {
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            tempCtx.font = "900 3.5rem Cinzel";
+            tempCtx.textAlign = "center";
+            tempCtx.fillText(text, canvas.width / 2, canvas.height * 0.2);
+            const data = tempCtx.getImageData(0, 0, canvas.width, canvas.height).data;
+            const points = [];
+            for (let y = 0; y < canvas.height; y += 4) {
+                for (let x = 0; x < canvas.width; x += 4) {
+                    if (data[(y * canvas.width + x) * 4 + 3] > 128) points.push({x, y});
+                }
+            }
+            return points;
+        }
+
+        function initiateAscension() {
+            if (!document.getElementById('burden').value) return tg.showAlert("State your burden.");
+            
+            animationMode = 'explode';
+            document.getElementById('page1').classList.add('hidden');
+            
+            setTimeout(() => {
+                const points = getTargetPoints("CHOOSE FATE");
+                animationMode = 'morph';
+                particles.forEach((p, i) => {
+                    if (points[i % points.length]) {
+                        p.targetX = points[i % points.length].x;
+                        p.targetY = points[i % points.length].y;
+                    }
+                });
+                document.getElementById('page2').classList.remove('hidden');
+            }, 1000);
+        }
+
+        function switchTab(e, tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.hidden-content').forEach(c => c.classList.remove('active-content'));
+            e.target.classList.add('active');
+            document.getElementById(tab).classList.add('active-content');
+        }
 
         function animate() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
             particles.forEach(p => { p.update(); p.draw(); });
             requestAnimationFrame(animate);
         }
         animate();
 
-        function explodeAndGo() {
-            const b = document.getElementById('burden').value;
-            if(b.length < 3) return tg.showAlert("Burden too short.");
-            
-            mode = 'explode';
-            document.getElementById('step1').classList.add('hidden');
-            
-            setTimeout(() => {
-                mode = 'float';
-                document.getElementById('step2').classList.remove('hidden');
-            }, 1000);
-        }
-
-        function showTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            event.currentTarget.classList.add('active');
-        }
-
-        function mint(plan) {
+        function process(type) {
             fetch('/create_stars_invoice', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
                     u: tg.initDataUnsafe.user?.id || 0,
                     b: document.getElementById('burden').value,
-                    type: plan
+                    type: type
                 })
-            }).then(r => r.json()).then(data => {
-                if(data.url) tg.openInvoice(data.url);
-                else if(data.free) tg.showAlert("Ascension Started!");
+            }).then(r => r.json()).then(d => {
+                if (d.url) tg.openInvoice(d.url);
+                else if (d.free) tg.showAlert("Ascension complete. Check the Void.");
             });
         }
     </script>
