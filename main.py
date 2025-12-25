@@ -1,9 +1,7 @@
 import os
 import json
-import random
 import sqlite3
 import asyncio
-import uvicorn
 import requests
 import io
 import hashlib
@@ -15,22 +13,28 @@ from fastapi.responses import HTMLResponse
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import CommandStart
 from aiogram.types import WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice
-from aiogram.fsm.storage.memory import MemoryStorage
 from dotenv import load_dotenv
+import uvicorn
 
+# لود کردن متغیرهای محیطی
 load_dotenv()
 
-# --- تنظیمات اصلی ---
-ADMIN_ID = int(os.getenv("ADMIN_ID", "0"))
+# تنظیمات اصلی - این مقادیر را در پنل Render یا فایل .env تنظیم کنید
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-HF_TOKEN = os.getenv("HF_API_TOKEN") # توکن هوش مصنوعی هگینگ فیس
+HF_TOKEN = os.getenv("HF_API_TOKEN") # توکن هگینگ فیس برای هوش مصنوعی
+ADMIN_ID = os.getenv("ADMIN_ID")
 API_URL = "https://api-inference.huggingface.co/models/runwayml/stable-diffusion-v1-5"
 
+# راه‌اندازی ربات و اپلیکیشن
 bot = Bot(token=BOT_TOKEN)
-dp = Dispatcher(storage=MemoryStorage())
+dp = Dispatcher()
 app = FastAPI()
 
-# --- دیتابیس ---
+# ایجاد پوشه‌های مورد نیاز
+if not os.path.exists("static/outputs"):
+    os.makedirs("static/outputs")
+
+# دیتابیس
 def init_db():
     conn = sqlite3.connect("void_core.db")
     c = conn.cursor()
@@ -40,74 +44,54 @@ def init_db():
 
 init_db()
 
-# --- بخش هوش مصنوعی (AI Core) ---
-def generate_dna(user_id, level):
-    seed = f"{user_id}{level}{datetime.now()}".encode()
-    return hashlib.sha256(seed).hexdigest()[:10].upper()
-
-async def create_certificate(user_id, burden, level):
-    """تولید تصویر گواهی با هوش مصنوعی و متن گذاری"""
-    # ۱۵۰ سبک حرفه ای (خلاصه شده برای پایداری در این فایل)
+# --- بخش هوش مصنوعی ---
+async def generate_ai_certificate(user_id, burden, level):
     styles = {
-        "Eternal": "luxurious dark obsidian texture, gold filigree, mystical lighting, 8k",
-        "Divine": "imperial Byzantine mosaic, heavy gold leaf, sacred divine aura, masterpiece",
-        "Celestial": "celestial phoenix nebula, cosmic gold dust, sacred geometry, 16k",
-        "Legendary": "supreme void emperor throne, liquid stars and gold, hyper-realistic"
+        "Eternal": "dark cinematic void, golden dust, ethereal, 8k",
+        "Divine": "holy golden aura, celestial light, sacred symbols, intricate detail",
+        "Celestial": "cosmic galaxy, gold nebulas, stars, hyper-realistic, 16k",
+        "Legendary": "imperial emperor throne, liquid gold, black obsidian, masterpiece"
     }
     
-    prompt = f"{styles.get(level, styles['Eternal'])}, focal point inscribed with '{burden}'"
+    prompt = styles.get(level, styles["Eternal"]) + f", engraved with the word '{burden}'"
     headers = {"Authorization": f"Bearer {HF_TOKEN}"}
     
     try:
         response = requests.post(API_URL, headers=headers, json={"inputs": prompt}, timeout=60)
         image = Image.open(io.BytesIO(response.content))
     except:
-        image = Image.new('RGB', (1000, 1414), color='#050505')
+        image = Image.new('RGB', (1000, 1400), color='#050505')
 
-    canvas = image.resize((1000, 1414))
-    draw = ImageDraw.Draw(canvas)
-    dna = generate_dna(user_id, level)
-
+    # متن‌گذاری روی تصویر با PIL
+    draw = ImageDraw.Draw(image)
+    dna = hashlib.sha256(f"{user_id}{datetime.now()}".encode()).hexdigest()[:10].upper()
+    
+    # نکته: برای فونت باید فایل .ttf در پوشه اصلی باشد
     try:
-        font_main = ImageFont.truetype("cinzel.ttf", 55)
-        font_sub = ImageFont.truetype("cinzel.ttf", 35)
+        font = ImageFont.truetype("cinzel.ttf", 40)
     except:
-        font_main = ImageFont.load_default()
-        font_sub = ImageFont.load_default()
+        font = ImageFont.load_default()
 
-    draw.text((500, 150), "VOID ASCENSION", fill="#D4AF37", font=font_main, anchor="mm")
-    draw.text((500, 707), f"'{burden}'", fill="white", font=font_sub, anchor="mm")
-    draw.text((500, 1250), f"DNA: {dna}", fill="#D4AF37", font=font_sub, anchor="mm")
+    draw.text((500, 100), "THE VOID ASCENSION", fill="#D4AF37", font=font, anchor="mm")
+    draw.text((500, 700), f"BURDEN: {burden}", fill="white", font=font, anchor="mm")
+    draw.text((500, 1200), f"DNA: {dna}", fill="#D4AF37", font=font, anchor="mm")
     
     path = f"static/outputs/{dna}.png"
-    if not os.path.exists("static/outputs"): os.makedirs("static/outputs")
-    canvas.save(path)
+    image.save(path)
     return path, dna
 
-# --- هندلر استارت با پیام خوش‌آمدگویی جدید ---
+# --- بخش ربات تلگرام ---
 @dp.message(CommandStart())
 async def cmd_start(message: types.Message):
     user_id = message.from_user.id
-    args = message.text.split()
-    inviter_id = int(args[1]) if len(args) > 1 and args[1].isdigit() else None
-    
+    # ثبت‌نام در دیتابیس و سیستم رفرال
     conn = sqlite3.connect("void_core.db")
     c = conn.cursor()
-    c.execute("SELECT id FROM users WHERE id = ?", (user_id,))
-    if not c.fetchone():
-        c.execute("INSERT INTO users (id, referred_by) VALUES (?, ?)", (user_id, inviter_id))
-        if inviter_id:
-            c.execute("UPDATE users SET refs = refs + 1 WHERE id = ?", (inviter_id,))
-        conn.commit()
+    c.execute("INSERT OR IGNORE INTO users (id) VALUES (?)", (user_id,))
+    conn.commit()
     conn.close()
 
-    web_app_url = "https://the-void-1.onrender.com"
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🌌 ENTER THE VOID", web_app=WebAppInfo(url=web_app_url))],
-        [InlineKeyboardButton(text="👥 Referral Link", callback_data="ref_link")]
-    ])
-
-    # متن دقیق درخواستی شما
+    # پیام خوش‌آمدگویی حماسی شما
     welcome_text = (
         "🌌 <b>Emperor of the Eternal Void, the cosmos summons you...</b> 👑\n\n"
         "In the infinite depths of darkness, where stars have long faded and time itself has surrendered,\n"
@@ -127,9 +111,22 @@ async def cmd_start(message: types.Message):
         "<b>The Void bows to no one... except you.</b>"
     )
 
+    # لینک وب‌اپ (آدرس دیپلوی شده خود را جایگزین کنید)
+    web_url = "https://the-void-1.onrender.com" 
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🌌 ENTER THE VOID", web_app=WebAppInfo(url=web_url))],
+        [InlineKeyboardButton(text="👥 My Referral Link", callback_data="ref")]
+    ])
+    
     await message.answer(welcome_text, reply_markup=kb, parse_mode="HTML")
 
-# --- منطق پرداخت و صدور گواهی ---
+@dp.callback_query(F.data == "ref")
+async def send_ref(callback: types.CallbackQuery):
+    me = await bot.get_me()
+    link = f"https://t.me/{me.username}?start={callback.from_user.id}"
+    await callback.message.answer(f"🔗 <b>Your Invite Link:</b>\n{link}", parse_mode="HTML")
+
+# --- مدیریت پرداخت ستاره ---
 @app.post("/create_stars_invoice")
 async def create_invoice(request: Request):
     data = await request.json()
@@ -139,15 +136,15 @@ async def create_invoice(request: Request):
     amount = prices.get(plan, 0)
 
     if amount == 0:
-        path, dna = await create_certificate(uid, burden, "Eternal")
+        path, dna = await generate_ai_certificate(uid, burden, "Eternal")
         await bot.send_photo(uid, types.FSInputFile(path), caption=f"🌌 Ascension Complete!\nDNA: {dna}")
         return {"free": True}
 
     link = await bot.create_invoice_link(
         title="VOID ASCENSION",
-        description=f"Level: {plan.upper()}",
+        description=f"Ascending through: {plan.upper()}",
         payload=f"{uid}:{burden}:{plan}",
-        provider_token="",
+        provider_token="", # برای ستاره خالی می‌ماند
         currency="XTR",
         prices=[LabeledPrice(label="Ascension Fee", amount=amount)]
     )
@@ -159,28 +156,33 @@ async def pre_checkout(query: types.PreCheckoutQuery):
 
 @dp.message(F.successful_payment)
 async def on_payment(message: types.Message):
-    uid, burden, plan = message.successful_payment.invoice_payload.split(":")
-    await message.answer("✨ Forging your eternal certificate in the cosmic fire...")
-    path, dna = await create_certificate(uid, burden, plan.capitalize())
-    await bot.send_photo(uid, types.FSInputFile(path), caption=f"🌌 <b>ASCENSION SUCCESSFUL</b>\nDNA: <code>{dna}</code>", parse_mode="HTML")
+    payload = message.successful_payment.invoice_payload
+    uid, burden, plan = payload.split(":")
+    await message.answer("✨ The stars are aligning... Generating your certificate.")
+    path, dna = await generate_ai_certificate(uid, burden, plan.capitalize())
+    await bot.send_photo(uid, types.FSInputFile(path), caption=f"🔱 <b>SUCCESSFUL ASCENSION</b>\nDNA: <code>{dna}</code>", parse_mode="HTML")
 
-# --- سرور و اجرا ---
-@dp.callback_query(F.data == "ref_link")
-async def send_ref_link(callback: types.CallbackQuery):
-    bot_user = await bot.get_me()
-    link = f"https://t.me/{bot_user.username}?start={callback.from_user.id}"
-    await callback.message.answer(f"🔗 <b>Your Referral Link:</b>\n<code>{link}</code>", parse_mode="HTML")
-
+# --- تنظیمات سرور استاتیک ---
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/", response_class=HTMLResponse)
 async def serve_index():
-    with open("static/index.html", "r", encoding="utf-8") as f: return f.read()
+    with open("static/index.html", "r", encoding="utf-8") as f:
+        return f.read()
 
+# --- اجرای همزمان ---
 async def main():
+    # پاکسازی وبهوک‌های قدیمی
+    await bot.delete_webhook(drop_pending_updates=True)
+    
+    # اجرای پولینگ تلگرام در پس‌زمینه
     asyncio.create_task(dp.start_polling(bot))
-    config = uvicorn.Config(app, host="0.0.0.0", port=int(os.getenv("PORT", 8000)))
-    await uvicorn.Server(config).serve()
+    
+    # اجرای سرور وب
+    port = int(os.getenv("PORT", 8000))
+    config = uvicorn.Config(app, host="0.0.0.0", port=port)
+    server = uvicorn.Server(config)
+    await server.serve()
 
 if __name__ == "__main__":
     asyncio.run(main())
