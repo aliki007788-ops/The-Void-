@@ -1,0 +1,26 @@
+name: 🌌 Keep The Void Alive Forever 🌌
+
+on:
+  schedule:
+    # هر ۵ دقیقه یکبار اجرا می‌شه (بهترین فاصله برای پلن رایگان Render)
+    - cron: '*/5 * * * *'
+  workflow_dispatch:  # امکان اجرای دستی از GitHub Actions
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+    name: 🛡️ Prevent Render Sleep – The Void Eternal Ascension
+    steps:
+      - name: 🚀 Ping Render Service to Stay Awake
+        run: |
+          curl -f -s -o /dev/null --retry 3 --retry-delay 5 \
+            -H "User-Agent: The-Void-Keep-Alive/1.0 (+https://github.com/yourusername/your-repo)" \
+            "https://the-void-1.onrender.com" || echo "⚠️ Ping failed!" && exit 1
+
+      - name: ✅ Success Notification
+        if: success()
+        run: echo "✅ The Void remains eternal and fully awake! ✨ No soul shall wait in darkness."
+
+      - name: ⚠️ Warning on Failure
+        if: failure()
+        run: echo "⚠️ Failed to reach The Void – check if the backend service is healthy or URL is correct!"
