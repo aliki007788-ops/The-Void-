@@ -225,9 +225,17 @@
         .tab-content.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
+        /* اعداد قیمت‌ها بولد، طلایی، درخشان و نورانی */
         .plan-price {
-            font-size: 2.2rem; color: var(--gold-light); margin: 5px 0 15px; 
-            text-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+            font-size: 2.6rem;
+            font-weight: 900;
+            color: var(--gold-light);
+            margin: 10px 0 15px;
+            text-shadow: 
+                0 0 20px rgba(212, 175, 55, 0.8),
+                0 0 40px rgba(212, 175, 55, 0.5),
+                0 0 60px rgba(212, 175, 55, 0.3);
+            letter-spacing: 3px;
             position: relative;
         }
 
@@ -275,15 +283,29 @@
         .upload-circle.has-image .plus { opacity: 0; }
         .upload-circle.has-image img { display: block; opacity: 1; }
 
+        /* تمام دکمه‌های MINT (از جمله رایگان) طلایی نورانی و درخشان */
         .mint-btn {
-            width: 100%; padding: 16px; border: none; cursor: pointer;
-            background: linear-gradient(90deg, #b8860b, #eec95e, #b8860b); background-size: 200%;
-            color: #000; font-family: 'Cinzel', serif; font-weight: 900; letter-spacing: 2px;
-            transition: 0.4s; animation: shine 4s infinite linear;
-            font-size: 1rem;
+            width: 100%; padding: 18px; border: none; cursor: pointer;
+            background: linear-gradient(90deg, #b8860b, #f0d47c, #eec95e, #b8860b);
+            background-size: 300%;
+            color: #000; font-family: 'Cinzel', serif; font-weight: 900; letter-spacing: 3px;
+            transition: all 0.5s ease;
+            animation: goldShine 6s infinite linear;
+            font-size: 1.1rem;
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
+            position: relative;
+            overflow: hidden;
         }
-        .mint-btn:hover { letter-spacing: 4px; box-shadow: 0 0 30px rgba(212, 175, 55, 0.4); }
-        @keyframes shine { to { background-position: 200% center; } }
+        .mint-btn:hover {
+            letter-spacing: 5px;
+            box-shadow: 0 0 40px rgba(212, 175, 55, 0.8);
+            transform: translateY(-3px);
+        }
+        @keyframes goldShine {
+            0% { background-position: 0% center; }
+            100% { background-position: 300% center; }
+        }
 
         .kings-luck-btn {
             width: 95%; max-width: 450px; margin-top: 15px; padding: 15px;
@@ -399,7 +421,7 @@
             <div id="eternal" class="tab-content active">
                 <div class="plan-price">FREE</div>
                 <p class="plan-desc">Enter the Void as a wandering soul.<br>Limited to 3 ascensions per day.</p>
-                <button class="mint-btn" onclick="mint('eternal')" style="background: #222; color: #fff; border: 1px solid #444;">MINT ETERNAL</button>
+                <button class="mint-btn" onclick="mint('eternal')">MINT ETERNAL</button>
             </div>
 
             <div id="divine" class="tab-content">
@@ -441,7 +463,6 @@
         </button>
     </div>
 
-    <!-- تمام بخش‌های دیگر بدون هیچ تغییری -->
     <div id="panelSection" class="section-container">
         <button class="back-btn" onclick="showMinting()">← BACK</button>
         <h2 class="section-title">MY PANEL</h2>
@@ -613,7 +634,7 @@
         tg.setHeaderColor('#050505');
         tg.setBackgroundColor('#050505');
 
-        // --- PARTICLE SYSTEM با اصلاحات نهایی ---
+        // --- PARTICLE SYSTEM ---
         const canvas = document.getElementById('mainCanvas');
         const ctx = canvas.getContext('2d');
         let particles = [];
@@ -629,7 +650,7 @@
             constructor(type = 'ambient', x = Math.random() * canvas.width, y = Math.random() * canvas.height) {
                 this.x = x;
                 this.y = y;
-                this.size = Math.random() * 2 + 0.8; // اندازه متوسط برای انفجار و بارش
+                this.size = Math.random() * 2 + 0.8;
                 this.vx = (Math.random() - 0.5) * 1;
                 this.vy = (Math.random() - 0.5) * 1;
                 this.color = Math.random() > 0.4 ? 'rgba(212, 175, 55,' : 'rgba(255, 255, 255,'; 
@@ -676,7 +697,6 @@
             }
         }
 
-        // بازگشت ذرات معلق زیبا محیطی (300 تا با حرکت کیهانی)
         for (let i = 0; i < 300; i++) {
             const p = new Particle('ambient');
             p.size = Math.random() * 2.5 + 0.5;
@@ -752,15 +772,14 @@
             const centerX = rect.left + rect.width / 2;
             const centerY = rect.top + rect.height / 2;
 
-            // انفجار واقعی‌تر و پرتعدادتر (800 ذره با اندازه متوسط و نور قوی)
             for (let i = 0; i < 800; i++) {
                 const p = new Particle('explode', centerX, centerY);
                 const angle = Math.random() * Math.PI * 2;
                 const speed = Math.random() * 35 + 15;
                 p.vx = Math.cos(angle) * speed;
                 p.vy = Math.sin(angle) * speed;
-                p.size = Math.random() * 3 + 1; // اندازه متوسط
-                p.color = 'rgba(212, 175, 55,'; // طلایی
+                p.size = Math.random() * 3 + 1;
+                p.color = 'rgba(212, 175, 55,'; 
                 p.alpha = 1;
                 p.gravity = 0.2;
                 p.friction = 0.97;
@@ -779,7 +798,7 @@
                     s2.style.opacity = 1;
                     s2.style.transform = 'scale(1)';
 
-                    canvas.style.zIndex = '30'; // بارش جلوی کارت
+                    canvas.style.zIndex = '30';
 
                     let rainCount = 0;
                     const rainInterval = setInterval(() => {
@@ -787,8 +806,8 @@
                             const p = new Particle('rain', Math.random() * canvas.width, -40);
                             p.vx = (Math.random() - 0.5) * 4;
                             p.vy = Math.random() * 10 + 8;
-                            p.size = Math.random() * 2.5 + 1; // اندازه متوسط
-                            p.color = 'rgba(212, 175, 55,'; // طلایی
+                            p.size = Math.random() * 2.5 + 1;
+                            p.color = 'rgba(212, 175, 55,'; 
                             p.gravity = 0.4;
                             p.friction = 0.99;
                             particles.push(p);
