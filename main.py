@@ -11,7 +11,7 @@ from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import CommandStart, Command
-from aiogram.types import WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup, FSInputFile
+from aiogram.types import WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup, BufferedInputFile
 from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -181,11 +181,12 @@ async def manual_mint(user_id: int, plan: str, burden: str = "Emperor's Gift", p
     conn.commit()
     conn.close()
 
-    # ارسال تصویر به کاربر
+    # ارسال تصویر به کاربر با BufferedInputFile
     try:
+        photo_file = BufferedInputFile(image_bytes, filename="ascension.jpg")
         await bot.send_photo(
             chat_id=user_id,
-            photo=image_bytes,
+            photo=photo_file,
             caption=f"🌌 <b>Your {plan.upper()} Ascension is complete!</b>\n\n"
                     f"Burden: {burden}\n"
                     f"DNA: <code>{dna}</code>\n\n"
@@ -194,6 +195,8 @@ async def manual_mint(user_id: int, plan: str, burden: str = "Emperor's Gift", p
         )
     except Exception as e:
         logger.error(f"Failed to send photo to {user_id}: {e}")
+
+    return image_url, dna
 
 # --- پنل ادمین کامل ---
 class AdminStates(StatesGroup):
@@ -342,12 +345,13 @@ async def api_mint(request: Request):
             conn.close()
             return JSONResponse({"error": "No free mints left"}, status_code=403)
 
-        await manual_mint(user_id, plan, burden, photo_base64)
+        image_url, dna = await manual_mint(user_id, plan, burden, photo_base64)
 
         return JSONResponse({
             "status": "success",
             "message": "Ascension complete!",
-            "image_url": "latest.jpg"  # اپ می‌تونه از /api/gallery استفاده کنه یا رفرش کنه
+            "image_url": image_url,
+            "dna": dna
         })
 
     except Exception as e:
