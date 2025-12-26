@@ -127,13 +127,18 @@ async def generate_ai_image(prompt: str, init_image_base64: str):
         logger.error(f"HF Request failed: {e}")
     return None
 
-# --- FastAPI ---
+# --- تابع startup برای webhook ---
+async def on_startup(bot: Bot):
+    webhook_url = "https://the-void-1.onrender.com/webhook"
+    await bot.set_webhook(url=webhook_url)
+    logger.info(f"Webhook set to {webhook_url}")
+
+# --- FastAPI با Webhook ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await bot.delete_webhook(drop_pending_updates=True)
-    asyncio.create_task(dp.start_polling(bot))
-    logger.info("🌌 THE VOID IS FULLY ALIVE - BOT + SERVER + AI READY")
+    await on_startup(bot)
     yield
+    await bot.delete_webhook()
     await bot.session.close()
 
 app = FastAPI(lifespan=lifespan)
@@ -150,6 +155,13 @@ async def home():
     if os.path.exists(path):
         return FileResponse(path)
     return "<h1>🌌 THE VOID</h1><p>index.html missing in /static</p>"
+
+# --- Webhook endpoint ---
+@app.post("/webhook")
+async def webhook(request: Request):
+    update = types.Update(**await request.json())
+    await dp.feed_update(bot=bot, update=update)
+    return {"ok": True}
 
 # --- API مینت ---
 @app.post("/api/mint")
@@ -258,4 +270,4 @@ async def get_gallery(user_id: int):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", 8000)))
+    uvicorn.run("main:app", host="0.0.0.0", port=int(os.getenv("PORT", 8000)))
