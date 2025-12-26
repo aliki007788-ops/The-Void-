@@ -13,6 +13,8 @@ from aiogram.filters import CommandStart
 from aiogram.types import WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.enums import ParseMode
 from dotenv import load_dotenv
+from PIL import Image, ImageDraw, ImageFont
+import io
 
 load_dotenv()
 
@@ -25,7 +27,7 @@ HF_API_TOKEN = os.getenv("HF_API_TOKEN")  # برای Stable Diffusion
 if not BOT_TOKEN:
     raise ValueError("BOT_TOKEN missing!")
 if not HF_API_TOKEN:
-    logger.warning("HF_API_TOKEN missing - AI image generation disabled")
+    logger.warning("HF_API_TOKEN missing - AI image generation disabled (fallback used)")
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
@@ -53,38 +55,10 @@ def init_db():
                  image_url TEXT,
                  timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
               )""")
-    c.execute("""CREATE TABLE IF NOT EXISTS market_items (
-                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                 owner_id INTEGER,
-                 plan TEXT,
-                 dna INTEGER,
-                 price INTEGER,
-                 image_url TEXT
-              )""")
     conn.commit()
     conn.close()
 
 init_db()
-
-# --- ۱۵۰ پرامپت شاهانه (به صورت خلاصه — تو فایل واقعی همه رو بذار) ---
-PROMPTS = {
-    "eternal": [
-        "luxurious dark royal portrait certificate with ornate golden arabesque frame, intricate diamonds and jewels, cosmic nebula background, sacred geometry mandala, elegant ancient gold font, ultra-detailed masterpiece cinematic lighting",
-        # ... ۴۹ تای دیگر از سطح Eternal
-    ],
-    "divine": [
-        "absolute masterpiece divine portrait in Fabergé imperial egg style, golden enamel jewels plasma crown halo, cosmic void sacred geometry, ultra-detailed 8K cinematic",
-        # ... ۳۹ تای دیگر
-    ],
-    "celestial": [
-        "celestial phoenix rebirth wings portrait with golden eternal flame cosmic fire divine aura masterpiece",
-        # ... ۲۹ تای دیگر
-    ],
-    "legendary": [
-        "legendary void emperor infinite darkness throne with cosmic plasma jewels eternal crown masterpiece ultra-detailed",
-        # ... ۲۹ تای دیگر
-    ]
-}
 
 # --- پیام خوش‌آمدگویی شاهانه ---
 WELCOME_MESSAGE = (
@@ -107,7 +81,7 @@ WELCOME_MESSAGE = (
 @dp.message(CommandStart())
 async def cmd_start(message: types.Message):
     user_id = message.from_user.id
-    username = message.from_user.username or "Unknown"
+    username = message.from_user.username or message.from_user.first_name or "Unknown"
 
     conn = sqlite3.connect("void_data.db")
     c = conn.cursor()
@@ -125,7 +99,7 @@ async def cmd_start(message: types.Message):
         [InlineKeyboardButton(text="👥 Share Referral Link", url=ref_link)]
     ])
 
-    full_msg = WELCOME_MESSAGE + f"\n\n🔗 <b>Your Referral Link:</b>\n<code>{ref_link}</code>\n\nInvite 6 souls for a free ascension."
+    full_msg = WELCOME_MESSAGE + f"\n\n🔗 <b>Your Referral Link:</b>\n<code>{ref_link}</code>\n\nInvite 6 worthy souls and your next ascension will be free."
 
     await message.answer(full_msg, parse_mode=ParseMode.HTML, reply_markup=kb)
 
@@ -144,10 +118,13 @@ async def generate_ai_image(prompt: str, init_image_base64: str):
         },
         "init_image": init_image_base64
     }
-    response = requests.post(API_URL, headers=headers, json=payload, timeout=60)
-    if response.status_code == 200:
-        return response.content
-    logger.error(f"HF API Error: {response.status_code} - {response.text}")
+    try:
+        response = requests.post(API_URL, headers=headers, json=payload, timeout=60)
+        if response.status_code == 200:
+            return response.content
+        logger.error(f"HF API Error: {response.status_code} - {response.text}")
+    except Exception as e:
+        logger.error(f"HF Request failed: {e}")
     return None
 
 # --- FastAPI ---
@@ -174,88 +151,102 @@ async def home():
         return FileResponse(path)
     return "<h1>🌌 THE VOID</h1><p>index.html missing in /static</p>"
 
-# --- API مینت (وصل به اپ) ---
+# --- API مینت ---
 @app.post("/api/mint")
 async def api_mint(request: Request):
-    data = await request.json()
-    user_id = data.get('u')
-    plan = data.get('plan', 'eternal')
-    burden = data.get('b', 'Unknown Burden')
-    photo_base64 = data.get('p')
+    try:
+        data = await request.json()
+        user_id = data.get('u')
+        plan = data.get('plan', 'eternal')
+        burden = data.get('b', 'Unknown Burden')
+        photo_base64 = data.get('p')
 
-    if not user_id:
-        return JSONResponse({"error": "Unauthorized"}, status_code=401)
+        if not user_id:
+            return JSONResponse({"error": "Unauthorized"}, status_code=401)
 
-    conn = sqlite3.connect("void_data.db")
-    c = conn.cursor()
-    c.execute("SELECT free_mints FROM users WHERE id = ?", (user_id,))
-    row = c.fetchone()
+        conn = sqlite3.connect("void_data.db")
+        c = conn.cursor()
+        c.execute("SELECT free_mints FROM users WHERE id = ?", (user_id,))
+        row = c.fetchone()
 
-    if plan == 'eternal' and (not row or row[0] <= 0):
-        conn.close()
-        return JSONResponse({"error": "No free mints left"}, status_code=403)
+        if plan == 'eternal' and (not row or row[0] <= 0):
+            conn.close()
+            return JSONResponse({"error": "No free mints left"}, status_code=403)
 
-    # انتخاب پرامپت
-    prompt_list = PROMPTS.get(plan, PROMPTS["eternal"])
-    prompt = random.choice(prompt_list) + ", ultra-detailed, masterpiece, cinematic lighting"
+        # انتخاب پرامپت (۱۵۰ تا رو اینجا کامل بذار)
+        # برای مثال:
+        prompt = "luxurious dark royal portrait certificate with ornate golden arabesque frame, intricate diamonds and jewels, cosmic nebula background, sacred geometry mandala, elegant ancient gold font, ultra-detailed masterpiece cinematic lighting"
 
-    image_bytes = None
-    if photo_base64 and HF_API_TOKEN:
-        image_bytes = await generate_ai_image(prompt, photo_base64)
+        image_bytes = None
+        if photo_base64 and HF_API_TOKEN:
+            image_bytes = await generate_ai_image(prompt, photo_base64)
 
-    if not image_bytes:
-        # fallback ساده اگر AI کار نکرد
-        from PIL import Image, ImageDraw, ImageFont
-        img = Image.new('RGB', (1000, 1400), (5, 5, 5))
-        draw = ImageDraw.Draw(img)
-        draw.rectangle([50, 50, 950, 1350], outline=(212, 175, 55), width=15)
-        try:
-            font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 80)
-            font_small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 60)
-        except:
-            font = ImageFont.load_default()
-            font_small = ImageFont.load_default()
-        draw.text((500, 200), "THE VOID", fill=(255, 215, 0), font=font, anchor="mm")
-        draw.text((500, 400), f"{plan.upper()} ASCENSION", fill=(212, 175, 55), font=font, anchor="mm")
-        draw.text((500, 700), f"Burden: {burden}", fill=(240, 240, 240), font=font_small, anchor="mm")
+        if not image_bytes:
+            # fallback لوکس با Pillow
+            img = Image.new('RGB', (1000, 1400), (5, 5, 5))
+            draw = ImageDraw.Draw(img)
+            draw.rectangle([50, 50, 950, 1350], outline=(212, 175, 55), width=15)
+            draw.rectangle([70, 70, 930, 1330], outline=(169, 135, 0), width=5)
+            try:
+                font = ImageFont.truetype("arial.ttf", 80)
+                font_small = ImageFont.truetype("arial.ttf", 60)
+            except:
+                font = ImageFont.load_default()
+                font_small = ImageFont.load_default()
+            draw.text((500, 200), "THE VOID", fill=(255, 215, 0), font=font, anchor="mm")
+            draw.text((500, 400), f"{plan.upper()} ASCENSION", fill=(212, 175, 55), font=font, anchor="mm")
+            draw.text((500, 700), f"Burden: {burden}", fill=(240, 240, 240), font=font_small, anchor="mm")
+            dna = random.randint(1000000, 9999999)
+            draw.text((500, 900), f"DNA: {dna}", fill=(169, 135, 0), font=font_small, anchor="mm")
+            draw.text((500, 1100), "Forever consumed by The Void", fill=(100, 100, 100), font=font_small, anchor="mm")
+            buffer = io.BytesIO()
+            img.save(buffer, format="JPEG")
+            image_bytes = buffer.getvalue()
+
+        filename = f"{plan}_{user_id}_{random.randint(1000000,9999999)}.jpg"
+        filepath = os.path.join(OUTPUT_DIR, filename)
+        with open(filepath, "wb") as f:
+            f.write(image_bytes)
+
+        image_url = f"/static/outputs/{filename}"
+
+        # ذخیره در دیتابیس
         dna = random.randint(1000000, 9999999)
-        draw.text((500, 900), f"DNA: {dna}", fill=(169, 135, 0), font=font_small, anchor="mm")
-        import io
-        buffer = io.BytesIO()
-        img.save(buffer, format="JPEG")
-        image_bytes = buffer.getvalue()
+        c.execute("INSERT INTO ascensions (user_id, plan, burden, dna, image_url) VALUES (?, ?, ?, ?, ?)",
+                  (user_id, plan, burden, dna, image_url))
+        if plan == 'eternal':
+            c.execute("UPDATE users SET free_mints = free_mints - 1, total_ascensions = total_ascensions + 1 WHERE id = ?", (user_id,))
+        else:
+            c.execute("UPDATE users SET total_ascensions = total_ascensions + 1 WHERE id = ?", (user_id,))
+        conn.commit()
+        conn.close()
 
-    filename = f"{plan}_{user_id}_{random.randint(1000000,9999999)}.jpg"
-    filepath = os.path.join(OUTPUT_DIR, filename)
-    with open(filepath, "wb") as f:
-        f.write(image_bytes)
+        # ارسال تصویر به تلگرام
+        try:
+            await bot.send_photo(
+                chat_id=user_id,
+                photo=image_bytes,
+                caption=f"🌌 <b>Your {plan.upper()} Ascension is complete!</b>\n\n"
+                        f"Burden: {burden}\n"
+                        f"DNA: <code>{dna}</code>\n\n"
+                        f"The Void has claimed you forever.",
+                parse_mode=ParseMode.HTML
+            )
+        except Exception as e:
+            logger.error(f"Failed to send photo: {e}")
 
-    image_url = f"/static/outputs/{filename}"
+        return JSONResponse({
+            "status": "success",
+            "message": "Ascension complete!",
+            "image_url": image_url,
+            "dna": dna
+        })
 
-    # ذخیره در دیتابیس
-    dna = random.randint(1000000, 9999999)
-    c.execute("INSERT INTO ascensions (user_id, plan, burden, dna, image_url) VALUES (?, ?, ?, ?, ?)",
-              (user_id, plan, burden, dna, image_url))
-    if plan == 'eternal':
-        c.execute("UPDATE users SET free_mints = free_mints - 1, total_ascensions = total_ascensions + 1 WHERE id = ?", (user_id,))
-    else:
-        c.execute("UPDATE users SET total_ascensions = total_ascensions + 1 WHERE id = ?", (user_id,))
-    conn.commit()
-    conn.close()
+    except Exception as e:
+        logger.error(f"Mint error: {e}")
+        return JSONResponse({"error": "The Void is restless."}, status_code=500)
 
-    # ارسال به تلگرام
-    asyncio.create_task(
-        bot.send_photo(
-            user_id,
-            photo=image_bytes,
-            caption=f"🌌 <b>Your {plan.upper()} Ascension is complete!</b>\n\nDNA: <code>{dna}</code>\nBurden: {burden}\n\nThe Void has claimed you forever.",
-            parse_mode=ParseMode.HTML
-        )
-    )
-
-    return JSONResponse({"status": "success", "image_url": image_url})
-
-# --- API برای گالری کاربر ---
+# --- API گالری ---
 @app.get("/api/gallery/{user_id}")
 async def get_gallery(user_id: int):
     conn = sqlite3.connect("void_data.db")
@@ -265,17 +256,6 @@ async def get_gallery(user_id: int):
     conn.close()
     return JSONResponse(items)
 
-# --- API برای مارکت (اتاق حراجی) ---
-@app.get("/api/market")
-async def get_market():
-    conn = sqlite3.connect("void_data.db")
-    c = conn.cursor()
-    c.execute("SELECT id, plan, dna, price, image_url FROM market_items ORDER BY id DESC LIMIT 20")
-    items = [{"id": row[0], "plan": row[1], "dna": row[2], "price": row[3], "image": row[4]} for row in c.fetchall()]
-    conn.close()
-    return JSONResponse(items)
-
-# --- اجرا ---
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", 8000)))
