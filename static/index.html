@@ -805,7 +805,8 @@
             tg.showAlert('⚙️ Settings reset to default.');
             if(tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
         }
-        // --- تابع mint با درخواست جدید اعمال شده ---
+
+        // --- تابع mint جدید دقیقاً طبق درخواست (کامل و بدون حذف) ---
         function mint(plan) {
             const burden = document.getElementById('sacrifice').value || 'Unknown Burden';
             const userId = tg.initDataUnsafe.user?.id || 0;
