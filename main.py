@@ -8,130 +8,120 @@ from fastapi.staticfiles import StaticFiles
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import CommandStart
 from aiogram.types import WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup, FSInputFile
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
-# --- تنظیمات لاگ ---
+# --- پیکربندی لاگ ---
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# --- تنظیمات اصلی (توکن و آدرس خود را جایگزین کنید) ---
-API_TOKEN = "YOUR_BOT_TOKEN_HERE" 
+# --- تنظیمات توکن و آدرس ---
+# توکن را اینجا بگذارید. کد پایین هرگونه کاراکتر مخفی را پاک می‌کند.
+RAW_TOKEN = "YOUR_BOT_TOKEN_HERE" 
+API_TOKEN = "".join(RAW_TOKEN.split()) # حذف تمام فضاهای خالی و خطوط جدید
+
 WEBAPP_URL = "https://the-void-1.onrender.com"
 
+# --- مقداردهی اولیه ---
 app = FastAPI()
+
+# استفاده از Session برای جلوگیری از خطاهای اعتبارسنجی توکن در برخی محیط‌ها
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher()
 
-OUTPUT_DIR = "static/outputs"
+# مدیریت مسیرهای فایل
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+STATIC_DIR = os.path.join(BASE_DIR, "static")
+OUTPUT_DIR = os.path.join(STATIC_DIR, "outputs")
+
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-if os.path.exists("static"):
-    app.mount("/static", StaticFiles(directory="static"), name="static")
+if os.path.exists(STATIC_DIR):
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
-# --- تابع فورج کردن لوح طلایی (Pillow) ---
-def forge_golden_tablet(burden_text, dna, user_id):
-    # ایجاد یک بوم با کیفیت بالا
-    width, height = 1000, 1000
-    img = Image.new('RGB', (width, height), color=(2, 2, 2)) # مشکی مطلق
+# --- تولید آرتیفکت امپراطوری (Pillow) ---
+def forge_artifact(text, dna, user_id):
+    img = Image.new('RGB', (800, 800), color=(1, 1, 1))
     draw = ImageDraw.Draw(img)
+    gold_tone = (212, 175, 55)
     
-    # رسم کادرهای طلایی چندلایه برای حس امپراطوری
-    gold_color = (212, 175, 55)
-    draw.rectangle([30, 30, 970, 970], outline=gold_color, width=8)
-    draw.rectangle([50, 50, 950, 950], outline=gold_color, width=2)
+    # طراحی حاشیه سلطنتی
+    draw.rectangle([20, 20, 780, 780], outline=gold_tone, width=4)
+    draw.rectangle([40, 40, 760, 760], outline=gold_tone, width=1)
     
-    # متن آرتیفکت
-    content = f"THE VOID ASCENSION\n\nBURDEN:\n{burden_text.upper()}\n\nDNA: {dna}\nUSER: {user_id}"
+    content = f"THE VOID\n\nSOVEREIGN: {user_id}\nBURDEN: {text.upper()}\nDNA: {dna}"
+    draw.text((400, 400), content, fill=gold_tone, anchor="mm", align="center")
     
-    # در صورت وجود فونت، آن را بارگذاری کنید. در غیر این صورت از فونت پیش‌فرض استفاده می‌شود.
-    draw.text((width/2, height/2), content, fill=gold_color, anchor="mm", align="center")
-    
-    filename = f"user_{user_id}_art_{dna}.jpg"
+    filename = f"user_{user_id}_{dna}.jpg"
     filepath = os.path.join(OUTPUT_DIR, filename)
-    img.save(filepath, "JPEG", quality=95)
+    img.save(filepath, "JPEG", quality=90)
     return filepath, filename
 
-# --- بخش ربات تلگرام (با متن حماسی شما) ---
-
+# --- بخش ربات (پیام حماسی و دکمه ورود) ---
 @dp.message(CommandStart())
-async def start_handler(message: types.Message):
+async def cmd_start(message: types.Message):
     user_name = message.from_user.first_name
-    referral_link = f"https://t.me/your_bot_username?start={message.from_user.id}"
-    
-    # متن حماسی ارسالی شما
-    welcome_text = (
+    welcome_msg = (
         f"🌌 **Emperor {user_name.upper()}, the cosmos summons you...** 👑\n\n"
         "In the infinite depths of darkness, where stars have long faded and time itself has surrendered, "
         "**The Void** awaits your arrival — only the chosen few dare to ascend to immortality.\n\n"
         "Name your burden. Burn it in golden flames. And rise as the sovereign ruler of the eternal realm.\n\n"
-        "Each ascension grants you a unique, forever-irreplaceable certificate — forged in celestial gold, "
-        "bearing one of 30 rare imperial styles, and eternally tied to your soul.\n\n"
-        "Only the boldest spirits step forward. Are you one of them?\n\n"
         "🔱 **Enter The Void now and claim your eternal crown.**\n\n"
-        f"🔗 **Your Referral Link:** `{referral_link}`\n"
-        "(Invite 6 worthy souls, and your next ascension shall be free!)\n\n"
         "**The Void bows to no one... except you.**"
     )
     
-    kb = InlineKeyboardMarkup(inline_keyboard=[
+    markup = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🔱 ENTER THE VOID 🔱", web_app=WebAppInfo(url=WEBAPP_URL))]
     ])
-    
-    await message.answer(welcome_text, parse_mode="Markdown", reply_markup=kb)
+    await message.answer(welcome_msg, parse_mode="Markdown", reply_markup=markup)
 
-# --- API ENDPOINTS ---
-
+# --- API Endpoints ---
 @app.get("/", response_class=HTMLResponse)
-async def serve_index():
+async def home():
     return FileResponse("index.html")
 
 @app.get("/api/gallery/{user_id}")
-async def get_gallery(user_id: int):
-    user_images = []
+async def fetch_gallery(user_id: int):
+    results = []
     prefix = f"user_{user_id}_"
     if os.path.exists(OUTPUT_DIR):
         for f in os.listdir(OUTPUT_DIR):
             if f.startswith(prefix):
-                user_images.append({"url": f"/static/outputs/{f}", "dna": f.split('_')[-1].split('.')[0]})
-    user_images.sort(key=lambda x: x['dna'], reverse=True)
-    return {"images": user_images}
+                results.append({"url": f"/static/outputs/{f}", "dna": f.split('_')[-1].split('.')[0]})
+    return {"images": results[::-1]}
 
 @app.post("/api/mint")
-async def mint_api(request: Request):
-    try:
-        data = await request.json()
-        u_id = data.get('u')
-        burden = data.get('b', 'THE UNNAMED')
-        
-        dna = random.randint(1111111, 9999999)
-        filepath, filename = forge_golden_tablet(burden, dna, u_id)
-        
-        # ارسال فوری به تلگرام
-        async def send_tg():
-            try:
-                photo = FSInputFile(filepath)
-                await bot.send_photo(
-                    chat_id=u_id, 
-                    photo=photo, 
-                    caption=f"🔱 **THE VOID HAS SPOKEN** 🔱\n\nYour burden *{burden}* has been consumed.\nDNA: `{dna}`\n\nRise, Sovereign.",
-                    parse_mode="Markdown"
-                )
-            except Exception as e:
-                logging.error(f"TG Error: {e}")
+async def process_mint(request: Request):
+    payload = await request.json()
+    uid = payload.get('u')
+    text = payload.get('b', 'THE UNKNOWN')
+    code = random.randint(1000000, 9999999)
+    
+    path, fname = forge_artifact(text, code, uid)
+    
+    # ارسال ناهمگام به تلگرام
+    async def notify():
+        try:
+            await bot.send_photo(
+                chat_id=uid, 
+                photo=FSInputFile(path), 
+                caption=f"🔱 **ASCENSION SEALED**\nDNA: `{code}`\nBurden: {text}"
+            )
+        except Exception as e:
+            logger.error(f"TG Error: {e}")
 
-        asyncio.create_task(send_tg())
-        return {"status": "success", "dna": dna, "url": f"/static/outputs/{filename}"}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
+    asyncio.create_task(notify())
+    return {"status": "success", "url": f"/static/outputs/{fname}"}
 
-# --- STARTUP ---
-
+# --- چرخه حیات و مدیریت پورت Render ---
 @app.on_event("startup")
-async def on_startup():
+async def start_event():
+    # حذف وب‌هوک برای جلوگیری از تداخل
     await bot.delete_webhook(drop_pending_updates=True)
     asyncio.create_task(dp.start_polling(bot))
-    logging.info("THE VOID IS ACTIVE")
+    logger.info("THE VOID IS NOW ONLINE")
 
 if __name__ == "__main__":
     import uvicorn
+    # Render به صورت خودکار پورت را مدیریت می‌کند
     port = int(os.environ.get("PORT", 10000))
     uvicorn.run(app, host="0.0.0.0", port=port)
