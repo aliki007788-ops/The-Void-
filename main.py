@@ -26,8 +26,9 @@ logger = logging.getLogger(__name__)
 
 # --- تنظیمات ---
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-HF_API_TOKEN = os.getenv("HF_API_TOKEN")  # برای Stable Diffusion
-ADMIN_ID = int(os.getenv("ADMIN_ID", "0"))  # آیدی امپراتور
+HF_API_TOKEN = os.getenv("HF_API_TOKEN") # برای Stable Diffusion
+ADMIN_ID = int(os.getenv("ADMIN_ID", "0")) # آیدی امپراتور
+
 if not BOT_TOKEN:
     raise ValueError("BOT_TOKEN missing!")
 if not HF_API_TOKEN:
@@ -35,6 +36,14 @@ if not HF_API_TOKEN:
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
+
+# مهم: ثبت همه handlerها با متد register
+dp.message.register(cmd_start, CommandStart())
+dp.message.register(cmd_admin, Command("admin"))
+
+dp.callback_query.register(admin_mint_start, lambda c: c.data == "admin_mint_user")
+dp.callback_query.register(admin_select_plan, lambda c: c.data.startswith("plan_"))
+dp.callback_query.register(admin_reset_all, lambda c: c.data == "admin_reset_all")
 
 WEBAPP_URL = "https://the-void-1.onrender.com"
 HF_MODEL = "stabilityai/stable-diffusion-xl-base-1.0"
@@ -86,7 +95,6 @@ WELCOME_MESSAGE = (
 async def cmd_start(message: types.Message):
     user_id = message.from_user.id
     username = message.from_user.username or message.from_user.first_name or "Unknown"
-
     conn = sqlite3.connect("void_data.db")
     c = conn.cursor()
     c.execute("SELECT id FROM users WHERE id = ?", (user_id,))
@@ -94,19 +102,15 @@ async def cmd_start(message: types.Message):
         c.execute("INSERT INTO users (id, username) VALUES (?, ?)", (user_id, username))
         conn.commit()
     conn.close()
-
     bot_username = (await bot.get_me()).username
     ref_link = f"https://t.me/{bot_username}?start={user_id}"
     story_link = f"https://t.me/{bot_username}?startapp={user_id}"
-
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🌌 ENTER THE VOID", web_app=WebAppInfo(url=WEBAPP_URL))],
         [InlineKeyboardButton(text="👥 Share Referral Link", url=ref_link)],
         [InlineKeyboardButton(text="📱 Add to Story (Share App)", url=story_link)]
     ])
-
     full_msg = WELCOME_MESSAGE + f"\n\n🔗 <b>Your Referral Link:</b>\n<code>{ref_link}</code>\n\nInvite 6 worthy souls and your next ascension will be free."
-
     await message.answer(full_msg, parse_mode=ParseMode.HTML, reply_markup=kb)
 
 # --- تولید تصویر با Hugging Face Stable Diffusion img2img ---
@@ -137,13 +141,10 @@ async def generate_ai_image(prompt: str, init_image_base64: str):
 async def manual_mint(user_id: int, plan: str, burden: str = "Emperor's Gift", photo_base64: str = None):
     conn = sqlite3.connect("void_data.db")
     c = conn.cursor()
-
     prompt = "luxurious dark royal portrait certificate with ornate golden arabesque frame, intricate diamonds and jewels, cosmic nebula background, sacred geometry mandala, elegant ancient gold font, ultra-detailed masterpiece cinematic lighting"
-
     image_bytes = None
     if photo_base64 and HF_API_TOKEN:
         image_bytes = await generate_ai_image(prompt, photo_base64)
-
     if not image_bytes:
         # fallback لوکس با Pillow
         img = Image.new('RGB', (1000, 1400), (5, 5, 5))
@@ -165,14 +166,11 @@ async def manual_mint(user_id: int, plan: str, burden: str = "Emperor's Gift", p
         buffer = io.BytesIO()
         img.save(buffer, format="JPEG")
         image_bytes = buffer.getvalue()
-
     filename = f"{plan}_{user_id}_{random.randint(1000000,9999999)}.jpg"
     filepath = os.path.join(OUTPUT_DIR, filename)
     with open(filepath, "wb") as f:
         f.write(image_bytes)
-
     image_url = f"/static/outputs/{filename}"
-
     # ذخیره در دیتابیس
     dna = random.randint(1000000, 9999999)
     c.execute("INSERT INTO ascensions (user_id, plan, burden, dna, image_url) VALUES (?, ?, ?, ?, ?)",
@@ -180,7 +178,6 @@ async def manual_mint(user_id: int, plan: str, burden: str = "Emperor's Gift", p
     c.execute("UPDATE users SET total_ascensions = total_ascensions + 1 WHERE id = ?", (user_id,))
     conn.commit()
     conn.close()
-
     # ارسال تصویر به کاربر با BufferedInputFile
     try:
         photo_file = BufferedInputFile(image_bytes, filename="ascension.jpg")
@@ -195,7 +192,6 @@ async def manual_mint(user_id: int, plan: str, burden: str = "Emperor's Gift", p
         )
     except Exception as e:
         logger.error(f"Failed to send photo to {user_id}: {e}")
-
     return image_url, dna
 
 # --- پنل ادمین کامل ---
@@ -209,7 +205,7 @@ async def cmd_admin(message: types.Message):
     if message.from_user.id != ADMIN_ID:
         await message.answer("⚠️ The Void recognizes only its true Emperor.")
         return
-    
+   
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="👤 Mint for User", callback_data="admin_mint_user")],
         [InlineKeyboardButton(text="🔄 Reset All Free Mints", callback_data="admin_reset_all")]
@@ -254,12 +250,12 @@ async def admin_select_plan(callback: types.CallbackQuery, state: FSMContext):
 async def admin_mint_execute(message: types.Message, state: FSMContext):
     if message.from_user.id != ADMIN_ID:
         return
-    
+   
     data = await state.get_data()
     target_id = data['target_id']
     plan = data['plan']
     photo_base64 = None
-    
+   
     if message.photo:
         file_id = message.photo[-1].file_id
         file = await bot.get_file(file_id)
@@ -270,9 +266,8 @@ async def admin_mint_execute(message: types.Message, state: FSMContext):
     else:
         await message.answer("Please send a photo or /skip.")
         return
-
     await manual_mint(target_id, plan, "Emperor's Gift", photo_base64)
-    
+   
     await message.answer(f"✅ {plan.upper()} ascension granted to user {target_id}!")
     await state.clear()
 
@@ -290,15 +285,12 @@ async def admin_reset_all(callback: types.CallbackQuery):
 # --- FastAPI با Webhook ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # اول وب‌هوک قبلی رو پاک کن
     await bot.delete_webhook(drop_pending_updates=True)
-    # بعد وب‌هوک جدید رو ست کن
     webhook_url = "https://the-void-1.onrender.com/webhook"
     await bot.set_webhook(url=webhook_url)
     logger.info(f"Webhook successfully set to {webhook_url}")
     yield
-    # در پایان، وب‌هوک رو پاک کن
-    await bot.delete_webhook()
+    await bot.delete_webhook(drop_pending_updates=True)
     await bot.session.close()
 
 app = FastAPI(lifespan=lifespan)
@@ -307,6 +299,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 OUTPUT_DIR = os.path.join(STATIC_DIR, "outputs")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
+
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 @app.get("/", response_class=HTMLResponse)
@@ -316,11 +309,14 @@ async def home():
         return FileResponse(path)
     return "<h1>🌌 THE VOID</h1><p>index.html missing in /static</p>"
 
-# --- Webhook endpoint ---
+# --- Webhook endpoint (دقیقاً طبق درخواست) ---
 @app.post("/webhook")
 async def webhook(request: Request):
-    update = types.Update(**await request.json())
-    await dp.feed_update(bot=bot, update=update)
+    try:
+        update = types.Update(**await request.json())
+        await dp.feed_update(bot=bot, update=update)
+    except Exception as e:
+        logger.error(f"Webhook error: {e}")
     return {"ok": True}
 
 # --- API مینت ---
@@ -332,28 +328,22 @@ async def api_mint(request: Request):
         plan = data.get('plan', 'eternal')
         burden = data.get('b', 'Unknown Burden')
         photo_base64 = data.get('p')
-
         if not user_id:
             return JSONResponse({"error": "Unauthorized"}, status_code=401)
-
         conn = sqlite3.connect("void_data.db")
         c = conn.cursor()
         c.execute("SELECT free_mints FROM users WHERE id = ?", (user_id,))
         row = c.fetchone()
-
         if plan == 'eternal' and (not row or row[0] <= 0):
             conn.close()
             return JSONResponse({"error": "No free mints left"}, status_code=403)
-
         image_url, dna = await manual_mint(user_id, plan, burden, photo_base64)
-
         return JSONResponse({
             "status": "success",
             "message": "Ascension complete!",
             "image_url": image_url,
             "dna": dna
         })
-
     except Exception as e:
         logger.error(f"Mint error: {e}")
         return JSONResponse({"error": "The Void is restless."}, status_code=500)
