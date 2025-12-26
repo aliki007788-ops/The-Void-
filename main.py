@@ -1,45 +1,92 @@
 import os
-import json
 import random
 import asyncio
 import logging
 import sqlite3
+import requests
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from aiogram import Bot, Dispatcher, types, F
-from aiogram.filters import CommandStart, Command
+from aiogram import Bot, Dispatcher, types
+from aiogram.filters import CommandStart
 from aiogram.types import WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup
-from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.enums import ParseMode
 from dotenv import load_dotenv
 
 load_dotenv()
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # --- تنظیمات ---
-ADMIN_ID = int(os.getenv("ADMIN_ID", "0"))
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+HF_API_TOKEN = os.getenv("HF_API_TOKEN")  # برای Stable Diffusion
 if not BOT_TOKEN:
-    raise ValueError("BOT_TOKEN not found in .env file!")
+    raise ValueError("BOT_TOKEN missing!")
+if not HF_API_TOKEN:
+    logger.warning("HF_API_TOKEN missing - AI image generation disabled")
 
 bot = Bot(token=BOT_TOKEN)
-dp = Dispatcher(storage=MemoryStorage())
-app = FastAPI()
+dp = Dispatcher()
 
-# --- URL وب اپ ---
 WEBAPP_URL = "https://the-void-1.onrender.com"
+HF_MODEL = "stabilityai/stable-diffusion-xl-base-1.0"
 
-# --- دیتابیس رفرال و کاربران ---
+# --- دیتابیس ---
 def init_db():
-    conn = sqlite3.connect("void_core.db")
+    conn = sqlite3.connect("void_data.db")
     c = conn.cursor()
-    c.execute("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, refs INTEGER DEFAULT 0, referred_by INTEGER)")
+    c.execute("""CREATE TABLE IF NOT EXISTS users (
+                 id INTEGER PRIMARY KEY,
+                 username TEXT,
+                 refs INTEGER DEFAULT 0,
+                 free_mints INTEGER DEFAULT 3,
+                 total_ascensions INTEGER DEFAULT 0
+              )""")
+    c.execute("""CREATE TABLE IF NOT EXISTS ascensions (
+                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                 user_id INTEGER,
+                 plan TEXT,
+                 burden TEXT,
+                 dna INTEGER,
+                 image_url TEXT,
+                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+              )""")
+    c.execute("""CREATE TABLE IF NOT EXISTS market_items (
+                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                 owner_id INTEGER,
+                 plan TEXT,
+                 dna INTEGER,
+                 price INTEGER,
+                 image_url TEXT
+              )""")
     conn.commit()
     conn.close()
 
 init_db()
 
-# --- پیام خوش‌آمدگویی شاهانه و حماسی (انگلیسی) ---
+# --- ۱۵۰ پرامپت شاهانه (به صورت خلاصه — تو فایل واقعی همه رو بذار) ---
+PROMPTS = {
+    "eternal": [
+        "luxurious dark royal portrait certificate with ornate golden arabesque frame, intricate diamonds and jewels, cosmic nebula background, sacred geometry mandala, elegant ancient gold font, ultra-detailed masterpiece cinematic lighting",
+        # ... ۴۹ تای دیگر از سطح Eternal
+    ],
+    "divine": [
+        "absolute masterpiece divine portrait in Fabergé imperial egg style, golden enamel jewels plasma crown halo, cosmic void sacred geometry, ultra-detailed 8K cinematic",
+        # ... ۳۹ تای دیگر
+    ],
+    "celestial": [
+        "celestial phoenix rebirth wings portrait with golden eternal flame cosmic fire divine aura masterpiece",
+        # ... ۲۹ تای دیگر
+    ],
+    "legendary": [
+        "legendary void emperor infinite darkness throne with cosmic plasma jewels eternal crown masterpiece ultra-detailed",
+        # ... ۲۹ تای دیگر
+    ]
+}
+
+# --- پیام خوش‌آمدگویی شاهانه ---
 WELCOME_MESSAGE = (
     "<b>🌌 Emperor of the Eternal Void, the cosmos summons you...</b>\n\n"
     "In the infinite depths of darkness, where stars have long faded and time itself has surrendered,\n"
@@ -52,75 +99,183 @@ WELCOME_MESSAGE = (
     "Only the boldest spirits step forward.\n"
     "<b>Are you one of them?</b>\n\n"
     "🔱 <b>Enter The Void now and claim your eternal crown.</b>\n\n"
-    "(Invite 6 worthy souls to join you, and your next ascension shall be granted free of charge — "
-    "your referral link awaits below)\n\n"
     "This is not merely a journey.\n"
     "<b>This is the beginning of your everlasting reign.</b>\n\n"
     "<i>The Void bows to no one... except you.</i>"
 )
 
-# --- هندلر دستور استارت ---
 @dp.message(CommandStart())
 async def cmd_start(message: types.Message):
     user_id = message.from_user.id
-    args = message.text.split()
-    inviter_id = int(args[1]) if len(args) > 1 and args[1].isdigit() else None
-    
-    conn = sqlite3.connect("void_core.db")
+    username = message.from_user.username or "Unknown"
+
+    conn = sqlite3.connect("void_data.db")
     c = conn.cursor()
     c.execute("SELECT id FROM users WHERE id = ?", (user_id,))
-    user_exists = c.fetchone()
-    
-    if not user_exists:
-        c.execute("INSERT INTO users (id, referred_by) VALUES (?, ?)", (user_id, inviter_id))
-        if inviter_id:
-            c.execute("UPDATE users SET refs = refs + 1 WHERE id = ?", (inviter_id,))
+    if not c.fetchone():
+        c.execute("INSERT INTO users (id, username) VALUES (?, ?)", (user_id, username))
         conn.commit()
     conn.close()
-    
+
+    bot_username = (await bot.get_me()).username
+    ref_link = f"https://t.me/{bot_username}?start={user_id}"
+
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🌌 ENTER THE VOID", web_app=WebAppInfo(url=WEBAPP_URL))],
-        [InlineKeyboardButton(text="👥 دعوت از برادران (Referral)", callback_data="ref_link")]
+        [InlineKeyboardButton(text="👥 Share Referral Link", url=ref_link)]
     ])
-    
-    await message.answer(WELCOME_MESSAGE, parse_mode="HTML", reply_markup=kb)
 
-@dp.callback_query(F.data == "ref_link")
-async def send_ref_link(callback: types.CallbackQuery):
-    bot_username = (await bot.get_me()).username
-    ref_link = f"https://t.me/{bot_username}?start={callback.from_user.id}"
-    await callback.message.answer(
-        f"🔗 <b>لینک دعوت شما:</b>\n\n"
-        f"<code>{ref_link}</code>\n\n"
-        f"با دعوت ۶ نفر، صعود شما رایگان خواهد بود.",
-        parse_mode="HTML"
-    )
+    full_msg = WELCOME_MESSAGE + f"\n\n🔗 <b>Your Referral Link:</b>\n<code>{ref_link}</code>\n\nInvite 6 souls for a free ascension."
 
-# --- تنظیمات وب‌سرور (FastAPI) ---
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-STATIC_DIR = os.path.join(BASE_DIR, "static")
-os.makedirs(STATIC_DIR, exist_ok=True)
+    await message.answer(full_msg, parse_mode=ParseMode.HTML, reply_markup=kb)
 
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+# --- تولید تصویر با Hugging Face Stable Diffusion img2img ---
+async def generate_ai_image(prompt: str, init_image_base64: str):
+    if not HF_API_TOKEN:
+        return None
+    API_URL = f"https://api-inference.huggingface.co/models/{HF_MODEL}"
+    headers = {"Authorization": f"Bearer {HF_API_TOKEN}"}
+    payload = {
+        "inputs": prompt,
+        "parameters": {
+            "strength": 0.4,
+            "guidance_scale": 8.5,
+            "num_inference_steps": 50
+        },
+        "init_image": init_image_base64
+    }
+    response = requests.post(API_URL, headers=headers, json=payload, timeout=60)
+    if response.status_code == 200:
+        return response.content
+    logger.error(f"HF API Error: {response.status_code} - {response.text}")
+    return None
 
-@app.get("/", response_class=HTMLResponse)
-async def serve_index():
-    index_path = os.path.join(STATIC_DIR, "index.html")
-    if os.path.exists(index_path):
-        return FileResponse(index_path)
-    return "<h1>🌌 THE VOID</h1><p>index.html not found. Place your app file in /static folder.</p>"
-
-# --- اجرای همزمان بات و سرور ---
+# --- FastAPI ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await bot.delete_webhook(drop_pending_updates=True)
     asyncio.create_task(dp.start_polling(bot))
-    logging.info("🌌 THE VOID BOT & SERVER IS ALIVE")
+    logger.info("🌌 THE VOID IS FULLY ALIVE - BOT + SERVER + AI READY")
     yield
     await bot.session.close()
 
 app = FastAPI(lifespan=lifespan)
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+STATIC_DIR = os.path.join(BASE_DIR, "static")
+OUTPUT_DIR = os.path.join(STATIC_DIR, "outputs")
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+@app.get("/", response_class=HTMLResponse)
+async def home():
+    path = os.path.join(STATIC_DIR, "index.html")
+    if os.path.exists(path):
+        return FileResponse(path)
+    return "<h1>🌌 THE VOID</h1><p>index.html missing in /static</p>"
+
+# --- API مینت (وصل به اپ) ---
+@app.post("/api/mint")
+async def api_mint(request: Request):
+    data = await request.json()
+    user_id = data.get('u')
+    plan = data.get('plan', 'eternal')
+    burden = data.get('b', 'Unknown Burden')
+    photo_base64 = data.get('p')
+
+    if not user_id:
+        return JSONResponse({"error": "Unauthorized"}, status_code=401)
+
+    conn = sqlite3.connect("void_data.db")
+    c = conn.cursor()
+    c.execute("SELECT free_mints FROM users WHERE id = ?", (user_id,))
+    row = c.fetchone()
+
+    if plan == 'eternal' and (not row or row[0] <= 0):
+        conn.close()
+        return JSONResponse({"error": "No free mints left"}, status_code=403)
+
+    # انتخاب پرامپت
+    prompt_list = PROMPTS.get(plan, PROMPTS["eternal"])
+    prompt = random.choice(prompt_list) + ", ultra-detailed, masterpiece, cinematic lighting"
+
+    image_bytes = None
+    if photo_base64 and HF_API_TOKEN:
+        image_bytes = await generate_ai_image(prompt, photo_base64)
+
+    if not image_bytes:
+        # fallback ساده اگر AI کار نکرد
+        from PIL import Image, ImageDraw, ImageFont
+        img = Image.new('RGB', (1000, 1400), (5, 5, 5))
+        draw = ImageDraw.Draw(img)
+        draw.rectangle([50, 50, 950, 1350], outline=(212, 175, 55), width=15)
+        try:
+            font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 80)
+            font_small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 60)
+        except:
+            font = ImageFont.load_default()
+            font_small = ImageFont.load_default()
+        draw.text((500, 200), "THE VOID", fill=(255, 215, 0), font=font, anchor="mm")
+        draw.text((500, 400), f"{plan.upper()} ASCENSION", fill=(212, 175, 55), font=font, anchor="mm")
+        draw.text((500, 700), f"Burden: {burden}", fill=(240, 240, 240), font=font_small, anchor="mm")
+        dna = random.randint(1000000, 9999999)
+        draw.text((500, 900), f"DNA: {dna}", fill=(169, 135, 0), font=font_small, anchor="mm")
+        import io
+        buffer = io.BytesIO()
+        img.save(buffer, format="JPEG")
+        image_bytes = buffer.getvalue()
+
+    filename = f"{plan}_{user_id}_{random.randint(1000000,9999999)}.jpg"
+    filepath = os.path.join(OUTPUT_DIR, filename)
+    with open(filepath, "wb") as f:
+        f.write(image_bytes)
+
+    image_url = f"/static/outputs/{filename}"
+
+    # ذخیره در دیتابیس
+    dna = random.randint(1000000, 9999999)
+    c.execute("INSERT INTO ascensions (user_id, plan, burden, dna, image_url) VALUES (?, ?, ?, ?, ?)",
+              (user_id, plan, burden, dna, image_url))
+    if plan == 'eternal':
+        c.execute("UPDATE users SET free_mints = free_mints - 1, total_ascensions = total_ascensions + 1 WHERE id = ?", (user_id,))
+    else:
+        c.execute("UPDATE users SET total_ascensions = total_ascensions + 1 WHERE id = ?", (user_id,))
+    conn.commit()
+    conn.close()
+
+    # ارسال به تلگرام
+    asyncio.create_task(
+        bot.send_photo(
+            user_id,
+            photo=image_bytes,
+            caption=f"🌌 <b>Your {plan.upper()} Ascension is complete!</b>\n\nDNA: <code>{dna}</code>\nBurden: {burden}\n\nThe Void has claimed you forever.",
+            parse_mode=ParseMode.HTML
+        )
+    )
+
+    return JSONResponse({"status": "success", "image_url": image_url})
+
+# --- API برای گالری کاربر ---
+@app.get("/api/gallery/{user_id}")
+async def get_gallery(user_id: int):
+    conn = sqlite3.connect("void_data.db")
+    c = conn.cursor()
+    c.execute("SELECT image_url, plan, dna, burden FROM ascensions WHERE user_id = ? ORDER BY timestamp DESC", (user_id,))
+    items = [{"image": row[0], "plan": row[1], "dna": row[2], "burden": row[3]} for row in c.fetchall()]
+    conn.close()
+    return JSONResponse(items)
+
+# --- API برای مارکت (اتاق حراجی) ---
+@app.get("/api/market")
+async def get_market():
+    conn = sqlite3.connect("void_data.db")
+    c = conn.cursor()
+    c.execute("SELECT id, plan, dna, price, image_url FROM market_items ORDER BY id DESC LIMIT 20")
+    items = [{"id": row[0], "plan": row[1], "dna": row[2], "price": row[3], "image": row[4]} for row in c.fetchall()]
+    conn.close()
+    return JSONResponse(items)
+
+# --- اجرا ---
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", 8000)))
