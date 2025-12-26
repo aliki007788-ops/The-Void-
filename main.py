@@ -23,16 +23,7 @@ WEBAPP_URL = "https://the-void-1.onrender.com"
 bot = Bot(token="".join(API_TOKEN.split()))
 dp = Dispatcher()
 
-# ۴. پیدا کردن مسیر دقیق فایل‌ها (بسیار مهم برای Render)
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-# این خط مسیر دقیق فایل index.html را می‌سازد
-INDEX_PATH = os.path.join(BASE_DIR, "index.html")
-STATIC_DIR = os.path.join(BASE_DIR, "static")
-OUTPUT_DIR = os.path.join(STATIC_DIR, "outputs")
-
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-
-# --- پیام خوش‌آمدگویی حماسی کامل ---
+# ۴. پیام خوش‌آمدگویی حماسی با متن کامل شما
 @dp.message(CommandStart())
 async def cmd_start(message: types.Message):
     user_name = message.from_user.first_name
@@ -41,7 +32,11 @@ async def cmd_start(message: types.Message):
         "In the infinite depths of darkness, where stars have long faded and time itself has surrendered, "
         "**The Void** awaits your arrival — only the chosen few dare to ascend to immortality.\n\n"
         "Name your burden. Burn it in golden flames. And rise as the sovereign ruler of the eternal realm.\n\n"
+        "Each ascension grants you a unique, forever-irreplaceable certificate — forged in celestial gold, "
+        "sealed with the light of dead stars, bearing one of 30 rare imperial styles, and eternally tied to your soul.\n\n"
+        "Only the boldest spirits step forward. Are you one of them?\n"
         "🔱 **Enter The Void now and claim your eternal crown.**\n\n"
+        "This is not merely a journey. This is the beginning of your everlasting reign.\n"
         "**The Void bows to no one... except you.**"
     )
     markup = InlineKeyboardMarkup(inline_keyboard=[
@@ -49,59 +44,65 @@ async def cmd_start(message: types.Message):
     ])
     await message.answer(welcome_text, parse_mode="Markdown", reply_markup=markup)
 
-# --- مدیریت چرخه حیات سرور ---
+# --- مدیریت چرخه حیات ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    try:
-        await bot.delete_webhook(drop_pending_updates=True)
-        asyncio.create_task(dp.start_polling(bot))
-        logger.info(f"✅ THE VOID IS ONLINE. Index Path: {INDEX_PATH}")
-    except Exception as e:
-        logger.error(f"❌ Bot Startup Error: {e}")
+    await bot.delete_webhook(drop_pending_updates=True)
+    asyncio.create_task(dp.start_polling(bot))
+    logger.info("✅ THE VOID IS READY")
     yield
     await bot.session.close()
 
 app = FastAPI(lifespan=lifespan)
 
-# ۵. سرو کردن فایل‌های استاتیک
+# ۵. پیدا کردن خودکار مسیرها
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+STATIC_DIR = os.path.join(BASE_DIR, "static")
+OUTPUT_DIR = os.path.join(STATIC_DIR, "outputs")
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+
 if os.path.exists(STATIC_DIR):
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
-# مسیر اصلی مینی‌اپ با چک کردن وجود فایل
+# ۶. مسیر اصلی با قابلیت "خود-ترمیمی"
 @app.get("/", response_class=HTMLResponse)
 async def home():
-    if os.path.exists(INDEX_PATH):
-        return FileResponse(INDEX_PATH)
-    else:
-        # اگر باز هم پیدا نشد، لیست فایل‌های موجود در پوشه را در لاگ چاپ می‌کند تا بفهمیم مشکل کجاست
-        files_in_dir = os.listdir(BASE_DIR)
-        logger.error(f"❌ index.html not found! Files present: {files_in_dir}")
-        return HTMLResponse(content=f"Error: index.html not found at {INDEX_PATH}", status_code=404)
+    # لیست تمام مسیرهای احتمالی که ممکن است index.html آنجا باشد
+    possible_paths = [
+        os.path.join(BASE_DIR, "index.html"),
+        os.path.join(BASE_DIR, "static", "index.html"),
+        "index.html"
+    ]
+    
+    for path in possible_paths:
+        if os.path.exists(path):
+            return FileResponse(path)
+    
+    # اگر فایل اصلاً پیدا نشد، یک صفحه موقت نشان بده تا سایت کرش نکند
+    logger.error(f"❌ index.html NOT FOUND. Searched: {possible_paths}")
+    return """
+    <html>
+        <body style="background:#000;color:#d4af37;text-align:center;padding-top:100px;font-family:serif;">
+            <h1>🔱 THE VOID 🔱</h1>
+            <p>The gateway (index.html) is missing from the server.</p>
+            <p>Please ensure index.html is in the root folder.</p>
+        </body>
+    </html>
+    """
 
-# --- API های مورد نیاز مینی‌اپ ---
-
-@app.get("/api/gallery/{user_id}")
-async def fetch_gallery(user_id: int):
-    results = []
-    prefix = f"user_{user_id}_"
-    if os.path.exists(OUTPUT_DIR):
-        for f in os.listdir(OUTPUT_DIR):
-            if f.startswith(prefix):
-                results.append({"url": f"/static/outputs/{f}", "dna": f.split('_')[-1].split('.')[0]})
-    return {"images": results[::-1]}
-
+# --- API MINT ---
 @app.post("/api/mint")
 async def process_mint(request: Request):
     data = await request.json()
     uid = data.get('u')
-    burden = data.get('b', 'THE UNNAMED')
+    burden = data.get('b', 'UNNAMED')
     dna = random.randint(1000000, 9999999)
     
-    # تولید تصویر لوح طلایی
+    # ساخت تصویر
     img = Image.new('RGB', (800, 800), color=(5, 5, 5))
     draw = ImageDraw.Draw(img)
     draw.rectangle([20, 20, 780, 780], outline=(212, 175, 55), width=5)
-    draw.text((400, 400), f"ARTIFACT: {burden}\nDNA: {dna}", fill=(212, 175, 55), anchor="mm", align="center")
+    draw.text((400, 400), f"ARTIFACT: {burden}\nDNA: {dna}", fill=(212, 175, 55), anchor="mm")
     
     fname = f"user_{uid}_{dna}.jpg"
     fpath = os.path.join(OUTPUT_DIR, fname)
@@ -109,14 +110,12 @@ async def process_mint(request: Request):
     
     async def send_tg():
         try:
-            await bot.send_photo(chat_id=uid, photo=FSInputFile(fpath), 
-                                 caption=f"🔱 **ASCENSION SEALED**\nDNA: `{dna}`")
-        except Exception as e: logger.error(f"TG Send Error: {e}")
+            await bot.send_photo(chat_id=uid, photo=FSInputFile(fpath), caption=f"🔱 DNA: `{dna}`")
+        except: pass
 
     asyncio.create_task(send_tg())
     return {"status": "success", "url": f"/static/outputs/{fname}"}
 
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.environ.get("PORT", 10000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
