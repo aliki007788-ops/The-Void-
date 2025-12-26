@@ -127,17 +127,17 @@ async def generate_ai_image(prompt: str, init_image_base64: str):
         logger.error(f"HF Request failed: {e}")
     return None
 
-# --- تابع startup برای webhook ---
-async def on_startup(bot: Bot):
-    webhook_url = "https://the-void-1.onrender.com/webhook"
-    await bot.set_webhook(url=webhook_url)
-    logger.info(f"Webhook set to {webhook_url}")
-
 # --- FastAPI با Webhook ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await on_startup(bot)
+    # اول وب‌هوک قبلی رو پاک کن
+    await bot.delete_webhook(drop_pending_updates=True)
+    # بعد وب‌هوک جدید رو ست کن
+    webhook_url = "https://the-void-1.onrender.com/webhook"
+    await bot.set_webhook(url=webhook_url)
+    logger.info(f"Webhook successfully set to {webhook_url}")
     yield
+    # در پایان، وب‌هوک رو پاک کن
     await bot.delete_webhook()
     await bot.session.close()
 
