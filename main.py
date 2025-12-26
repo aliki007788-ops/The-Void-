@@ -1,121 +1,126 @@
 import os
+import json
 import random
 import asyncio
 import logging
+import sqlite3
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
-from aiogram import Bot, Dispatcher, types
-from aiogram.filters import CommandStart
-from aiogram.types import WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup, FSInputFile
-from PIL import Image, ImageDraw
+from aiogram import Bot, Dispatcher, types, F
+from aiogram.filters import CommandStart, Command
+from aiogram.types import WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.fsm.storage.memory import MemoryStorage
+from dotenv import load_dotenv
 
-# ۱. تنظیمات لاگ
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+load_dotenv()
 
-# ۲. تنظیمات توکن و URL
-API_TOKEN = os.getenv("BOT_TOKEN", "YOUR_BOT_TOKEN_HERE")
+# --- تنظیمات ---
+ADMIN_ID = int(os.getenv("ADMIN_ID", "0"))
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+if not BOT_TOKEN:
+    raise ValueError("BOT_TOKEN not found in .env file!")
+
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher(storage=MemoryStorage())
+app = FastAPI()
+
+# --- URL وب اپ ---
 WEBAPP_URL = "https://the-void-1.onrender.com"
 
-# ۳. مقداردهی اولیه بوت
-bot = Bot(token="".join(API_TOKEN.split()))
-dp = Dispatcher()
+# --- دیتابیس رفرال و کاربران ---
+def init_db():
+    conn = sqlite3.connect("void_core.db")
+    c = conn.cursor()
+    c.execute("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, refs INTEGER DEFAULT 0, referred_by INTEGER)")
+    conn.commit()
+    conn.close()
 
-# ۴. پیام خوش‌آمدگویی حماسی با متن کامل شما
+init_db()
+
+# --- پیام خوش‌آمدگویی شاهانه و حماسی (انگلیسی) ---
+WELCOME_MESSAGE = (
+    "<b>🌌 Emperor of the Eternal Void, the cosmos summons you...</b>\n\n"
+    "In the infinite depths of darkness, where stars have long faded and time itself has surrendered,\n"
+    "<b>The Void</b> awaits your arrival — only the chosen few dare to ascend to immortality.\n\n"
+    "Name your burden.\n"
+    "Burn it in golden flames.\n"
+    "And rise as the sovereign ruler of the eternal realm.\n\n"
+    "Each ascension grants you a unique, forever-irreplaceable certificate — forged in celestial gold, "
+    "sealed with the light of dead stars, bearing one of 30 rare imperial styles, and eternally tied to your soul.\n\n"
+    "Only the boldest spirits step forward.\n"
+    "<b>Are you one of them?</b>\n\n"
+    "🔱 <b>Enter The Void now and claim your eternal crown.</b>\n\n"
+    "(Invite 6 worthy souls to join you, and your next ascension shall be granted free of charge — "
+    "your referral link awaits below)\n\n"
+    "This is not merely a journey.\n"
+    "<b>This is the beginning of your everlasting reign.</b>\n\n"
+    "<i>The Void bows to no one... except you.</i>"
+)
+
+# --- هندلر دستور استارت ---
 @dp.message(CommandStart())
 async def cmd_start(message: types.Message):
-    user_name = message.from_user.first_name
-    welcome_text = (
-        f"🌌 **Emperor {user_name.upper()}, the cosmos summons you...** 👑\n\n"
-        "In the infinite depths of darkness, where stars have long faded and time itself has surrendered, "
-        "**The Void** awaits your arrival — only the chosen few dare to ascend to immortality.\n\n"
-        "Name your burden. Burn it in golden flames. And rise as the sovereign ruler of the eternal realm.\n\n"
-        "Each ascension grants you a unique, forever-irreplaceable certificate — forged in celestial gold, "
-        "sealed with the light of dead stars, bearing one of 30 rare imperial styles, and eternally tied to your soul.\n\n"
-        "Only the boldest spirits step forward. Are you one of them?\n"
-        "🔱 **Enter The Void now and claim your eternal crown.**\n\n"
-        "This is not merely a journey. This is the beginning of your everlasting reign.\n"
-        "**The Void bows to no one... except you.**"
-    )
-    markup = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🔱 ENTER THE VOID 🔱", web_app=WebAppInfo(url=WEBAPP_URL))]
+    user_id = message.from_user.id
+    args = message.text.split()
+    inviter_id = int(args[1]) if len(args) > 1 and args[1].isdigit() else None
+    
+    conn = sqlite3.connect("void_core.db")
+    c = conn.cursor()
+    c.execute("SELECT id FROM users WHERE id = ?", (user_id,))
+    user_exists = c.fetchone()
+    
+    if not user_exists:
+        c.execute("INSERT INTO users (id, referred_by) VALUES (?, ?)", (user_id, inviter_id))
+        if inviter_id:
+            c.execute("UPDATE users SET refs = refs + 1 WHERE id = ?", (inviter_id,))
+        conn.commit()
+    conn.close()
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🌌 ENTER THE VOID", web_app=WebAppInfo(url=WEBAPP_URL))],
+        [InlineKeyboardButton(text="👥 دعوت از برادران (Referral)", callback_data="ref_link")]
     ])
-    await message.answer(welcome_text, parse_mode="Markdown", reply_markup=markup)
+    
+    await message.answer(WELCOME_MESSAGE, parse_mode="HTML", reply_markup=kb)
 
-# --- مدیریت چرخه حیات ---
+@dp.callback_query(F.data == "ref_link")
+async def send_ref_link(callback: types.CallbackQuery):
+    bot_username = (await bot.get_me()).username
+    ref_link = f"https://t.me/{bot_username}?start={callback.from_user.id}"
+    await callback.message.answer(
+        f"🔗 <b>لینک دعوت شما:</b>\n\n"
+        f"<code>{ref_link}</code>\n\n"
+        f"با دعوت ۶ نفر، صعود شما رایگان خواهد بود.",
+        parse_mode="HTML"
+    )
+
+# --- تنظیمات وب‌سرور (FastAPI) ---
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+STATIC_DIR = os.path.join(BASE_DIR, "static")
+os.makedirs(STATIC_DIR, exist_ok=True)
+
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+@app.get("/", response_class=HTMLResponse)
+async def serve_index():
+    index_path = os.path.join(STATIC_DIR, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return "<h1>🌌 THE VOID</h1><p>index.html not found. Place your app file in /static folder.</p>"
+
+# --- اجرای همزمان بات و سرور ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await bot.delete_webhook(drop_pending_updates=True)
     asyncio.create_task(dp.start_polling(bot))
-    logger.info("✅ THE VOID IS READY")
+    logging.info("🌌 THE VOID BOT & SERVER IS ALIVE")
     yield
     await bot.session.close()
 
 app = FastAPI(lifespan=lifespan)
 
-# ۵. پیدا کردن خودکار مسیرها
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-STATIC_DIR = os.path.join(BASE_DIR, "static")
-OUTPUT_DIR = os.path.join(STATIC_DIR, "outputs")
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-
-if os.path.exists(STATIC_DIR):
-    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
-
-# ۶. مسیر اصلی با قابلیت "خود-ترمیمی"
-@app.get("/", response_class=HTMLResponse)
-async def home():
-    # لیست تمام مسیرهای احتمالی که ممکن است index.html آنجا باشد
-    possible_paths = [
-        os.path.join(BASE_DIR, "index.html"),
-        os.path.join(BASE_DIR, "static", "index.html"),
-        "index.html"
-    ]
-    
-    for path in possible_paths:
-        if os.path.exists(path):
-            return FileResponse(path)
-    
-    # اگر فایل اصلاً پیدا نشد، یک صفحه موقت نشان بده تا سایت کرش نکند
-    logger.error(f"❌ index.html NOT FOUND. Searched: {possible_paths}")
-    return """
-    <html>
-        <body style="background:#000;color:#d4af37;text-align:center;padding-top:100px;font-family:serif;">
-            <h1>🔱 THE VOID 🔱</h1>
-            <p>The gateway (index.html) is missing from the server.</p>
-            <p>Please ensure index.html is in the root folder.</p>
-        </body>
-    </html>
-    """
-
-# --- API MINT ---
-@app.post("/api/mint")
-async def process_mint(request: Request):
-    data = await request.json()
-    uid = data.get('u')
-    burden = data.get('b', 'UNNAMED')
-    dna = random.randint(1000000, 9999999)
-    
-    # ساخت تصویر
-    img = Image.new('RGB', (800, 800), color=(5, 5, 5))
-    draw = ImageDraw.Draw(img)
-    draw.rectangle([20, 20, 780, 780], outline=(212, 175, 55), width=5)
-    draw.text((400, 400), f"ARTIFACT: {burden}\nDNA: {dna}", fill=(212, 175, 55), anchor="mm")
-    
-    fname = f"user_{uid}_{dna}.jpg"
-    fpath = os.path.join(OUTPUT_DIR, fname)
-    img.save(fpath, "JPEG")
-    
-    async def send_tg():
-        try:
-            await bot.send_photo(chat_id=uid, photo=FSInputFile(fpath), caption=f"🔱 DNA: `{dna}`")
-        except: pass
-
-    asyncio.create_task(send_tg())
-    return {"status": "success", "url": f"/static/outputs/{fname}"}
-
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
+    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", 8000)))
