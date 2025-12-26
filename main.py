@@ -37,14 +37,6 @@ if not HF_API_TOKEN:
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
-# مهم: ثبت همه handlerها با متد register
-dp.message.register(cmd_start, CommandStart())
-dp.message.register(cmd_admin, Command("admin"))
-
-dp.callback_query.register(admin_mint_start, lambda c: c.data == "admin_mint_user")
-dp.callback_query.register(admin_select_plan, lambda c: c.data.startswith("plan_"))
-dp.callback_query.register(admin_reset_all, lambda c: c.data == "admin_reset_all")
-
 WEBAPP_URL = "https://the-void-1.onrender.com"
 HF_MODEL = "stabilityai/stable-diffusion-xl-base-1.0"
 
@@ -282,6 +274,13 @@ async def admin_reset_all(callback: types.CallbackQuery):
     conn.close()
     await callback.message.answer("🔄 All users' free mints reset to 3!")
 
+# ثبت handlerها با register (بعد از تعریف همه توابع برای جلوگیری از NameError)
+dp.message.register(cmd_start, CommandStart())
+dp.message.register(cmd_admin, Command("admin"))
+dp.callback_query.register(admin_mint_start, lambda c: c.data == "admin_mint_user")
+dp.callback_query.register(admin_select_plan, lambda c: c.data.startswith("plan_"))
+dp.callback_query.register(admin_reset_all, lambda c: c.data == "admin_reset_all")
+
 # --- FastAPI با Webhook ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -309,7 +308,7 @@ async def home():
         return FileResponse(path)
     return "<h1>🌌 THE VOID</h1><p>index.html missing in /static</p>"
 
-# --- Webhook endpoint (دقیقاً طبق درخواست) ---
+# --- Webhook endpoint ---
 @app.post("/webhook")
 async def webhook(request: Request):
     try:
@@ -337,6 +336,11 @@ async def api_mint(request: Request):
         if plan == 'eternal' and (not row or row[0] <= 0):
             conn.close()
             return JSONResponse({"error": "No free mints left"}, status_code=403)
+        # کاهش free_mints برای پلن eternal
+        if plan == 'eternal' and row and row[0] > 0:
+            c.execute("UPDATE users SET free_mints = free_mints - 1 WHERE id = ?", (user_id,))
+            conn.commit()
+        conn.close()
         image_url, dna = await manual_mint(user_id, plan, burden, photo_base64)
         return JSONResponse({
             "status": "success",
