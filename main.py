@@ -4,14 +4,17 @@ import asyncio
 import logging
 import sqlite3
 import requests
+import base64
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from aiogram import Bot, Dispatcher, types
-from aiogram.filters import CommandStart
-from aiogram.types import WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.filters import CommandStart, Command
+from aiogram.types import WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup, FSInputFile
 from aiogram.enums import ParseMode
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
 from dotenv import load_dotenv
 from PIL import Image, ImageDraw, ImageFont
 import io
@@ -24,6 +27,7 @@ logger = logging.getLogger(__name__)
 # --- تنظیمات ---
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 HF_API_TOKEN = os.getenv("HF_API_TOKEN")  # برای Stable Diffusion
+ADMIN_ID = int(os.getenv("ADMIN_ID", "0"))  # آیدی امپراتور
 if not BOT_TOKEN:
     raise ValueError("BOT_TOKEN missing!")
 if not HF_API_TOKEN:
@@ -93,10 +97,12 @@ async def cmd_start(message: types.Message):
 
     bot_username = (await bot.get_me()).username
     ref_link = f"https://t.me/{bot_username}?start={user_id}"
+    story_link = f"https://t.me/{bot_username}?startapp={user_id}"
 
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🌌 ENTER THE VOID", web_app=WebAppInfo(url=WEBAPP_URL))],
-        [InlineKeyboardButton(text="👥 Share Referral Link", url=ref_link)]
+        [InlineKeyboardButton(text="👥 Share Referral Link", url=ref_link)],
+        [InlineKeyboardButton(text="📱 Add to Story (Share App)", url=story_link)]
     ])
 
     full_msg = WELCOME_MESSAGE + f"\n\n🔗 <b>Your Referral Link:</b>\n<code>{ref_link}</code>\n\nInvite 6 worthy souls and your next ascension will be free."
@@ -126,6 +132,157 @@ async def generate_ai_image(prompt: str, init_image_base64: str):
     except Exception as e:
         logger.error(f"HF Request failed: {e}")
     return None
+
+# --- تابع دستی مینت (برای ادمین و سیستم) ---
+async def manual_mint(user_id: int, plan: str, burden: str = "Emperor's Gift", photo_base64: str = None):
+    conn = sqlite3.connect("void_data.db")
+    c = conn.cursor()
+
+    prompt = "luxurious dark royal portrait certificate with ornate golden arabesque frame, intricate diamonds and jewels, cosmic nebula background, sacred geometry mandala, elegant ancient gold font, ultra-detailed masterpiece cinematic lighting"
+
+    image_bytes = None
+    if photo_base64 and HF_API_TOKEN:
+        image_bytes = await generate_ai_image(prompt, photo_base64)
+
+    if not image_bytes:
+        # fallback لوکس با Pillow
+        img = Image.new('RGB', (1000, 1400), (5, 5, 5))
+        draw = ImageDraw.Draw(img)
+        draw.rectangle([50, 50, 950, 1350], outline=(212, 175, 55), width=15)
+        draw.rectangle([70, 70, 930, 1330], outline=(169, 135, 0), width=5)
+        try:
+            font = ImageFont.truetype("arial.ttf", 80)
+            font_small = ImageFont.truetype("arial.ttf", 60)
+        except:
+            font = ImageFont.load_default()
+            font_small = ImageFont.load_default()
+        draw.text((500, 200), "THE VOID", fill=(255, 215, 0), font=font, anchor="mm")
+        draw.text((500, 400), f"{plan.upper()} ASCENSION", fill=(212, 175, 55), font=font, anchor="mm")
+        draw.text((500, 700), f"Burden: {burden}", fill=(240, 240, 240), font=font_small, anchor="mm")
+        dna = random.randint(1000000, 9999999)
+        draw.text((500, 900), f"DNA: {dna}", fill=(169, 135, 0), font=font_small, anchor="mm")
+        draw.text((500, 1100), "Forever consumed by The Void", fill=(100, 100, 100), font=font_small, anchor="mm")
+        buffer = io.BytesIO()
+        img.save(buffer, format="JPEG")
+        image_bytes = buffer.getvalue()
+
+    filename = f"{plan}_{user_id}_{random.randint(1000000,9999999)}.jpg"
+    filepath = os.path.join(OUTPUT_DIR, filename)
+    with open(filepath, "wb") as f:
+        f.write(image_bytes)
+
+    image_url = f"/static/outputs/{filename}"
+
+    # ذخیره در دیتابیس
+    dna = random.randint(1000000, 9999999)
+    c.execute("INSERT INTO ascensions (user_id, plan, burden, dna, image_url) VALUES (?, ?, ?, ?, ?)",
+              (user_id, plan, burden, dna, image_url))
+    c.execute("UPDATE users SET total_ascensions = total_ascensions + 1 WHERE id = ?", (user_id,))
+    conn.commit()
+    conn.close()
+
+    # ارسال تصویر به کاربر
+    try:
+        await bot.send_photo(
+            chat_id=user_id,
+            photo=image_bytes,
+            caption=f"🌌 <b>Your {plan.upper()} Ascension is complete!</b>\n\n"
+                    f"Burden: {burden}\n"
+                    f"DNA: <code>{dna}</code>\n\n"
+                    f"The Void has claimed you forever.",
+            parse_mode=ParseMode.HTML
+        )
+    except Exception as e:
+        logger.error(f"Failed to send photo to {user_id}: {e}")
+
+# --- پنل ادمین کامل ---
+class AdminStates(StatesGroup):
+    waiting_user_id = State()
+    waiting_plan = State()
+    waiting_photo = State()
+
+@dp.message(Command("admin"))
+async def cmd_admin(message: types.Message):
+    if message.from_user.id != ADMIN_ID:
+        await message.answer("⚠️ The Void recognizes only its true Emperor.")
+        return
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="👤 Mint for User", callback_data="admin_mint_user")],
+        [InlineKeyboardButton(text="🔄 Reset All Free Mints", callback_data="admin_reset_all")]
+    ])
+    await message.answer("🔱 <b>Emperor's Control Panel</b>\n\nChoose your command:", parse_mode="HTML", reply_markup=kb)
+
+@dp.callback_query(lambda c: c.data == "admin_mint_user")
+async def admin_mint_start(callback: types.CallbackQuery, state: FSMContext):
+    if callback.from_user.id != ADMIN_ID:
+        return
+    await callback.message.answer("👤 Enter the Telegram User ID to mint for:")
+    await state.set_state(AdminStates.waiting_user_id)
+
+@dp.message(AdminStates.waiting_user_id)
+async def admin_get_user_id(message: types.Message, state: FSMContext):
+    if message.from_user.id != ADMIN_ID:
+        return
+    try:
+        target_id = int(message.text)
+        await state.update_data(target_id=target_id)
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="Eternal", callback_data="plan_eternal")],
+            [InlineKeyboardButton(text="Divine", callback_data="plan_divine")],
+            [InlineKeyboardButton(text="Celestial", callback_data="plan_celestial")],
+            [InlineKeyboardButton(text="Legendary", callback_data="plan_legendary")]
+        ])
+        await message.answer("Choose ascension level:", reply_markup=kb)
+        await state.set_state(AdminStates.waiting_plan)
+    except:
+        await message.answer("Invalid ID. Try again.")
+
+@dp.callback_query(lambda c: c.data.startswith("plan_"))
+async def admin_select_plan(callback: types.CallbackQuery, state: FSMContext):
+    if callback.from_user.id != ADMIN_ID:
+        return
+    plan = callback.data.replace("plan_", "")
+    await state.update_data(plan=plan)
+    await callback.message.answer(f"Level {plan.upper()} selected.\nSend a photo for the certificate (or /skip for fallback):")
+    await state.set_state(AdminStates.waiting_photo)
+
+@dp.message(AdminStates.waiting_photo)
+async def admin_mint_execute(message: types.Message, state: FSMContext):
+    if message.from_user.id != ADMIN_ID:
+        return
+    
+    data = await state.get_data()
+    target_id = data['target_id']
+    plan = data['plan']
+    photo_base64 = None
+    
+    if message.photo:
+        file_id = message.photo[-1].file_id
+        file = await bot.get_file(file_id)
+        photo_bytes = await bot.download_file(file.file_path)
+        photo_base64 = base64.b64encode(photo_bytes.read()).decode('utf-8')
+    elif message.text == "/skip":
+        photo_base64 = None
+    else:
+        await message.answer("Please send a photo or /skip.")
+        return
+
+    await manual_mint(target_id, plan, "Emperor's Gift", photo_base64)
+    
+    await message.answer(f"✅ {plan.upper()} ascension granted to user {target_id}!")
+    await state.clear()
+
+@dp.callback_query(lambda c: c.data == "admin_reset_all")
+async def admin_reset_all(callback: types.CallbackQuery):
+    if callback.from_user.id != ADMIN_ID:
+        return
+    conn = sqlite3.connect("void_data.db")
+    c = conn.cursor()
+    c.execute("UPDATE users SET free_mints = 3")
+    conn.commit()
+    conn.close()
+    await callback.message.answer("🔄 All users' free mints reset to 3!")
 
 # --- FastAPI با Webhook ---
 @asynccontextmanager
@@ -185,73 +342,12 @@ async def api_mint(request: Request):
             conn.close()
             return JSONResponse({"error": "No free mints left"}, status_code=403)
 
-        # انتخاب پرامپت (۱۵۰ تا رو اینجا کامل بذار)
-        # برای مثال:
-        prompt = "luxurious dark royal portrait certificate with ornate golden arabesque frame, intricate diamonds and jewels, cosmic nebula background, sacred geometry mandala, elegant ancient gold font, ultra-detailed masterpiece cinematic lighting"
-
-        image_bytes = None
-        if photo_base64 and HF_API_TOKEN:
-            image_bytes = await generate_ai_image(prompt, photo_base64)
-
-        if not image_bytes:
-            # fallback لوکس با Pillow
-            img = Image.new('RGB', (1000, 1400), (5, 5, 5))
-            draw = ImageDraw.Draw(img)
-            draw.rectangle([50, 50, 950, 1350], outline=(212, 175, 55), width=15)
-            draw.rectangle([70, 70, 930, 1330], outline=(169, 135, 0), width=5)
-            try:
-                font = ImageFont.truetype("arial.ttf", 80)
-                font_small = ImageFont.truetype("arial.ttf", 60)
-            except:
-                font = ImageFont.load_default()
-                font_small = ImageFont.load_default()
-            draw.text((500, 200), "THE VOID", fill=(255, 215, 0), font=font, anchor="mm")
-            draw.text((500, 400), f"{plan.upper()} ASCENSION", fill=(212, 175, 55), font=font, anchor="mm")
-            draw.text((500, 700), f"Burden: {burden}", fill=(240, 240, 240), font=font_small, anchor="mm")
-            dna = random.randint(1000000, 9999999)
-            draw.text((500, 900), f"DNA: {dna}", fill=(169, 135, 0), font=font_small, anchor="mm")
-            draw.text((500, 1100), "Forever consumed by The Void", fill=(100, 100, 100), font=font_small, anchor="mm")
-            buffer = io.BytesIO()
-            img.save(buffer, format="JPEG")
-            image_bytes = buffer.getvalue()
-
-        filename = f"{plan}_{user_id}_{random.randint(1000000,9999999)}.jpg"
-        filepath = os.path.join(OUTPUT_DIR, filename)
-        with open(filepath, "wb") as f:
-            f.write(image_bytes)
-
-        image_url = f"/static/outputs/{filename}"
-
-        # ذخیره در دیتابیس
-        dna = random.randint(1000000, 9999999)
-        c.execute("INSERT INTO ascensions (user_id, plan, burden, dna, image_url) VALUES (?, ?, ?, ?, ?)",
-                  (user_id, plan, burden, dna, image_url))
-        if plan == 'eternal':
-            c.execute("UPDATE users SET free_mints = free_mints - 1, total_ascensions = total_ascensions + 1 WHERE id = ?", (user_id,))
-        else:
-            c.execute("UPDATE users SET total_ascensions = total_ascensions + 1 WHERE id = ?", (user_id,))
-        conn.commit()
-        conn.close()
-
-        # ارسال تصویر به تلگرام
-        try:
-            await bot.send_photo(
-                chat_id=user_id,
-                photo=image_bytes,
-                caption=f"🌌 <b>Your {plan.upper()} Ascension is complete!</b>\n\n"
-                        f"Burden: {burden}\n"
-                        f"DNA: <code>{dna}</code>\n\n"
-                        f"The Void has claimed you forever.",
-                parse_mode=ParseMode.HTML
-            )
-        except Exception as e:
-            logger.error(f"Failed to send photo: {e}")
+        await manual_mint(user_id, plan, burden, photo_base64)
 
         return JSONResponse({
             "status": "success",
             "message": "Ascension complete!",
-            "image_url": image_url,
-            "dna": dna
+            "image_url": "latest.jpg"  # اپ می‌تونه از /api/gallery استفاده کنه یا رفرش کنه
         })
 
     except Exception as e:
